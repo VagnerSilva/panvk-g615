@@ -110,7 +110,7 @@ index e850f7c1..2e477a52 100644
  
  /* csf-v11 231: 226 kept only what the last reset gave back (+25%), so a pool
   * whose recordings vary in size freed BOs at a light reset and allocated
-@@ -220,9 +247,22 @@ panvk_ResetCommandPool(VkDevice _device, VkCommandPool commandPool,
+@@ -221,9 +248,22 @@ panvk_ResetCommandPool(VkDevice _device, VkCommandPool commandPool,
     if (result == VK_SUCCESS && release_resources)
        panvk_cmd_pool_release_free_bos(pool);
  

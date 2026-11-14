@@ -17,13 +17,19 @@ is destroyed.
 Knob: PANVK_CMD_POOL_TRIM=0 (csf-v11 220) restores the old behaviour.
 Arch: gs_pool is used by v6/v7 only. Not device-tested.
 
+The auto-trim free-list set (csf-v11 226/231) only names the pools
+that exist in the per-arch CSF series, so gs_bo_pool is added to it
+here as well: 6 pools, gs at index 3, with the per-pool high-water
+arrays sized to match.
+
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
- src/panfrost/vulkan/panvk_cmd_pool.c | 2 ++
- 1 file changed, 2 insertions(+)
+ src/panfrost/vulkan/panvk_cmd_pool.c | 10 +++++++---
+ src/panfrost/vulkan/panvk_cmd_pool.h |  2 +-
+ 2 files changed, 8 insertions(+), 4 deletions(-)
 
 diff --git a/src/panfrost/vulkan/panvk_cmd_pool.c b/src/panfrost/vulkan/panvk_cmd_pool.c
-index d91fcec6..ab97174d 100644
+index e37ddf62..475c2b94 100644
 --- a/src/panfrost/vulkan/panvk_cmd_pool.c
 +++ b/src/panfrost/vulkan/panvk_cmd_pool.c
 @@ -99,6 +99,8 @@ panvk_cmd_pool_release_free_bos(struct panvk_cmd_pool *pool)
@@ -35,6 +41,41 @@ index d91fcec6..ab97174d 100644
     panvk_bo_pool_cleanup(&pool->varying_bo_pool);
     panvk_bo_pool_cleanup(&pool->tls_bo_pool);
     panvk_bo_pool_cleanup(&pool->tls_big_bo_pool);
+@@ -129,7 +131,7 @@ panvk_cmd_pool_autotrim_enabled(struct panvk_device *dev)
+    return v && pan_arch(pdev->kmod.dev->props.gpu_id) >= 10;
+ }
+ 
+-#define PANVK_CMD_POOL_BO_POOLS 5
++#define PANVK_CMD_POOL_BO_POOLS 6
+ 
+ /* csf-v11 231: 226 kept only what the last reset gave back (+25%), so a pool
+  * whose recordings vary in size freed BOs at a light reset and allocated
+@@ -156,8 +158,10 @@ panvk_cmd_pool_bo_pools(struct panvk_cmd_pool *pool,
+    out[0] = &pool->cs_bo_pool;
+    out[1] = &pool->desc_bo_pool;
+    out[2] = &pool->varying_bo_pool;
+-   out[3] = &pool->tls_bo_pool;
+-   out[4] = &pool->tls_big_bo_pool;
++   /* jm-v7 112: the v6/v7 geometry emulation slabs are trimmed too. */
++   out[3] = &pool->gs_bo_pool;
++   out[4] = &pool->tls_bo_pool;
++   out[5] = &pool->tls_big_bo_pool;
+ }
+ 
+ static void
+diff --git a/src/panfrost/vulkan/panvk_cmd_pool.h b/src/panfrost/vulkan/panvk_cmd_pool.h
+index 8794cb14..c0ab1186 100644
+--- a/src/panfrost/vulkan/panvk_cmd_pool.h
++++ b/src/panfrost/vulkan/panvk_cmd_pool.h
+@@ -24,7 +24,7 @@ struct panvk_cmd_pool {
+     * each free list got back at one reset, in this window of resets and the
+     * previous one. */
+    struct {
+-      uint32_t cur[5], prev[5];
++      uint32_t cur[6], prev[6];
+       uint32_t resets;
+    } autotrim;
+ };
 -- 
 2.55.0
 

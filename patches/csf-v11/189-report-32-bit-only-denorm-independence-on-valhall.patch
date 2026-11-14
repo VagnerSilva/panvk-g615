@@ -35,7 +35,7 @@ diff --git a/src/panfrost/compiler/pan_compiler.c b/src/panfrost/compiler/pan_co
 index 8c99ff4..ceb972c 100644
 --- a/src/panfrost/compiler/pan_compiler.c
 +++ b/src/panfrost/compiler/pan_compiler.c
-@@ -355,9 +355,10 @@ pan_shader_update_info(struct pan_shader_info *info, nir_shader *s,
+@@ -361,9 +361,10 @@ pan_shader_update_info(struct pan_shader_info *info, nir_shader *s,
  
     if (arch >= 9) {
        /* Valhall hardware doesn't have a "flush FP16, preserve FP32" mode, and
