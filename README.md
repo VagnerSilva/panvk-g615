@@ -132,9 +132,12 @@ selects the Android Rust target; Meson uses the NDK C compiler as its linker.
 If an existing build directory was configured before the cross-file change,
 use a new `BDIR` so Meson reads the updated cross file.
 
-Building Kraid does not select it at runtime. On supported v9+ GPUs, set
-`PAN_USE_KRAID=1` in the environment of the process loading the driver to
-try it; `KRAID_DEBUG=print` enables shader diagnostics. See
+On Android builds, Kraid is selected by default on supported v9+ GPUs. Set
+`PAN_USE_KRAID=0` in the environment of the process loading the driver to opt
+out; `PAN_USE_KRAID=1` (or `all`) explicitly selects Kraid for all shader
+stages. The existing stage selectors (`cs`, `fs`, `vs`, `internal`) remain
+available. Non-Android builds remain opt-in. `KRAID_DEBUG=print` enables shader
+diagnostics. See
 [`docs/BUILD-POCO-X6-PRO.md`](docs/BUILD-POCO-X6-PRO.md) for build setup and
 [`tests/README.md`](tests/README.md) for device validation.
 
@@ -149,7 +152,9 @@ import, without claiming release or device-validation evidence:
 
 This lightweight import package is not the release `.adpkg.zip` produced by
 `scripts/package-android-adpkg.sh`; it does not contain release provenance or
-device gate evidence. Packaging does not enable Kraid at runtime.
+device gate evidence. The package does not set runtime environment variables;
+Android builds select Kraid by default on supported v9+ GPUs, with
+`PAN_USE_KRAID=0` available to opt out.
 
 The release driver is one universal `.so` for v6 to v14, built from the tree that `scripts/prepare-rc5-tree.sh` prepares (all patch families applied in strict mode). The per-arch profiles in `profiles/` (`g52-v7-jm`, `g57-v9-jm`, `g610-v10-csf`, `g615-v11-csf`, `g720-v12-csf`) are for single-arch development builds. See [`docs/RELEASE.md`](docs/RELEASE.md) for the release process and tags (`panvk-kbase-v<version>` for the driver, `panplay-v<version>` and `panprobe-v<version>` for the apps). The exact Mesa commit is pinned in `sources.lock`.
 

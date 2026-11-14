@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Copilot <223556219+Copilot@users.noreply.github.com>
+Date: Sat, 14 Nov 2026 03:00:00 -0300
+Subject: [PATCH] panfrost: default to Kraid on Android
+
+The Android ICD is commonly loaded by third-party apps that cannot set
+PAN_USE_KRAID in the driver process environment. Default Android builds to
+Kraid on supported Valhall GPUs, while preserving PAN_USE_KRAID=0 as an
+opt-out. Keep the existing stage selectors and accept PAN_USE_KRAID=1 as a
+boolean alias for all stages.
+
+Non-Android builds keep their existing opt-in default.
+---
+ src/panfrost/compiler/pan_compiler.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/src/panfrost/compiler/pan_compiler.c b/src/panfrost/compiler/pan_compiler.c
+index 8c99ff4..0000000 100644
+--- a/src/panfrost/compiler/pan_compiler.c
++++ b/src/panfrost/compiler/pan_compiler.c
+@@ -38,8 +38,13 @@
+ #ifdef WITH_PANFROST_RUST
+ #define USE_KRAID_CS (1ull << 0)
+ #define USE_KRAID_FS (1ull << 1)
+ #define USE_KRAID_VS (1ull << 2)
+ #define USE_KRAID_INTERNAL (1ull << 3)
+ #define USE_KRAID_ALL 0xf
++#if defined(__ANDROID__)
++#define PAN_USE_KRAID_DEFAULT USE_KRAID_ALL
++#else
++#define PAN_USE_KRAID_DEFAULT 0
++#endif
+-
++
+ static const struct debug_named_value pan_use_kraid_flags[] = {
+@@ -48,5 +53,6 @@ static const struct debug_named_value pan_use_kraid_flags[] = {
+    { "vs", USE_KRAID_VS, "Use Kraid for vertex shaders" },
+    { "internal", USE_KRAID_INTERNAL, "Use Kraid for internal shaders" },
+    { "all", USE_KRAID_ALL, "Use Kraid for all shader stages" },
++   { "1", USE_KRAID_ALL, "Use Kraid for all shader stages" },
+    DEBUG_NAMED_VALUE_END,
+ };
+@@ -53,4 +59,4 @@
+-
++
+ DEBUG_GET_ONCE_FLAGS_OPTION(use_kraid, "PAN_USE_KRAID",
+-                            pan_use_kraid_flags, 0)
++                            pan_use_kraid_flags, PAN_USE_KRAID_DEFAULT)
+ #endif
