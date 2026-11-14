@@ -29,6 +29,15 @@
   IO coherency, no RandR on an X server without RANDR). Each default-on change has a knob that restores 114
   (`patches/staging-115/*/NOTES.md`).
 
+### Fixed
+
+- **Instance-rate vertex attributes on the gpu_prerast path** (`patches/jm-v7-wip` 0176): a vertex shader
+  with stores runs as a compute dispatch with one workgroup per vertex and instance. When a compute task
+  covered several instances, every invocation of the task read the attribute of the task's first instance.
+  The task split now stays within one instance. Seen on a 2-core Mali-G615 MC2 as the PanProbe
+  `draw_params` `divisor` failure (6 instances, 3 per task); 6-core G615 devices got one instance per task and
+  passed. Not yet re-run on the MC2.
+
 ### Validation (Firebase Test Lab, 2026-10-27)
 
 Galaxy S9 (Mali-G72 MC18, v6), Galaxy A31 (Mali-G52 MC2, v7), Pixel 6 (Mali-G78 MC20, v9), Pixel 7 (Mali-G710 MC7,

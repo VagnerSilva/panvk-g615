@@ -6,6 +6,7 @@
  * Cases:
  *   1. base_vertex_instance  vkCmdDrawIndexed base vertex/instance
  *   2. draw_nonindexed       vkCmdDraw base vertex/instance
+ *   2b. instance_rows        1 vertex x 12 instances, instance-rate attribute
  *   3. divisor               instance-rate divisor 2 (sub-case divisor0)
  *   4. maintenance5          null shader module + vkCmdBindIndexBuffer2KHR
  *   5. maintenance6          vkCmdBindDescriptorSets2KHR + vkCmdPushConstants2KHR
@@ -727,6 +728,21 @@ fill_draw(struct rec *e, uint32_t *n)
    *n = c;
 }
 
+/* One vertex, 12 instances from firstInstance 4, divisor 1. */
+static void
+fill_instance_rows(struct rec *e, uint32_t *n)
+{
+   uint32_t c = 0;
+   for (uint32_t i = 4; i < 16; i++) {
+      e[c].v[0] = 0;
+      e[c].v[1] = i;
+      e[c].v[2] = pack_base(0, 4);
+      e[c].v[3] = 1000 + i;
+      c++;
+   }
+   *n = c;
+}
+
 static void
 fill_div(struct rec *e, uint32_t *n, uint32_t divisor)
 {
@@ -1377,6 +1393,26 @@ main(int argc, char **argv)
          .instances = 2,
          .first = 5,
          .first_instance = 2,
+      };
+      if (run_job(&j, exp, ne, 0, &passes, &fails)) {
+         hard = 1;
+         goto fail;
+      }
+   }
+
+   /* Many instances of one vertex: on PanVK v10+ the storing VS runs as a
+    * compute dispatch with one workgroup per instance row, and a task that
+    * spans several rows must still fetch each instance's own attribute.
+    */
+   fill_instance_rows(exp, &ne);
+   {
+      struct job j = {
+         .name = "instance_rows",
+         .pipe = A.pipe,
+         .count = 1,
+         .instances = 12,
+         .first = 0,
+         .first_instance = 4,
       };
       if (run_job(&j, exp, ne, 0, &passes, &fails)) {
          hard = 1;
