@@ -1,20 +1,22 @@
 #!/bin/sh
-# package-launcher-zips.sh — build the six Android launcher driver zips from a validated .so
+# package-launcher-zips.sh — build Android launcher driver zips and a development adpkg
 # (adrenotools, winlator, bannerlator, cmod, ludashi, gamehub). Layouts reproduce the RC4 zips.
 # Names follow the driverInfo the .so reports (scripts/driver_identity.py): builds that report it like upstream
 # Mesa ("Mesa 26.3.0-devel (git-6a5d4e2756)") get meta name "Mesa-PanVK-26.3.0-devel-6a5d4e27", that driverInfo
 # as driverVersion and Mesa-PanVK-Android-<version>-<git sha8>-<launcher>.zip; older "PanVK-kbase <release>"
 # builds keep the RC4 names (PanVK-kbase-<label>, PanVK-Kbase-Android-<version>-<mesa8>-<launcher>.zip).
 # Usage: ./scripts/package-launcher-zips.sh --so path/libvulkan_panfrost.so [--version v0.1.0-rc4]
-#        [--label RC4] [--tag g615-v11-csf] [--mesa-sha 5a07217f (or 10+ chars to set the driverVersion git id)] [--outdir dist]
+#        [--label RC4] [--tag g615-v11-csf] [--mesa-sha 5a07217f (or 10+ chars to set the driverVersion git id)] [--outdir dist] [--only adpkg]
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SO=""; VER="v0.0.0-dev"; LABEL=""; TAG="g615-v11-csf"; OUTDIR="$ROOT/dist"; MESA8=""
+SO=""; VER="v0.0.0-dev"; LABEL=""; TAG="g615-v11-csf"; OUTDIR="$ROOT/dist"; MESA8=""; ONLY=""
 while [ $# -gt 0 ]; do case "$1" in
   --so) SO="$2"; shift 2;; --version) VER="$2"; shift 2;; --label) LABEL="$2"; shift 2;;
   --tag) TAG="$2"; shift 2;; --outdir) OUTDIR="$2"; shift 2;; --mesa-sha) MESA8="$2"; shift 2;;
+  --only) ONLY="$2"; shift 2;;
   *) echo "unknown $1" >&2; exit 2;; esac; done
 [ -f "$SO" ] || { echo "--so <file> required" >&2; exit 2; }
+[ -z "$ONLY" ] || [ "$ONLY" = adpkg ] || { echo "--only supports adpkg" >&2; exit 2; }
 if [ -z "$MESA8" ]; then
   MESA8="$(python3 -c "import json;print(json.load(open('$ROOT/sources.lock'))['mesaCommit'][:8])")"
 fi
@@ -25,9 +27,9 @@ if [ "${#MESA8}" -ge 10 ]; then MESA10="$MESA8"; MESA8="$(echo "$MESA8" | cut -c
 else MESA10="$(python3 -c "import json;print(json.load(open('$ROOT/sources.lock'))['mesaCommit'][:10])")"; fi
 export MESA10
 mkdir -p "$OUTDIR"
-python3 - "$SO" "$VER" "$LABEL" "$TAG" "$MESA8" "$OUTDIR" "$ROOT" <<'EOF'
-import sys, json, hashlib, zipfile, pathlib
-so, ver, label, tag, mesa8, outdir, reporoot = sys.argv[1:]
+python3 - "$SO" "$VER" "$LABEL" "$TAG" "$MESA8" "$OUTDIR" "$ROOT" "$ONLY" <<'EOF'
+import sys, json, hashlib, zipfile, pathlib, re
+so, ver, label, tag, mesa8, outdir, reporoot, only = sys.argv[1:]
 import os
 sys.path.insert(0, os.path.join(reporoot, "scripts"))
 from driver_identity import identity
@@ -36,6 +38,9 @@ so = pathlib.Path(so); outdir = pathlib.Path(outdir)
 data = so.read_bytes()
 sha = hashlib.sha256(data).hexdigest()
 pkgver = ver.removeprefix("v")
+is_dev = bool(re.search(r'(^|[^a-z])dev([^a-z]|$)', pkgver.lower()))
+if only == "adpkg" and not is_dev:
+    sys.exit("adpkg import packages require a -dev version; use the release packager for other tiers")
 ident = identity(data)
 upstream = bool(ident and ident["style"] == "upstream")
 if upstream:
@@ -60,10 +65,16 @@ L = {
  "ludashi":     dict(minApi=28, app="com.winlator.cmod", lib="libvulkan_panfrost.so"),
  "gamehub":     dict(minApi=29, app=None, lib="libvulkan_freedreno.so",
                      desc="GameHub/BannerHub package: the PanVK library is shipped as libvulkan_freedreno.so (name hard-coded by the loader)."),
+ "adpkg":       dict(minApi=35, app=None, lib="libvulkan_panfrost.so",
+                     desc="Development package; device validation is not included."),
 }
 def icd(path):
     return json.dumps({"file_format_version":"1.0.0","ICD":{"library_path":path,"api_version":"1.4.363"}}, indent=2) + "\n"
 for key, c in L.items():
+    if only and key != only:
+        continue
+    if key == "adpkg" and not is_dev:
+        continue
     app = c.get("app")
     if app:
         desc = f"{base} Package for {key} ({app}); see README-{key}.txt for the direct-ICD (no wrapper) setting."
@@ -75,6 +86,12 @@ for key, c in L.items():
     files = {c["lib"]: data,
              "meta.json": (json.dumps(meta, indent=2) + "\n").encode(),
              "SHA256SUMS.txt": f"{sha}  {c['lib']}\n".encode()}
+    if key == "adpkg":
+        files["VALIDATION.json"] = (json.dumps({
+            "binarySha256": sha,
+            "status": "not-revalidated-by-packaging",
+            "note": "No device validation evidence is included in this development package.",
+        }, indent=2) + "\n").encode()
     if app:
         root = f"/data/data/{app}/files/contents/adrenotools/{name}"
         files["panvk_icd.aarch64.json"] = icd("./libvulkan_panfrost.so").encode()
@@ -90,7 +107,7 @@ If the X11 present path fails, also add MESA_VK_WSI_DEBUG=sw.
 Fallback (wrapper in path): leave VK_ICD_FILENAMES unset and pick "{name}" as Graphics Driver Version.
 Check: wine log / logcat shows driverInfo "{check}"; .so sha256 {sha}
 """).encode()
-    out = outdir / f"{zipstem}-{key}.zip"
+    out = outdir / (f"{zipstem}.adpkg.zip" if key == "adpkg" else f"{zipstem}-{key}.zip")
     if out.exists(): out.unlink()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for n in sorted(files):

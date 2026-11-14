@@ -68,7 +68,7 @@ fi
 printf '%s' "$REL_NOW" > "$BDIR/.panvk_release"
 LOG="$BDIR.log"; RECONF=""; [ -f "$BDIR/build.ninja" ] && RECONF="--reconfigure"
 meson setup $RECONF "$BDIR" "$MESA" --cross-file "$BDIR.cross.ini" \
-  -Dbuildtype=release -Dplatforms=android,x11 -Dandroid-stub=true -Dandroid-strict=false \
+  -Dbuildtype=release -Dpanfrost-rust=true -Dplatforms=android,x11 -Dandroid-stub=true -Dandroid-strict=false \
   -Dgallium-drivers= -Dvulkan-drivers=panfrost -Dpanfrost-kmds=kbase \
   -Dmesa-clc=system -Dprecomp-compiler=system -Dxlib-lease=disabled \
   -Degl=disabled -Dgles1=disabled -Dgles2=disabled -Dopengl=false \

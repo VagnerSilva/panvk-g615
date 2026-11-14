@@ -123,6 +123,34 @@ Notes:
 ./scripts/package-android-adpkg.sh --profile <profile>
 ```
 
+The Android build enables Mesa's experimental Kraid compiler with
+`-Dpanfrost-rust=true`. In addition to the Android NDK, it requires Meson 1.7+
+and Rust 1.85+ with the Android target (`rustup target add
+aarch64-linux-android`), a compatible `bindgen` (0.71.1 or newer; Mesa rejects
+0.72.0, 0.73.0, and 0.73.1), and Mesa's Rust dependencies. The cross file
+selects the Android Rust target; Meson uses the NDK C compiler as its linker.
+If an existing build directory was configured before the cross-file change,
+use a new `BDIR` so Meson reads the updated cross file.
+
+Building Kraid does not select it at runtime. On supported v9+ GPUs, set
+`PAN_USE_KRAID=1` in the environment of the process loading the driver to
+try it; `KRAID_DEBUG=print` enables shader diagnostics. See
+[`docs/BUILD-POCO-X6-PRO.md`](docs/BUILD-POCO-X6-PRO.md) for build setup and
+[`tests/README.md`](tests/README.md) for device validation.
+
+To package an existing Android ICD as a development `.adpkg.zip` for app
+import, without claiming release or device-validation evidence:
+
+```sh
+./scripts/package-launcher-zips.sh \
+  --so dist/android-universal-g615-v11-csf/libvulkan_panfrost.so \
+  --version v0.0.0-dev --outdir dist/kraid-test --only adpkg
+```
+
+This lightweight import package is not the release `.adpkg.zip` produced by
+`scripts/package-android-adpkg.sh`; it does not contain release provenance or
+device gate evidence. Packaging does not enable Kraid at runtime.
+
 The release driver is one universal `.so` for v6 to v14, built from the tree that `scripts/prepare-rc5-tree.sh` prepares (all patch families applied in strict mode). The per-arch profiles in `profiles/` (`g52-v7-jm`, `g57-v9-jm`, `g610-v10-csf`, `g615-v11-csf`, `g720-v12-csf`) are for single-arch development builds. See [`docs/RELEASE.md`](docs/RELEASE.md) for the release process and tags (`panvk-kbase-v<version>` for the driver, `panplay-v<version>` and `panprobe-v<version>` for the apps). The exact Mesa commit is pinned in `sources.lock`.
 
 ## Layout
