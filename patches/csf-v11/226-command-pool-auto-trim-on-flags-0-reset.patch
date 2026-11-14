@@ -29,7 +29,7 @@ diff --git a/src/panfrost/vulkan/panvk_cmd_pool.c b/src/panfrost/vulkan/panvk_cm
 index 25499266..ad185421 100644
 --- a/src/panfrost/vulkan/panvk_cmd_pool.c
 +++ b/src/panfrost/vulkan/panvk_cmd_pool.c
-@@ -108,11 +108,60 @@ panvk_cmd_pool_release_free_bos(struct panvk_cmd_pool *pool)
+@@ -108,11 +108,59 @@ panvk_cmd_pool_release_free_bos(struct panvk_cmd_pool *pool)
     }
  }
  
@@ -52,7 +52,7 @@ index 25499266..ad185421 100644
 +   return v && pan_arch(pdev->kmod.dev->props.gpu_id) >= 10;
 +}
 +
-+#define PANVK_CMD_POOL_BO_POOLS 6
++#define PANVK_CMD_POOL_BO_POOLS 5
 +
 +static void
 +panvk_cmd_pool_bo_pools(struct panvk_cmd_pool *pool,
@@ -61,9 +61,8 @@ index 25499266..ad185421 100644
 +   out[0] = &pool->cs_bo_pool;
 +   out[1] = &pool->desc_bo_pool;
 +   out[2] = &pool->varying_bo_pool;
-+   out[3] = &pool->gs_bo_pool;
-+   out[4] = &pool->tls_bo_pool;
-+   out[5] = &pool->tls_big_bo_pool;
++   out[3] = &pool->tls_bo_pool;
++   out[4] = &pool->tls_big_bo_pool;
 +}
 +
 +static void
@@ -90,7 +89,7 @@ index 25499266..ad185421 100644
  
     const bool release_resources =
        (flags & VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT) != 0;
-@@ -127,6 +176,16 @@ panvk_ResetCommandPool(VkDevice _device, VkCommandPool commandPool,
+@@ -127,6 +175,16 @@ panvk_ResetCommandPool(VkDevice _device, VkCommandPool commandPool,
        return vk_common_ResetCommandPool(_device, commandPool, flags);
     }
  
@@ -107,7 +106,7 @@ index 25499266..ad185421 100644
     VkResult result = vk_common_ResetCommandPool(_device, commandPool, flags);
  
     /* The command buffer resets above splice their BOs into the pool free
-@@ -135,6 +194,14 @@ panvk_ResetCommandPool(VkDevice _device, VkCommandPool commandPool,
+@@ -135,6 +193,14 @@ panvk_ResetCommandPool(VkDevice _device, VkCommandPool commandPool,
     if (result == VK_SUCCESS && release_resources)
        panvk_cmd_pool_release_free_bos(pool);
  
@@ -124,4 +123,3 @@ index 25499266..ad185421 100644
  
 -- 
 2.55.0
-
