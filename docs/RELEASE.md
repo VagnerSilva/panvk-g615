@@ -14,6 +14,8 @@ Launcher zips: `Mesa-PanVK-Android-<version>-<sha8>-<launcher>.zip`.
 (`Mesa 26.3.0-devel (git-<sha>)`, like an upstream Mesa PanVK development
 build); meta.json `name` is `Mesa-PanVK-<Mesa version>-<sha8>` and
 `driverVersion` the exact `driverInfo` (`scripts/driver_identity.py`).
+Package metadata keeps the canonical profile ID (for example, `g615-v11-csf`)
+so release validation can resolve it under `profiles/`.
 Releases up to RC4 used `PanVK-Kbase-Android-<version>-<mesa8>...` with
 `driverInfo` `PanVK-kbase <release> (Mesa ...)`. Release title:
 `Mesa PanVK <tag>`; tags keep the `panvk-kbase-v` prefix.

@@ -93,6 +93,7 @@ def main():
     fails += expect("glibc-beta-pass", glibc_ok(), True)
     fails += expect("missing-validation", android_ok(drop=("VALIDATION.json",)), False)
     fails += expect("missing-matrix", android_ok(drop=("runtime-feature-matrix.json",)), False)
+    fails += expect("short-profile-rejected", android_ok(meta={"profile": "v11-csf"}), False)
     fails += expect("pending-psid", android_ok(meta={"patchSeriesId": "PENDING-P3-REBASE"}), False)
     fails += expect("wrong-commit", android_ok(meta={"sourceCommit": "deadbeef" * 5}), False)
     fails += expect("untested-gate", android_ok(valid={"android": {

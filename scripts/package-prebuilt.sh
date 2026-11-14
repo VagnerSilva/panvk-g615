@@ -35,7 +35,6 @@ label = (ver.removeprefix("v").split("-",1)[1].upper() if "-" in ver else ver.re
 metaname = ident["packageName"] if upstream else f"PanVK-kbase-{label}"
 drvver = ident["driverInfo"] if upstream else "Mesa 26.3.0-devel"
 drvname = f"{ident['displayName']} (git-{ident['gitSha']})" if upstream else "PanVK Kbase"
-profile = profile.replace("g615-", "")  # user-facing id; internal build profile is only used to load profiles/*.json above
 pkgver = ver.removeprefix("v") + (f"-{suffix}" if suffix else "")
 tag = f"{ver}" + (f"-{suffix}" if suffix else "")
 note = ("Binary taken verbatim from the published release asset libvulkan_panfrost-android-aarch64.so "
