@@ -1,6 +1,6 @@
 /* Gate F: offscreen partial-triangle render to 64x64 RGBA8 + readback.
- * Clear = blue; triangle covers bottom-left corner in red.
- * PASS: top-right pixel stays clear blue, bottom-left interior pixel is red
+ * Clear = blue; triangle covers the top-left corner in red.
+ * PASS: bottom-right pixel stays clear blue, top-left interior pixel is red
  * (not a clear/blit false positive: two distinct colors in known regions).
  * Usage: triangle <libvulkan_panfrost.so>
  */
@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <vulkan/vulkan.h>
+
+#ifdef PANVK_ANDROID_APP_LOG
+#include <android/log.h>
+#define printf(...) __android_log_print(ANDROID_LOG_INFO, "PanVKOffscreen", __VA_ARGS__)
+#endif
 
 typedef PFN_vkVoidFunction (*icd_gipa_fn)(VkInstance, const char *);
 
@@ -26,6 +31,10 @@ typedef PFN_vkVoidFunction (*icd_gipa_fn)(VkInstance, const char *);
 
 #define W 64
 #define H 64
+#define READBACK_GUARD_BYTES 64
+#define READBACK_IMAGE_BYTES (W * H * 4)
+#define READBACK_BYTES (READBACK_IMAGE_BYTES + 2 * READBACK_GUARD_BYTES)
+#define READBACK_SENTINEL 0x7d
 
 int
 main(int argc, char **argv)
@@ -197,6 +206,10 @@ main(int argc, char **argv)
    CK(vkCreateBuffer(dev, &vbci, NULL, &vbuf), "VBuffer");
    VkMemoryRequirements vmr;
    vkGetBufferMemoryRequirements(dev, vbuf, &vmr);
+   if (!(vmr.memoryTypeBits & (1u << host_mi))) {
+      printf("FAIL vertex buffer has no selected host memory type");
+      return 1;
+   }
    VkDeviceMemory vmem;
    VkMemoryAllocateInfo vmai = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                                 .allocationSize = vmr.size,
@@ -254,19 +267,27 @@ main(int argc, char **argv)
 
    /* readback buffer */
    VkBufferCreateInfo rbci = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                              .size = W * H * 4,
+                              .size = READBACK_BYTES,
                               .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                               .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
    VkBuffer rbuf;
    CK(vkCreateBuffer(dev, &rbci, NULL, &rbuf), "RBuffer");
    VkMemoryRequirements rmr;
    vkGetBufferMemoryRequirements(dev, rbuf, &rmr);
+   if (!(rmr.memoryTypeBits & (1u << host_mi))) {
+      printf("FAIL readback buffer has no selected host memory type");
+      return 1;
+   }
    VkDeviceMemory rmem;
    VkMemoryAllocateInfo rmai = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                                 .allocationSize = rmr.size,
                                 .memoryTypeIndex = host_mi};
    CK(vkAllocateMemory(dev, &rmai, NULL, &rmem), "RMem");
    CK(vkBindBufferMemory(dev, rbuf, rmem, 0), "RBind");
+   void *rp_;
+   CK(vkMapMemory(dev, rmem, 0, READBACK_BYTES, 0, &rp_), "RMapInit");
+   memset(rp_, READBACK_SENTINEL, READBACK_BYTES);
+   vkUnmapMemory(dev, rmem);
 
    /* render pass */
    VkAttachmentDescription att = {.format = VK_FORMAT_R8G8B8A8_UNORM,
@@ -383,6 +404,7 @@ main(int argc, char **argv)
 
    VkCommandPoolCreateInfo cpoci = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+      .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
       .queueFamilyIndex = qi};
    VkCommandPool cpool;
    CK(vkCreateCommandPool(dev, &cpoci, NULL, &cpool), "Pool");
@@ -430,12 +452,19 @@ main(int argc, char **argv)
    vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1,
                         &bar);
-   VkBufferImageCopy region = {.imageSubresource = {.aspectMask =
+   VkBufferImageCopy region = {.bufferOffset = READBACK_GUARD_BYTES,
+                               .imageSubresource = {.aspectMask =
                                                        VK_IMAGE_ASPECT_COLOR_BIT,
                                                     .layerCount = 1},
                                .imageExtent = {W, H, 1}};
    vkCmdCopyImageToBuffer(cmd, img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                           rbuf, 1, &region);
+   VkMemoryBarrier host_barrier = {.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+                                   .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                                   .dstAccessMask = VK_ACCESS_HOST_READ_BIT};
+   vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &host_barrier,
+                        0, NULL, 0, NULL);
    CK(vkEndCommandBuffer(cmd), "End");
    VkSubmitInfo si = {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                       .commandBufferCount = 1,
@@ -445,17 +474,31 @@ main(int argc, char **argv)
       "Wait");
    printf("F-submit complete\n");
 
-   void *rp_;
-   CK(vkMapMemory(dev, rmem, 0, W * H * 4, 0, &rp_), "RMap");
-   uint8_t *px = rp_;
-   /* Vulkan origin top-left: interior (8,55) bottom-left red; clear (55,8) blue */
-   uint8_t *in_px = px + (55 * W + 8) * 4;
-   uint8_t *clear_px = px + (8 * W + 55) * 4;
+   CK(vkMapMemory(dev, rmem, 0, READBACK_BYTES, 0, &rp_), "RMap");
+   uint8_t *readback = rp_;
+   uint8_t *px = readback + READBACK_GUARD_BYTES;
+   unsigned guard_errors = 0, pixel_errors = 0;
+   for (unsigned i = 0; i < READBACK_GUARD_BYTES; i++) {
+      guard_errors += readback[i] != READBACK_SENTINEL;
+      guard_errors += px[READBACK_IMAGE_BYTES + i] != READBACK_SENTINEL;
+   }
+   for (unsigned i = 0; i < W * H; i++) {
+      const uint8_t *p = px + 4 * i;
+      int red = p[0] > 200 && p[1] < 60 && p[2] < 60;
+      int blue = p[2] > 200 && p[0] < 60 && p[1] < 60;
+      if ((!red && !blue) || p[3] < 200)
+         pixel_errors++;
+   }
+   printf("F-invalid-pixels=%u/%u guard-errors=%u/%u\n", pixel_errors, W * H,
+          guard_errors, 2 * READBACK_GUARD_BYTES);
+   uint8_t *in_px = px + (8 * W + 8) * 4;
+   uint8_t *clear_px = px + (55 * W + 55) * 4;
    printf("F-interior RGBA=%u %u %u %u\n", in_px[0], in_px[1], in_px[2],
           in_px[3]);
    printf("F-clear    RGBA=%u %u %u %u\n", clear_px[0], clear_px[1], clear_px[2],
           clear_px[3]);
-   int ok = (in_px[0] > 200 && in_px[1] < 60 && in_px[2] < 60) &&
+   int ok = !guard_errors && !pixel_errors &&
+            (in_px[0] > 200 && in_px[1] < 60 && in_px[2] < 60) &&
             (clear_px[2] > 200 && clear_px[0] < 60 && clear_px[1] < 60);
    vkUnmapMemory(dev, rmem);
 
@@ -469,12 +512,12 @@ main(int argc, char **argv)
    vkDestroyFramebuffer(dev, fb, NULL);
    vkDestroyRenderPass(dev, rp, NULL);
    vkDestroyImageView(dev, view, NULL);
-   vkFreeMemory(dev, imem, NULL);
    vkDestroyImage(dev, img, NULL);
-   vkFreeMemory(dev, rmem, NULL);
+   vkFreeMemory(dev, imem, NULL);
    vkDestroyBuffer(dev, rbuf, NULL);
-   vkFreeMemory(dev, vmem, NULL);
+   vkFreeMemory(dev, rmem, NULL);
    vkDestroyBuffer(dev, vbuf, NULL);
+   vkFreeMemory(dev, vmem, NULL);
    vkDestroyDevice(dev, NULL);
    vkDestroyInstance(inst, NULL);
 
