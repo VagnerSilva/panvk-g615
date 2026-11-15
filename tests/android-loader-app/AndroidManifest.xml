@@ -9,7 +9,7 @@
         android:hasCode="true"
         android:extractNativeLibs="true">
         <activity
-            android:name=".MainActivity"
+            android:name="org.panvk.loadertest.MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize">
             <intent-filter>
