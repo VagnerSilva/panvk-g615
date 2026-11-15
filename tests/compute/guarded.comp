@@ -1,0 +1,39 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16,
+       local_size_x_id = 1, local_size_y_id = 2) in;
+layout(constant_id = 0) const uint test_case = 0;
+layout(set = 0, binding = 0, std430) buffer Output {
+    uint data[];
+} output_buffer;
+
+void main()
+{
+    if (test_case == 4u || test_case == 5u || test_case == 7u) {
+        uvec3 group = gl_WorkGroupID;
+        if (group.x < 4u && group.y < 64u) {
+            uint offset = test_case == 4u ? group.y * 4u + group.x :
+                group.y * 64u + group.x * 16u + (gl_LocalInvocationID.x & 15u);
+            uint value = test_case == 7u ? gl_GlobalInvocationID.x + 1u : 1u;
+            atomicAdd(output_buffer.data[64u + offset], value);
+        }
+        return;
+    }
+    uint x = test_case == 6u ? gl_WorkGroupID.x * 16u + gl_LocalInvocationID.x :
+                              gl_GlobalInvocationID.x;
+    uint y = test_case == 6u ? gl_WorkGroupID.y : gl_GlobalInvocationID.y;
+    if (x >= 64u || y >= 64u)
+        return;
+    uint column = test_case == 3u ? ((x & 3u) << 4u) | (x >> 2u) : x;
+    uint index = y * 64u + column;
+    if (test_case == 0u || test_case == 3u || test_case == 6u) {
+        output_buffer.data[64u + index] = index ^ 0x12345678u;
+    } else if (test_case == 1u) {
+        if (((x + y) & 1u) == 0u)
+            output_buffer.data[64u + index] = index ^ 0x12345678u;
+        else
+            output_buffer.data[64u + index] = index ^ 0x87654321u;
+    } else if (x < 61u && y < 59u) {
+        output_buffer.data[64u + index] = index ^ 0x12345678u;
+    }
+}

@@ -1,0 +1,31 @@
+#version 450
+
+layout(local_size_x = 16) in;
+layout(constant_id = 0) const uint test_case = 0;
+layout(push_constant) uniform Parameters {
+    uint value;
+} params;
+layout(set = 0, binding = 0, std430) buffer Output {
+    uint data[];
+} output_buffer;
+
+void main()
+{
+    uint lane = gl_LocalInvocationID.x;
+    uint result;
+    if (test_case == 0u)
+        result = params.value << 4u;
+    else if (test_case == 1u)
+        result = params.value >> 2u;
+    else if (test_case == 2u)
+        result = params.value * 17u;
+    else if (test_case == 3u)
+        result = (params.value << 4u) ^ 1u;
+    else if (test_case == 4u)
+        result = params.value > 4u ? 1u : 0u;
+    else if (test_case == 5u)
+        result = params.value == 4u ? 1u : 0u;
+    else
+        result = uintBitsToFloat(params.value) > 1.0 ? 1u : 0u;
+    output_buffer.data[64u + lane] = result;
+}
