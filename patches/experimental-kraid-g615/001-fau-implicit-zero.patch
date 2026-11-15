@@ -1,0 +1,229 @@
+Subject: [EXPERIMENTAL] kraid: account for selected implicit zero sources on arch 11
+
+Purpose: Test FAU bandwidth accounting for shift, integer and float compare aliases with an implicit zero.
+Source/Reference: local Kraid regression investigation; based on Mesa tree ee16e0160e875d7360055c47d6b54708d4348525.
+Tested GPU: Mali-G615 MC2, Moto G86 5G; prototype only.
+Tested Kbase UAPI: Android 16 device; precise version not independently verified.
+Mesa base range: pinned 5a07217f plus standard G615 series and jm-v7-wip through 0178.
+Dependencies: prepared tree d5db8cd96dc795016f771145459e5cc5907ec761.
+Validation test: tests/compute guarded-0..21 and Kraid host fau_tests; see tests/README.md.
+
+diff --git a/src/panfrost/compiler/kraid/legalize.rs b/src/panfrost/compiler/kraid/legalize.rs
+index fa62bd31..0900a912 100644
+--- a/src/panfrost/compiler/kraid/legalize.rs
++++ b/src/panfrost/compiler/kraid/legalize.rs
+@@ -7,6 +7,7 @@ use crate::builder::*;
+ use crate::ir::*;
+ use crate::liveness::*;
+ use crate::model::{FAUModel, RegByteSet};
++use crate::ops::CmpAccumOp;
+ use crate::ra;
+ use compiler::bitset::{BitSet, ConstBitSet};
+ use compiler::enum_as_u8::EnumAsU8;
+@@ -215,7 +216,8 @@ impl FAUSlot {
+ /// Legalizes FAU sources by ensuring the following
+ ///
+ ///  1. The combined amount of FAU (including small constants) is at most
+-///     64 bits, not including k0.
++///     64 bits, normally not including k0. The experimental arch 11 shift
++///     handling reserves a word for the encoded implicit zero.
+ ///
+ ///  2. All FAUs come from the same page
+ ///
+@@ -227,6 +229,7 @@ impl FAUSlot {
+ struct LegalizeFAU<'a> {
+     fau_model: &'a FAUModel,
+     slots: SmallVec<FAUSlot>,
++    implicit_zero: bool,
+     inval_src: ConstBitSet<1, usize>,
+     src64_w1: ConstBitSet<1, usize>,
+ }
+@@ -236,6 +239,7 @@ impl LegalizeFAU<'_> {
+         LegalizeFAU {
+             fau_model,
+             slots: Default::default(),
++            implicit_zero: false,
+             inval_src: ConstBitSet::new(),
+             src64_w1: ConstBitSet::new(),
+         }
+@@ -379,14 +383,18 @@ impl LegalizeFAU<'_> {
+     }
+ 
+     /// The combined amount of FAU (including small constants) is at most
+-    /// 64 bits, not including k0 (SrcRef::Zero).
++    /// 64 bits, normally not including k0 (SrcRef::Zero).
+     fn limit_bandwidth(&mut self) {
+         // Limit the bandwidth to 64 bits (2 words)
+         // Instructions can only use one distinct special FAU
+         let mut special_taken = false;
+-        let mut used_words = 0;
++        let mut used_words = u32::from(self.implicit_zero);
+         self.slots.retain(|fau| {
+-            let words = fau.words_used.count_ones();
++            let shares_zero = self.implicit_zero
++                && fau.page == FAUPage::SmallConst
++                && fau.idx64 == 0
++                && (fau.words_used & 1) != 0;
++            let words = fau.words_used.count_ones() - u32::from(shares_zero);
+             if used_words + words > 2 {
+                 return false;
+             }
+@@ -419,7 +427,7 @@ impl LegalizeFAU<'_> {
+ 
+     fn legalize_execution_unit(&mut self) {
+         // Fast-path, 1 FAU is always legal
+-        if self.slots.len() <= 1 {
++        if self.slots.len() <= 1 && !self.implicit_zero {
+             return;
+         }
+ 
+@@ -442,6 +450,10 @@ fn legalize_fau_srcs(
+     let mut ctx = LegalizeFAU::new(fau_model);
+ 
+     ctx.extract_srcs(b.model(), op);
++    ctx.implicit_zero = b.model().arch() == 11
++        && (matches!(op, Op::ShiftLop(shift) if shift.shift_op.is_some() && shift.logic_op.is_none())
++            || matches!(op, Op::ICmp(cmp) if cmp.accum_op == CmpAccumOp::None)
++            || matches!(op, Op::FCmp(cmp) if cmp.accum_op == CmpAccumOp::None));
+     if ctx.slots.is_empty() && ctx.inval_src.is_empty() {
+         return;
+     }
+@@ -478,6 +490,7 @@ impl Shader<'_> {
+                 for src_idx in 0..instr.srcs().len() {
+                     legalize_imm_src(&mut b, &mut instr, src_idx);
+                 }
++
+                 legalize_fau_srcs(&mut b, fau, &mut instr);
+                 b.push_instr(instr);
+                 b.into_mapped()
+@@ -485,3 +498,130 @@ impl Shader<'_> {
+         }
+     }
+ }
++
++#[cfg(test)]
++mod fau_tests {
++    use super::*;
++    use crate::model::model_for_gpu_id;
++    use crate::ops::{
++        CmpOp, CmpResultType, LogicOp, OpFCmp, OpICmp, OpShiftLop, ShiftOp,
++    };
++    use crate::ssa_value::SSAValueAllocator;
++
++    fn small(idx: u16) -> FAURef {
++        FAURef {
++            page: FAUPage::SmallConst,
++            idx,
++            special: None,
++            load64: false,
++            imm32: None,
++        }
++    }
++
++    fn legalize_shift(
++        gpu_id: u64,
++        src0: FAURef,
++        shift: FAURef,
++        logic_op: LogicOp,
++    ) -> (Op, usize) {
++        let model = model_for_gpu_id(gpu_id, 4).unwrap();
++        let mut alloc = SSAValueAllocator::default();
++        let mut builder = SSAInstrBuilder::new(model.as_ref(), &mut alloc);
++        let mut op = Op::from(OpShiftLop {
++            dst: DstRef::None.into(),
++            dst_type: if src0.load64 {
++                DataType::U64
++            } else {
++                DataType::U32
++            },
++            shift_op: ShiftOp::LShift,
++            logic_op,
++            not_result: false,
++            src0: src0.into(),
++            shift: shift.into(),
++            src2: 0_u32.into(),
++        });
++        legalize_fau_srcs(&mut builder, model.fau(), &mut op);
++        (op, builder.into_vec().len())
++    }
++
++    #[test]
++    fn implicit_zero_bandwidth_and_controls() {
++        const G615: u64 = 0xb8030000;
++        const G720: u64 = 0xc8000000;
++        let (op, moves) =
++            legalize_shift(G615, FAURef::user_i32(0), small(2), LogicOp::None);
++        assert_eq!(moves, 1);
++        assert_eq!(
++            op.srcs()
++                .iter()
++                .filter(|s| matches!(s.src_ref, SrcRef::FAU(_)))
++                .count(),
++            1
++        );
++
++        let (_, moves) =
++            legalize_shift(G615, FAURef::user_i32(0), small(0), LogicOp::None);
++        assert_eq!(moves, 0);
++
++        let (_, moves) =
++            legalize_shift(G615, FAURef::user_i64(0), small(0), LogicOp::None);
++        assert_eq!(moves, 1);
++
++        let (_, moves) =
++            legalize_shift(G615, FAURef::user_i32(0), small(2), LogicOp::Or);
++        assert_eq!(moves, 0);
++
++        let (_, moves) =
++            legalize_shift(G720, FAURef::user_i32(0), small(2), LogicOp::None);
++        assert_eq!(moves, 0);
++    }
++
++    #[test]
++    fn icmp_implicit_zero_bandwidth() {
++        for (gpu_id, accum_op, expected_moves) in [
++            (0xb8030000, CmpAccumOp::None, 1),
++            (0xb8030000, CmpAccumOp::Or, 0),
++            (0xc8000000, CmpAccumOp::None, 0),
++        ] {
++            let model = model_for_gpu_id(gpu_id, 4).unwrap();
++            let mut alloc = SSAValueAllocator::default();
++            let mut builder = SSAInstrBuilder::new(model.as_ref(), &mut alloc);
++            let mut op = Op::from(OpICmp {
++                dst: DstRef::None.into(),
++                src_type: DataType::U32,
++                res_type: CmpResultType::M1,
++                cmp_op: CmpOp::Lt,
++                srcs: [FAURef::user_i32(0).into(), small(2).into()],
++                accum: 0_u32.into(),
++                accum_op,
++            });
++            legalize_fau_srcs(&mut builder, model.fau(), &mut op);
++            assert_eq!(builder.into_vec().len(), expected_moves);
++        }
++    }
++
++    #[test]
++    fn fcmp_implicit_zero_bandwidth() {
++        for (gpu_id, accum_op, expected_moves) in [
++            (0xb8030000, CmpAccumOp::None, 1),
++            (0xb8030000, CmpAccumOp::Or, 0),
++            (0xc8000000, CmpAccumOp::None, 0),
++        ] {
++            let model = model_for_gpu_id(gpu_id, 4).unwrap();
++            let mut alloc = SSAValueAllocator::default();
++            let mut builder = SSAInstrBuilder::new(model.as_ref(), &mut alloc);
++            let mut op = Op::from(OpFCmp {
++                dst: DstRef::None.into(),
++                src_type: DataType::F32,
++                res_type: CmpResultType::M1,
++                cmp_op: CmpOp::Lt,
++                srcs: [FAURef::user_i32(0).into(), small(2).into()],
++                accum: 0_u32.into(),
++                accum_op,
++            });
++            legalize_fau_srcs(&mut builder, model.fau(), &mut op);
++            assert_eq!(builder.into_vec().len(), expected_moves);
++        }
++    }
++}

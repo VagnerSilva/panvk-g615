@@ -1,0 +1,111 @@
+Subject: [EXPERIMENTAL] kraid: compile separate position and varying IDVS variants
+
+Purpose: Test split IDVS vertex compilation on arch 11; metadata coverage remains incomplete.
+Source/Reference: local IDVS regression investigation; based on Mesa tree ee16e0160e875d7360055c47d6b54708d4348525.
+Tested GPU: Mali-G615 MC2, Moto G86 5G; prototype only.
+Tested Kbase UAPI: Android 16 device; precise version not independently verified.
+Mesa base range: pinned 5a07217f plus standard G615 series and jm-v7-wip through 0178.
+Dependencies: prepared tree d5db8cd96dc795016f771145459e5cc5907ec761; FAU overlay for combined validation.
+Validation test: tests/ahb IDVS varying, multi, point and triangle_psiz using linear readback; see tests/README.md.
+
+diff --git a/src/panfrost/compiler/bifrost/bifrost_nir.c b/src/panfrost/compiler/bifrost/bifrost_nir.c
+index 42373784..7898ebb2 100644
+--- a/src/panfrost/compiler/bifrost/bifrost_nir.c
++++ b/src/panfrost/compiler/bifrost/bifrost_nir.c
+@@ -1622,6 +1622,25 @@ bifrost_dump_shader(nir_shader *nir, struct util_dynarray *binary,
+       fclose(dump_stream);
+ }
+ 
++static nir_shader *
++kraid_specialize_idvs(nir_shader *nir, bool varying)
++{
++   nir_shader *variant = nir_shader_clone(NULL, nir);
++   uint64_t outputs = varying ? VA_SHADER_OUTPUT_VARY_BIT :
++      (VA_SHADER_OUTPUT_POSITION_BIT | VA_SHADER_OUTPUT_ATTRIB_BIT);
++   NIR_PASS(_, variant, nir_inline_sysval, nir_intrinsic_load_shader_output_pan,
++            outputs);
++   bool progress = true;
++   while (progress) {
++      progress = false;
++      NIR_PASS(progress, variant, nir_opt_constant_folding);
++      NIR_PASS(progress, variant, nir_opt_dce);
++      NIR_PASS(progress, variant, nir_opt_dead_cf);
++      NIR_PASS(progress, variant, nir_opt_cse);
++   }
++   return variant;
++}
++
+ void
+ bifrost_compile_shader_nir(nir_shader *nir,
+                            const struct pan_compile_inputs *inputs,
+@@ -1665,7 +1684,32 @@ bifrost_compile_shader_nir(nir_shader *nir,
+                   &info->fau, &info->ubo_mask);
+       }
+ #ifdef WITH_PANFROST_RUST
+-      kraid_compile_nir(nir, inputs, binary, info);
++      if (nir->info.stage == MESA_SHADER_VERTEX && info->vs.idvs &&
++          pan_arch(inputs->gpu_id) == 11) {
++         nir_shader *pos = kraid_specialize_idvs(nir, false);
++         kraid_compile_nir(pos, inputs, binary, info, false);
++         ralloc_free(pos);
++         unsigned offset = binary->size;
++         if (offset > 0) {
++            struct pan_shader_info var_info = *info;
++            nir_shader *var = kraid_specialize_idvs(nir, true);
++            kraid_compile_nir(var, inputs, binary, &var_info, true);
++            ralloc_free(var);
++            info->vs.secondary_enable = binary->size > offset;
++            info->vs.secondary_offset = offset;
++            info->vs.secondary_preload = var_info.preload;
++            info->vs.secondary_work_reg_count = var_info.work_reg_count;
++            info->stats_idvs_varying = var_info.stats;
++            info->tls_size = MAX2(info->tls_size, var_info.tls_size);
++            info->ubo_mask |= var_info.ubo_mask;
++            info->fau = var_info.fau;
++         } else {
++            info->vs.secondary_enable = false;
++         }
++         pan_shader_update_info(info, nir, inputs);
++      } else {
++         kraid_compile_nir(nir, inputs, binary, info, false);
++      }
+ #endif
+    } else if (nir->info.stage == MESA_SHADER_VERTEX && info->vs.idvs) {
+       /* On 5th Gen, IDVS is only in one binary */
+diff --git a/src/panfrost/compiler/kraid/compile.rs b/src/panfrost/compiler/kraid/compile.rs
+index 5aa8df5c..85ea619d 100644
+--- a/src/panfrost/compiler/kraid/compile.rs
++++ b/src/panfrost/compiler/kraid/compile.rs
+@@ -229,6 +229,7 @@ pub extern "C" fn kraid_compile_nir(
+     inputs: &pan_compile_inputs,
+     binary: &mut util_dynarray,
+     info: &mut pan_shader_info,
++    varying_variant: bool,
+ ) {
+     let model = model_for_gpu_id(inputs.gpu_id, inputs.gpu_variant).unwrap();
+ 
+@@ -279,7 +280,9 @@ pub extern "C" fn kraid_compile_nir(
+         let code_size = std::mem::size_of_val(&bin[..]);
+         dynarray_append_vec(binary, bin);
+ 
+-        encode_no_psiz_variant(nir, &mut s, model.as_ref(), binary, info);
++        if !varying_variant {
++            encode_no_psiz_variant(nir, &mut s, model.as_ref(), binary, info);
++        }
+ 
+         if info.stats.isa == PAN_STAT_VALHALL {
+             info.stats.__bindgen_anon_1.valhall.code_size =
+diff --git a/src/panfrost/compiler/kraid/kraid.h b/src/panfrost/compiler/kraid/kraid.h
+index a54d4cec..daf7a636 100644
+--- a/src/panfrost/compiler/kraid/kraid.h
++++ b/src/panfrost/compiler/kraid/kraid.h
+@@ -19,7 +19,8 @@ kraid_get_nir_shader_compiler_options(uint8_t arch, bool merge_wg);
+ void kraid_compile_nir(nir_shader *nir,
+                        const struct pan_compile_inputs *inputs,
+                        struct util_dynarray *binary,
+-                       struct pan_shader_info *info);
++                       struct pan_shader_info *info,
++                       bool varying_variant);
+ 
+ #ifdef __cplusplus
+ } /* extern C */
