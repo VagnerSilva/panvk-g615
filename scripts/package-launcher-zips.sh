@@ -6,17 +6,19 @@
 # as driverVersion and Mesa-PanVK-Android-<version>-<git sha8>-<launcher>.zip; older "PanVK-kbase <release>"
 # builds keep the RC4 names (PanVK-kbase-<label>, PanVK-Kbase-Android-<version>-<mesa8>-<launcher>.zip).
 # Usage: ./scripts/package-launcher-zips.sh --so path/libvulkan_panfrost.so [--version v0.1.0-rc4]
-#        [--label RC4] [--tag g615-v11-csf] [--mesa-sha 5a07217f (or 10+ chars to set the driverVersion git id)] [--outdir dist] [--only adpkg]
+#        [--label RC4] [--tag g615-v11-csf] [--mesa-sha 5a07217f (or 10+ chars to set the driverVersion git id)] [--outdir dist] [--only adpkg] [--dev-name NAME]
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SO=""; VER="v0.0.0-dev"; LABEL=""; TAG="g615-v11-csf"; OUTDIR="$ROOT/dist"; MESA8=""; ONLY=""
+SO=""; VER="v0.0.0-dev"; LABEL=""; TAG="g615-v11-csf"; OUTDIR="$ROOT/dist"; MESA8=""; ONLY=""; DEV_NAME=""
 while [ $# -gt 0 ]; do case "$1" in
   --so) SO="$2"; shift 2;; --version) VER="$2"; shift 2;; --label) LABEL="$2"; shift 2;;
   --tag) TAG="$2"; shift 2;; --outdir) OUTDIR="$2"; shift 2;; --mesa-sha) MESA8="$2"; shift 2;;
   --only) ONLY="$2"; shift 2;;
+  --dev-name) [ "$#" -ge 2 ] && [ -n "$2" ] || { echo "--dev-name requires a name" >&2; exit 2; }; DEV_NAME="$2"; shift 2;;
   *) echo "unknown $1" >&2; exit 2;; esac; done
 [ -f "$SO" ] || { echo "--so <file> required" >&2; exit 2; }
 [ -z "$ONLY" ] || [ "$ONLY" = adpkg ] || { echo "--only supports adpkg" >&2; exit 2; }
+[ -z "$DEV_NAME" ] || [ "$ONLY" = adpkg ] || { echo "--dev-name requires --only adpkg" >&2; exit 2; }
 if [ -z "$MESA8" ]; then
   MESA8="$(python3 -c "import json;print(json.load(open('$ROOT/sources.lock'))['mesaCommit'][:8])")"
 fi
@@ -27,9 +29,9 @@ if [ "${#MESA8}" -ge 10 ]; then MESA10="$MESA8"; MESA8="$(echo "$MESA8" | cut -c
 else MESA10="$(python3 -c "import json;print(json.load(open('$ROOT/sources.lock'))['mesaCommit'][:10])")"; fi
 export MESA10
 mkdir -p "$OUTDIR"
-python3 - "$SO" "$VER" "$LABEL" "$TAG" "$MESA8" "$OUTDIR" "$ROOT" "$ONLY" <<'EOF'
+python3 - "$SO" "$VER" "$LABEL" "$TAG" "$MESA8" "$OUTDIR" "$ROOT" "$ONLY" "$DEV_NAME" <<'EOF'
 import sys, json, hashlib, zipfile, pathlib, re
-so, ver, label, tag, mesa8, outdir, reporoot, only = sys.argv[1:]
+so, ver, label, tag, mesa8, outdir, reporoot, only, dev_name = sys.argv[1:]
 import os
 sys.path.insert(0, os.path.join(reporoot, "scripts"))
 from driver_identity import identity
@@ -41,6 +43,8 @@ pkgver = ver.removeprefix("v")
 is_dev = bool(re.search(r'(^|[^a-z])dev([^a-z]|$)', pkgver.lower()))
 if only == "adpkg" and not is_dev:
     sys.exit("adpkg import packages require a -dev version; use the release packager for other tiers")
+if dev_name and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", dev_name):
+    sys.exit("invalid --dev-name: use 1-128 ASCII letters, numbers, '.', '_' or '-'")
 ident = identity(data)
 upstream = bool(ident and ident["style"] == "upstream")
 if upstream:
@@ -55,6 +59,8 @@ else:
     title = f"PanVK-kbase {label}"
     base = f"PanVK (Mesa) Vulkan driver for Mali v10+ CSF via kbase, {label} build."
     zipstem = f"PanVK-Kbase-Android-{ver}-{mesa8}"
+if dev_name:
+    name = dev_name
 check = drvver if upstream else f"PanVK-kbase {label}"
 # launcher -> (package id for abs path, minApi, description tail, libname, wrapper-style extras)
 L = {
@@ -83,8 +89,8 @@ for key, c in L.items():
     meta = {"schemaVersion":1,"name":name,"description":desc,"author":"panvk-kbase-android",
             "packageVersion":pkgver,"vendor":"Mesa","driverVersion":drvver,"minApi":c["minApi"],
             "libraryName":c["lib"]}
-    files = {c["lib"]: data,
-             "meta.json": (json.dumps(meta, indent=2) + "\n").encode(),
+    files = {"meta.json": (json.dumps(meta, indent=2) + "\n").encode(),
+             c["lib"]: data,
              "SHA256SUMS.txt": f"{sha}  {c['lib']}\n".encode()}
     if key == "adpkg":
         files["VALIDATION.json"] = (json.dumps({
@@ -110,7 +116,7 @@ Check: wine log / logcat shows driverInfo "{check}"; .so sha256 {sha}
     out = outdir / (f"{zipstem}.adpkg.zip" if key == "adpkg" else f"{zipstem}-{key}.zip")
     if out.exists(): out.unlink()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        for n in sorted(files):
+        for n in files:
             zi = zipfile.ZipInfo(n, (2026, 10, 17, 0, 0, 0)); zi.compress_type = zipfile.ZIP_DEFLATED
             zi.external_attr = 0o644 << 16
             z.writestr(zi, files[n])

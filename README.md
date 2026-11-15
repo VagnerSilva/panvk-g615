@@ -155,6 +155,12 @@ This lightweight import package is not the release `.adpkg.zip` produced by
 device gate evidence. The package does not set runtime environment variables;
 Android builds select Kraid by default on supported v9+ GPUs, with
 `PAN_USE_KRAID=0` available to opt out.
+The ZIP places `meta.json` before any other JSON entry for importers that
+interpret the first JSON file as driver metadata.
+For a separate development install, `--dev-name PanVK-G615-experimental`
+sets the name in `meta.json` when used with `--only adpkg`. Choose a name not
+already used by the target app; driver import and replacement behavior
+depends on the app.
 
 The release driver is one universal `.so` for v6 to v14, built from the tree that `scripts/prepare-rc5-tree.sh` prepares (all patch families applied in strict mode). The per-arch profiles in `profiles/` (`g52-v7-jm`, `g57-v9-jm`, `g610-v10-csf`, `g615-v11-csf`, `g720-v12-csf`) are for single-arch development builds. See [`docs/RELEASE.md`](docs/RELEASE.md) for the release process and tags (`panvk-kbase-v<version>` for the driver, `panplay-v<version>` and `panprobe-v<version>` for the apps). The exact Mesa commit is pinned in `sources.lock`.
 
