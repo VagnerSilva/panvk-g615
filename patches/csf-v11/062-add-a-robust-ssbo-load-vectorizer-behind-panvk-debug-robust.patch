@@ -14,7 +14,7 @@ diff --git a/src/compiler/nir/meson.build b/src/compiler/nir/meson.build
 index 838142d4ddf..48fbce89c35 100644
 --- a/src/compiler/nir/meson.build
 +++ b/src/compiler/nir/meson.build
-@@ -283,6 +283,7 @@ else
+@@ -281,6 +281,7 @@ else
    'nir_opt_licm.c',
    'nir_opt_load_skip_helpers.c',
    'nir_opt_load_store_vectorize.c',
@@ -26,7 +26,7 @@ diff --git a/src/compiler/nir/nir.h b/src/compiler/nir/nir.h
 index d39b871a6d1..45560fd64d3 100644
 --- a/src/compiler/nir/nir.h
 +++ b/src/compiler/nir/nir.h
-@@ -5986,6 +5986,7 @@ typedef struct nir_load_store_vectorize_options {
+@@ -6096,6 +6096,7 @@ typedef struct nir_load_store_vectorize_options {
  } nir_load_store_vectorize_options;
  
  bool nir_opt_load_store_vectorize(nir_shader *shader, const nir_load_store_vectorize_options *options);
@@ -463,7 +463,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 618228c33ec..618ea1400de 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -1832,6 +1832,10 @@ panvk_hash_state(struct vk_physical_device *device,
+@@ -1816,6 +1816,10 @@ panvk_hash_state(struct vk_physical_device *device,
     const uint32_t gpu_prerast_abi = PANVK_GPU_PRERAST_ABI_VERSION;
     _mesa_blake3_update(&blake3_ctx, &gpu_prerast_abi, sizeof(gpu_prerast_abi));
  #endif
@@ -474,7 +474,7 @@ index 618228c33ec..618ea1400de 100644
  
     if (state != NULL) {
        /* This doesn't impact the shader compile but it does go in the
-@@ -2213,6 +2217,16 @@ panvk_lower_nir(struct panvk_device *dev, nir_shader *nir,
+@@ -2197,6 +2201,16 @@ panvk_lower_nir(struct panvk_device *dev, nir_shader *nir,
        NIR_PASS(_, nir, nir_opt_dce);
     }
  

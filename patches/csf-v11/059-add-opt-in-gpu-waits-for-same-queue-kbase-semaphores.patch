@@ -26,7 +26,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index e66bc930224..5a893249ea3 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -464,7 +464,8 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
+@@ -466,7 +466,8 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
  static VkResult
  kbase_subqueue_emit_job(struct panvk_gpu_queue *queue, uint32_t subqueue,
                          uint64_t stream_addr, uint32_t stream_size,
@@ -36,7 +36,7 @@ index e66bc930224..5a893249ea3 100644
  {
     struct panvk_device *dev = to_panvk_device(queue->vk.base.device);
     const struct drm_panthor_csif_info *csif_info = panvk_get_csif_props(dev);
-@@ -557,6 +558,17 @@ kbase_subqueue_emit_job(struct panvk_gpu_queue *queue, uint32_t subqueue,
+@@ -559,6 +560,17 @@ kbase_subqueue_emit_job(struct panvk_gpu_queue *queue, uint32_t subqueue,
     uint64_t seqno_addr = kbase_subqueue_seqno_dev_addr(queue, subqueue);
     uint64_t target_seqno = subq->kbase.emitted_jobs + 1;
  
@@ -54,7 +54,7 @@ index e66bc930224..5a893249ea3 100644
     /* The heap context can be renewed between synchronous submissions to
      * release chunks that proprietary kbase accounts per CSG.  Refresh the
      * firmware heap state at every graphics CALL so it observes the current
-@@ -1391,7 +1403,7 @@ kbase_submit_init_subqueues(struct panvk_gpu_queue *queue)
+@@ -1394,7 +1406,7 @@ kbase_submit_init_subqueues(struct panvk_gpu_queue *queue)
           kbase_subqueue_emit_job(queue, subqueue, subq->kbase.init_stream_addr,
                                   subq->kbase.init_stream_size,
                                   subq->kbase.init_flush_id,
@@ -63,7 +63,7 @@ index e66bc930224..5a893249ea3 100644
        if (res != VK_SUCCESS)
           return panvk_errorf(dev->vk.physical, VK_ERROR_INITIALIZATION_FAILED,
                               "Failed to initialize subqueue");
-@@ -2658,6 +2670,17 @@ panvk_queue_submit_init_signals(struct panvk_queue_submit *submit,
+@@ -2671,6 +2683,17 @@ panvk_queue_submit_init_signals(struct panvk_queue_submit *submit,
  }
  
  #ifdef HAVE_PAN_KMOD_KBASE
@@ -81,7 +81,7 @@ index e66bc930224..5a893249ea3 100644
  static VkResult
  kbase_wait_sync_targets(
     void *data, const uint64_t targets[PANVK_KBASE_SYNC_TARGET_COUNT],
-@@ -2738,10 +2761,26 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
+@@ -2751,10 +2774,26 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
     //              __func__);
     // }
  
@@ -112,7 +112,7 @@ index e66bc930224..5a893249ea3 100644
        if (result != VK_SUCCESS)
           return result;
     }
-@@ -2761,10 +2800,14 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
+@@ -2774,10 +2813,14 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
                                         qsubmit->stream_addr,
                                         qsubmit->stream_size,
                                         qsubmit->latest_flush,
@@ -132,7 +132,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index 3a85310cca9..e28f5868990 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -745,6 +745,37 @@ panvk_kbase_sync_set_pending(
+@@ -788,6 +788,37 @@ panvk_kbase_sync_set_pending(
     mtx_unlock(&ks->mutex);
  }
  
@@ -174,7 +174,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.h b/src/panfrost/vulkan/p
 index bf7e00e0c56..e01d87eef20 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.h
 +++ b/src/panfrost/vulkan/panvk_physical_device.h
-@@ -117,6 +117,9 @@ typedef VkResult (*panvk_kbase_sync_wait_func)(
+@@ -127,6 +127,9 @@ typedef VkResult (*panvk_kbase_sync_wait_func)(
  void panvk_kbase_sync_set_pending(
     struct vk_sync *sync, void *data, panvk_kbase_sync_wait_func wait,
     const uint64_t targets[PANVK_KBASE_SYNC_TARGET_COUNT]);

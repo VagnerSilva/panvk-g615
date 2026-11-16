@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 23cdf6c7bda..2df4a505331 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4779,7 +4779,8 @@ cmd_run_fullscreen(struct panvk_cmd_buffer *cmdbuf, uint64_t dcd,
+@@ -4801,7 +4801,8 @@ cmd_run_fullscreen(struct panvk_cmd_buffer *cmdbuf, uint64_t dcd,
  
        cs_add_imm64(b, tiler_ctx_tmp, tiler_ctx_addr, 0);
  
