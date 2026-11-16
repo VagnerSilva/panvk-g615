@@ -39,13 +39,13 @@ G925: gs_viewport_depth 10/10, PanProbe Run all 36/36.
 diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4559,8 +4559,16 @@
+@@ -4561,8 +4561,16 @@
            * A launch here is recorded after that loop, past TESS_FREE.
            */
           if (!vp_launch) {
 +            struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
              struct panvk_precomp_ctx ctx = panvk_per_arch(precomp_cs)(cmdbuf);
-
+ 
 +            /* The run builder reads the VS/GS kernel's records and counts.
 +             * Its sync barrier only orders the VT queue, not this compute
 +             * queue: without the wait it can run beside the producer and

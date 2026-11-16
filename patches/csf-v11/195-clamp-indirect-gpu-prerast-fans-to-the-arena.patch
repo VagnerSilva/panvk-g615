@@ -104,7 +104,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index f4c1b7e..1b63788 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4304,6 +4304,25 @@ gpu_prerast_vs(struct panvk_cmd_buffer *cmdbuf,
+@@ -4306,6 +4306,25 @@ gpu_prerast_vs(struct panvk_cmd_buffer *cmdbuf,
        cs_flush_stores(compute);
     }
  
