@@ -34,10 +34,10 @@ diff --git a/src/panfrost/vulkan/panvk_device_memory.c b/src/panfrost/vulkan/pan
 index 5e2b64e25e9..cf9f4c0aff8 100644
 --- a/src/panfrost/vulkan/panvk_device_memory.c
 +++ b/src/panfrost/vulkan/panvk_device_memory.c
-@@ -125,9 +125,16 @@ panvk_AllocateMemory(VkDevice _device,
+@@ -115,9 +115,16 @@ panvk_AllocateMemory(VkDevice _device,
            (type->propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT))
           bo_flags |= PAN_KMOD_BO_FLAG_WB_MMAP;
-
+ 
 +      /* A placed map aliases the BO at a caller-chosen address; on kbase
 +       * only shareable (dma-buf backed) BOs can be mapped twice. */
 +      bool shareable =
