@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 548613ff618..011f0112d6d 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -933,7 +933,7 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -963,7 +963,7 @@ panvk_per_arch(get_physical_device_properties)(
        .maxTessellationControlTotalOutputComponents = PAN_ARCH >= 10 ? 4096 : 0,
        .maxTessellationEvaluationInputComponents = PAN_ARCH >= 10 ? 128 : 0,
        .maxTessellationEvaluationOutputComponents = PAN_ARCH >= 10 ? 128 : 0,

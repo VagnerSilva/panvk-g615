@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index bb14863c5bf..548613ff618 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -324,7 +324,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -331,7 +331,7 @@ panvk_per_arch(get_physical_device_features)(
        .depthBounds = false,
        .wideLines = true,
        .largePoints = true,
@@ -24,7 +24,7 @@ index bb14863c5bf..548613ff618 100644
        .multiViewport = PAN_ARCH >= 10,
        .samplerAnisotropy = true,
        .textureCompressionETC2 = has_texture_compression_etc2(device),
-@@ -542,7 +542,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -558,7 +558,7 @@ panvk_per_arch(get_physical_device_features)(
        .extendedDynamicState3RasterizationSamples = true,
        .extendedDynamicState3SampleMask = true,
        .extendedDynamicState3AlphaToCoverageEnable = true,

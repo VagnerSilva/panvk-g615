@@ -24,7 +24,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 2bbe741..5091109 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -957,7 +957,11 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -987,7 +987,11 @@ panvk_per_arch(get_physical_device_properties)(
        .maxFragmentInputComponents = 128,
        /* 8 render targets. */
        .maxFragmentOutputAttachments = MAX_RTS,

@@ -53,7 +53,7 @@ diff --git a/src/panfrost/compiler/bifrost/bifrost_nir.c b/src/panfrost/compiler
 index 5c961e9..0a9d7eb 100644
 --- a/src/panfrost/compiler/bifrost/bifrost_nir.c
 +++ b/src/panfrost/compiler/bifrost/bifrost_nir.c
-@@ -802,6 +802,104 @@ nir_shader_has_local_variables(const nir_shader *nir)
+@@ -812,6 +812,104 @@ nir_shader_has_local_variables(const nir_shader *nir)
     return false;
  }
  
@@ -158,7 +158,7 @@ index 5c961e9..0a9d7eb 100644
  static bool pan_nir_lower_buf_image_access(nir_shader *nir, unsigned arch);
  static bool bi_should_idvs(nir_shader *nir, const struct pan_compile_inputs *inputs);
  static bool bifrost_nir_lower_vs_atomics(nir_shader *nir);
-@@ -819,6 +917,13 @@ bifrost_postprocess_nir(nir_shader *nir,
+@@ -828,6 +926,13 @@ bifrost_postprocess_nir(nir_shader *nir,
     if (gpu_arch >= 9)
        NIR_PASS(_, nir, pan_nir_lower_image_64bit);
  
@@ -172,7 +172,7 @@ index 5c961e9..0a9d7eb 100644
     NIR_PASS(_, nir, nir_lower_image_atomics_to_global, NULL, NULL);
  
     /* on Bifrost, lower MSAA load/stores to 3D load/stores */
-@@ -1084,7 +1189,7 @@ lower_buf_image_access(nir_builder *b, nir_intrinsic_instr *intr, void *data)
+@@ -1107,7 +1212,7 @@ lower_buf_image_access(nir_builder *b, nir_intrinsic_instr *intr, void *data)
     nir_def *texel_addr, *icd;
     if (*arch >= 9) {
        texel_addr = nir_lea_buf_pan(b, res_handle, buf_index);
@@ -185,7 +185,7 @@ diff --git a/src/panfrost/compiler/pan_compiler.h b/src/panfrost/compiler/pan_co
 index ce64488..b71fac1 100644
 --- a/src/panfrost/compiler/pan_compiler.h
 +++ b/src/panfrost/compiler/pan_compiler.h
-@@ -642,6 +642,14 @@ pan_res_handle(unsigned table, unsigned index)
+@@ -643,6 +643,14 @@ pan_res_handle(unsigned table, unsigned index)
     return (table << 24) | index;
  }
  
@@ -228,12 +228,12 @@ diff --git a/src/panfrost/compiler/pan_nir_lower_tex.c b/src/panfrost/compiler/p
 index 7aceb2d..b9a87e7 100644
 --- a/src/panfrost/compiler/pan_nir_lower_tex.c
 +++ b/src/panfrost/compiler/pan_nir_lower_tex.c
-@@ -704,7 +704,7 @@ va_lower_txf_buf(nir_builder *b, nir_tex_instr *tex, uint64_t gpu_id)
+@@ -722,7 +722,7 @@ va_lower_txf_buf(nir_builder *b, nir_tex_instr *tex, uint64_t gpu_id)
  
     nir_def *addr = nir_pack_64_2x32(b,
        nir_lea_buf_pan(b, srcs.tex_h, srcs.coord));
 -   nir_def *cvt = pan_nir_load_va_buf_cvt(b, srcs.tex_h);
-+   nir_def *cvt = pan_nir_load_va_buf_cvt(b, srcs.tex_h, pan_arch(gpu_id));
++   nir_def *cvt = pan_nir_load_va_buf_cvt(b, srcs.tex_h, arch);
     nir_def *val = nir_load_global_cvt_pan(b, tex->def.num_components,
                                            tex->def.bit_size, addr, cvt,
                                            tex->dest_type);
@@ -265,7 +265,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index a9f6300..bf68afe 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -648,7 +648,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -664,7 +664,7 @@ panvk_per_arch(get_physical_device_features)(
        .pipelineExecutableInfo = true,
  
        /* VK_KHR_robustness2 */
@@ -276,4 +276,3 @@ index a9f6300..bf68afe 100644
  
 --
 2.51.0
-

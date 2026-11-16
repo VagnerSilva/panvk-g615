@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 07c08a40601..67d5c620624 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -2854,6 +2854,8 @@ get_tiler_flags_override(const struct panvk_draw_info *draw)
+@@ -2856,6 +2856,8 @@ get_tiler_flags_override(const struct panvk_draw_info *draw)
     return flags_override;
  }
  
@@ -24,7 +24,7 @@ index 07c08a40601..67d5c620624 100644
  static VkResult
  prepare_draw(struct panvk_cmd_buffer *cmdbuf,
               const struct panvk_draw_info *draw)
-@@ -2899,33 +2901,40 @@ prepare_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -2901,33 +2903,40 @@ prepare_draw(struct panvk_cmd_buffer *cmdbuf,
     if (result != VK_SUCCESS)
        return result;
  
@@ -78,12 +78,21 @@ index 07c08a40601..67d5c620624 100644
        result = get_render_ctx(cmdbuf);
        if (result != VK_SUCCESS)
           return result;
-@@ -5276,11 +5285,28 @@ panvk_per_arch(CmdBeginRendering)(VkCommandBuffer commandBuffer,
+@@ -5289,20 +5298,37 @@ panvk_per_arch(CmdBeginRendering)(VkCommandBuffer commandBuffer,
                                    const VkRenderingInfo *pRenderingInfo)
  {
     VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
 -   ASSERTED struct panvk_cmd_graphics_state *state = &cmdbuf->state.gfx;
 +   struct panvk_cmd_graphics_state *state = &cmdbuf->state.gfx;
+ 
+    /* patch rendering info in-place for Android efr support */
+    VkRenderingInfo local_rendering_info;
+    VkRenderingAttachmentInfo local_color_att;
+    if (vk_android_is_efr_rendering_info(pRenderingInfo)) {
+       pRenderingInfo = vk_android_get_efr_rendering_info(
+          pRenderingInfo, &local_rendering_info, &local_color_att);
+    }
+ 
     bool resuming = pRenderingInfo->flags & VK_RENDERING_RESUMING_BIT;
  
 +   /* cmd_init_render_state() memsets the FB. A suspended pass may already
@@ -108,7 +117,7 @@ index 07c08a40601..67d5c620624 100644
     /* Renderpass lowering can fold an initial layout transition into
      * CmdBeginRendering() and report the old layout through
      * VkRenderingAttachmentInitialLayoutInfoMESA instead of an image barrier.
-@@ -6216,6 +6242,40 @@ handle_deferred_queries(struct panvk_cmd_buffer *cmdbuf)
+@@ -6238,8 +6264,42 @@ handle_deferred_queries(struct panvk_cmd_buffer *cmdbuf)
     }
  }
  
@@ -147,13 +156,15 @@ index 07c08a40601..67d5c620624 100644
 +}
 +
  VKAPI_ATTR void VKAPI_CALL
- panvk_per_arch(CmdEndRendering)(VkCommandBuffer commandBuffer)
+ panvk_per_arch(CmdEndRendering2KHR)(
+    VkCommandBuffer commandBuffer,
+    UNUSED const VkRenderingEndInfoKHR *pRenderingEndInfo)
  {
 diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulkan/panvk_vX_physical_device.c
 index eec5c4a138d..5e6d037d1d3 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -367,7 +367,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -374,7 +374,7 @@ panvk_per_arch(get_physical_device_features)(
        .sparseResidency8Samples = false,
        .sparseResidency16Samples = false,
        .sparseResidencyAliased = false, /* https://gitlab.freedesktop.org/panfrost/mesa/-/issues/237 */

@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/panvk_device_memory.c b/src/panfrost/vulkan/pan
 index 95b8e0c502f..5e2b64e25e9 100644
 --- a/src/panfrost/vulkan/panvk_device_memory.c
 +++ b/src/panfrost/vulkan/panvk_device_memory.c
-@@ -560,3 +560,9 @@ panvk_GetDeviceMemoryOpaqueCaptureAddress(
+@@ -544,3 +544,9 @@ panvk_GetDeviceMemoryOpaqueCaptureAddress(
  
     return memory->addr.dev;
  }
@@ -29,7 +29,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 993c02b6e85..bb14863c5bf 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -186,6 +186,8 @@ panvk_per_arch(get_physical_device_extensions)(
+@@ -189,6 +189,8 @@ panvk_per_arch(get_physical_device_extensions)(
        .EXT_map_memory_placed = true,
        .EXT_nested_command_buffer = PAN_ARCH >= 10,
        .EXT_memory_budget = true,
@@ -38,7 +38,7 @@ index 993c02b6e85..bb14863c5bf 100644
        .EXT_non_seamless_cube_map = true,
        .EXT_mutable_descriptor_type = PAN_ARCH >= 9,
        .EXT_multisampled_render_to_single_sampled = true,
-@@ -720,6 +722,8 @@ panvk_per_arch(get_physical_device_features)(
+@@ -736,6 +738,8 @@ panvk_per_arch(get_physical_device_features)(
        .memoryMapPlaced = true,
        .memoryMapRangePlaced = false,
        .memoryUnmapReserve = true,
