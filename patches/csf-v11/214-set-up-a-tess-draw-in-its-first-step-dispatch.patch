@@ -137,7 +137,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 02db20db..d57a6e7c 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -5195,10 +5195,21 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5197,10 +5197,21 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
      cs_store32(b, once_reset, pass_addr, 4);
      cs_flush_stores(b);
  
@@ -163,7 +163,7 @@ index 02db20db..d57a6e7c 100644
  
     /* No C-level exit from a cs_while body, it would leave the block open.
      * Allocation failures are recorded on the command buffer instead.
-@@ -5212,7 +5223,7 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5214,7 +5225,7 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
         * the predicate says not to render. Later iterations already see
         * total_patches == 0. pass_mem[1] is the once-only flag.
         */
@@ -172,7 +172,7 @@ index 02db20db..d57a6e7c 100644
           struct cs_index once = gpu_prerast_load_flag(b, pass_mem.gpu + 4);
           struct cs_index zero = cs_scratch_reg32(b, 2);
           struct cs_index dst = cs_scratch_reg64(b, 4);
-@@ -5247,8 +5258,15 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5249,8 +5260,15 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
           }
        }
  
@@ -207,7 +207,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 1e9fa338..8cd0894f 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -677,6 +677,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -772,6 +772,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
     device->tess_opt.fuse = debug_get_num_option("PANVK_TESS_FUSE", 1) != 0;
     device->tess_opt.fuse_gen_max =
        debug_get_num_option("PANVK_TESS_FUSE_GEN_MAX", 64);

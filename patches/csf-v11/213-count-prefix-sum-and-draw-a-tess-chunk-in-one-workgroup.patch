@@ -224,7 +224,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index f3aad27a..02db20db 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -5134,6 +5134,17 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5136,6 +5136,17 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
     };
     const struct panlib_precomp_grid tess_grid =
        panlib_1d(DIV_ROUND_UP(max_patches, 64));
@@ -242,7 +242,7 @@ index f3aad27a..02db20db 100644
     const uint64_t prims_generated =
        gs ? 0 : cmdbuf->state.gfx.prims_generated_query.ptr;
     const uint32_t view_count =
-@@ -5261,15 +5272,27 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5263,15 +5274,27 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
                                   push.gpu, tsd, &tcs_dispatch);
        cs_wait_slots(b, dev->csf.sb.all_iters_mask);
  
@@ -303,7 +303,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 51e669c2..1e9fa338 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -674,6 +674,9 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -769,6 +769,9 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
     device->gpu_prerast_tess_wanted =
        device->vk.enabled_features.tessellationShader;
     simple_mtx_init(&device->gpu_prerast_lock, mtx_plain);
