@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 5a893249ea3..289e0f26d76 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -2027,7 +2027,7 @@ init_tiler(struct panvk_gpu_queue *queue)
+@@ -2031,7 +2031,7 @@ init_tiler(struct panvk_gpu_queue *queue)
      * so we can pass it through a single 64-bit register to the VERTEX_TILER
      * command streams. */
     struct panvk_pool_alloc_info alloc_info = {

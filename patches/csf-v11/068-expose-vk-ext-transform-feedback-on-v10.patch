@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 99d432549b1..993c02b6e85 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -208,6 +208,7 @@ panvk_per_arch(get_physical_device_extensions)(
+@@ -211,6 +211,7 @@ panvk_per_arch(get_physical_device_extensions)(
        .EXT_scalar_block_layout = true,
        .EXT_separate_stencil_usage = true,
        .EXT_shader_atomic_float = true,
@@ -22,7 +22,7 @@ index 99d432549b1..993c02b6e85 100644
        .EXT_shader_demote_to_helper_invocation = true,
        .EXT_shader_image_atomic_int64 = PAN_ARCH >= 9,
        .EXT_shader_module_identifier = true,
-@@ -613,6 +614,10 @@ panvk_per_arch(get_physical_device_features)(
+@@ -629,6 +630,10 @@ panvk_per_arch(get_physical_device_features)(
        .provokingVertexLast = true,
        .transformFeedbackPreservesProvokingVertex = false,
  
@@ -33,7 +33,7 @@ index 99d432549b1..993c02b6e85 100644
        /* v7 doesn't support AFBC(BGR). We need to tweak the texture swizzle to
         * make it work, which forces us to apply the same swizzle on the border
         * color, meaning we need to know the format when preparing the border
-@@ -1290,6 +1295,18 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1325,6 +1330,18 @@ panvk_per_arch(get_physical_device_properties)(
        .provokingVertexModePerPipeline = false,
        .transformFeedbackPreservesTriangleFanProvokingVertex = false,
  
