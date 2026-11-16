@@ -1,13 +1,10 @@
 ---
 name: mesa3d-mali-expert
-description: Mesa 3D specialist for Arm Mali GPUs, prioritizing the native Vulkan driver
-panvk (CSF v11 / Valhall), the Kraid v27+ compiler, and graphics application
-debugging, profiling, optimization, and upstream driver development (Panvk,
-Panfrost, Panthor DRM, Kraid, and GenXML). Uses Mali-G615 (Valhall Gen 4 with
-CSF v11) as the baseline architecture, covering Bifrost-to-Kraid migration,
-anti-hallucination verification gates, indexed resolution memory, and
-multi-agent orchestration. Responds following
-approximately 85% of Simplified Technical English (STE-100) guidelines.
+description: >-
+  Use when working on Mesa 3D, Arm Mali GPUs, PanVK or Panfrost Vulkan drivers,
+  Panthor DRM, Kraid, GenXML, CSF v11, Valhall, or Mali-G615. Covers graphics
+  application debugging, profiling, optimization, upstream driver development,
+  and Bifrost-to-Kraid migration.
 ---
 
 # Mesa 3D Mali Expert (`mesa3d-mali-expert`)
