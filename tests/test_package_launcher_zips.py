@@ -79,6 +79,22 @@ class PackageLauncherZipsTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("require a -dev version", result.stderr)
 
+    def test_development_adpkg_uses_legacy_driver_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            so = root / "driver.so"
+            info = "PanVK-kbase dev (Mesa 27.0.0-devel (git-13baeb70c0))"
+            so.write_bytes(b"\x00" + info.encode() + b"\x00")
+            out = root / "output"
+            subprocess.run(
+                [str(SCRIPT), "--so", str(so), "--outdir", str(out),
+                 "--only", "adpkg", "--dev-name", "PanVK-Mesa27-G615-dev"],
+                check=True, capture_output=True, text=True,
+            )
+            with zipfile.ZipFile(next(out.iterdir())) as package:
+                self.assertEqual(json.loads(package.read("meta.json"))["driverVersion"],
+                                 info)
+
     def test_explicit_development_name_and_invalid_names(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

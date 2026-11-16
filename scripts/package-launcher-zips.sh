@@ -55,7 +55,8 @@ if upstream:
     zipstem = f"Mesa-PanVK-Android-{ver}-{ident['sha8']}"
 else:
     name = f"PanVK-kbase-{label}"
-    drvver = f"PanVK-kbase {label} (Mesa 26.3.0-devel git-{mesa10})"
+    drvver = (ident["driverInfo"] if only == "adpkg" and ident else
+              f"PanVK-kbase {label} (Mesa 26.3.0-devel git-{mesa10})")
     title = f"PanVK-kbase {label}"
     base = f"PanVK (Mesa) Vulkan driver for Mali v10+ CSF via kbase, {label} build."
     zipstem = f"PanVK-Kbase-Android-{ver}-{mesa8}"

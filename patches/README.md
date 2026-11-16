@@ -100,6 +100,10 @@ Build validation checkpoint (isolated native Linux build, not Android):
   Native Meson setup with Kbase and the complete `libvulkan_panfrost.so` build
   passed. The Kbase sync-provider host test also passed. These checks do not
   establish Android compatibility or device behavior.
-- Android build, refreshed `patchSeriesId`, and
-  hardware queue/rendering tests remain open.
+- Patch jm-v9 033 adds the Mesa 27 XCB event-connection symbols to the Android
+  dynamic loader. A fresh strict replay applied all 220 patches, and an Android
+  arm64 build with NDK r30 and the static binary checks passed. The resulting
+  development ADPKG is not device-validated.
+- Updating the recorded `patchSeriesId` and hardware queue/rendering tests
+  remain open.
   The existing provenance identifier is not certification of this patch set.
