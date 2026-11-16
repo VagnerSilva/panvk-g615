@@ -27,7 +27,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 0a60ca173ed..bf45f148686 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3833,6 +3833,15 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3835,6 +3835,15 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
        cs_store32(compute, value, draw_params, 16);
     }
  
@@ -43,7 +43,7 @@ index 0a60ca173ed..bf45f148686 100644
     struct pan_ptr push;
     const struct panvk_shader_variant *lowered = panvk_shader_gpu_prerast_variant(
        shader, PANVK_VS_VARIANT_GPU_LOWERED);
-@@ -4031,7 +4040,10 @@ static bool
+@@ -4033,7 +4042,10 @@ static bool
  gpu_prerast_needed(const struct panvk_cmd_buffer *cmdbuf,
                     const struct panvk_draw_info *draw)
  {
@@ -59,7 +59,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 760d0bd0e58..ade8419b26f 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -2725,11 +2725,15 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -2715,11 +2715,15 @@ panvk_compile_shader(struct panvk_device *dev,
     case MESA_SHADER_VERTEX: {
  #if PAN_ARCH >= 10
        /* Lowered/passthrough variants only exist on the gpu_prerast path. */

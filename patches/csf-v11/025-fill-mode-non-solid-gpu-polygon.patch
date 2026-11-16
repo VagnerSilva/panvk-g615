@@ -85,7 +85,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index d964d9568b8..49216422420 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -2447,7 +2447,7 @@ struct panvk_dcd_flags {
+@@ -2449,7 +2449,7 @@ struct panvk_dcd_flags {
  
  static void
  build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
@@ -94,7 +94,7 @@ index d964d9568b8..49216422420 100644
                  struct panvk_dcd_flags *out)
  {
     memset(out, 0, sizeof(*out));
-@@ -2455,8 +2455,6 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
+@@ -2457,8 +2457,6 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
        &cmdbuf->vk.dynamic_graphics_state;
     const struct vk_rasterization_state *rs =
        &cmdbuf->vk.dynamic_graphics_state.rs;
@@ -103,7 +103,7 @@ index d964d9568b8..49216422420 100644
  
     bool alpha_to_coverage = dyns->ms.alpha_to_coverage_enable;
     bool writes_z = writes_depth(cmdbuf);
-@@ -2473,7 +2471,6 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
+@@ -2475,7 +2473,6 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
     }
  
     bool msaa = dyns->ms.rasterization_samples > 1;
@@ -111,7 +111,7 @@ index d964d9568b8..49216422420 100644
     enum mesa_prim reduced_prim = u_reduced_prim(prim);
     if (reduced_prim == MESA_PRIM_LINES &&
         rs->line.mode == VK_LINE_RASTERIZATION_MODE_BRESENHAM) {
-@@ -2722,7 +2719,7 @@ prepare_dcd(struct panvk_cmd_buffer *cmdbuf,
+@@ -2724,7 +2721,7 @@ prepare_dcd(struct panvk_cmd_buffer *cmdbuf,
        return;
  
     struct panvk_dcd_flags dcd_flags;
@@ -120,7 +120,7 @@ index d964d9568b8..49216422420 100644
     *earlyzs = dcd_flags.earlyzs;
  
     if (dcd0_dirty) {
-@@ -3566,6 +3563,10 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3570,6 +3567,10 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
     uint64_t records = arena + PANVK_GPU_PRERAST_RECORD_OFFSET;
     uint64_t indices = arena + PANVK_GPU_PRERAST_INDEX_OFFSET;
     uint64_t generated_draw = arena + PANVK_GPU_PRERAST_DRAW_OFFSET;
@@ -131,7 +131,7 @@ index d964d9568b8..49216422420 100644
     struct cs_builder *compute =
        panvk_get_cs_builder(cmdbuf, PANVK_SUBQUEUE_COMPUTE);
     struct cs_index addr = cs_scratch_reg64(compute, 0);
-@@ -3697,6 +3698,21 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3701,6 +3702,21 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
                   source->index.index_size == 1 ? UINT8_MAX :
                   source->index.index_size == 2 ? UINT16_MAX : UINT32_MAX);
     STORE_PARAM32(primitive_restart, source->index.restart_enable);
@@ -153,7 +153,7 @@ index d964d9568b8..49216422420 100644
     cs_flush_stores(compute);
  #undef STORE_PARAM32
  #undef STORE_PARAM64
-@@ -3718,6 +3734,24 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3722,6 +3738,24 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
     if (source->indirect.buffer_dev_addr)
        dispatch.indirect.buffer_dev_addr = dispatch_params;
     gpu_prerast_launch_cs(cmdbuf, lowered, push.gpu, tsd, &dispatch);
@@ -178,7 +178,7 @@ index d964d9568b8..49216422420 100644
     gpu_prerast_wait_compute(cmdbuf);
  
     struct panvk_draw_info generated = *source;
-@@ -3735,6 +3769,19 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3739,6 +3773,19 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
     generated.indirect.count_buffer_dev_addr = 0;
     generated.indirect.draw_count = 1;
     generated.indirect.stride = sizeof(struct poly_indirect_draw);
@@ -198,7 +198,7 @@ index d964d9568b8..49216422420 100644
      generated.gpu_prerast_generated = true;
  
      gfx_state_set_dirty(cmdbuf, VS);
-@@ -5248,7 +5295,11 @@ panvk_per_arch(cmd_draw_fullscreen)(struct vk_command_buffer *cmd,
+@@ -5274,7 +5321,11 @@ panvk_per_arch(cmd_draw_fullscreen)(struct vk_command_buffer *cmd,
  
     prepare_fs(cmdbuf, fs);
  
@@ -328,7 +328,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 695512b35c5..d1df4297f6d 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -585,7 +585,7 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -680,7 +680,7 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
     panvk_device_init_mempools(device);
  
  #if PAN_ARCH >= 10
@@ -341,7 +341,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index b74f9f77ecc..ae7b73bfdd8 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -315,7 +315,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -324,7 +324,7 @@ panvk_per_arch(get_physical_device_features)(
        .drawIndirectFirstInstance = true,
        .depthClamp = true,
        .depthBiasClamp = true,
@@ -354,7 +354,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index c43eb2e00f1..4da671a62b8 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -869,9 +869,16 @@ panvk_gpu_prerast_lower_vs_before_gs_intr(nir_builder *b,
+@@ -853,9 +853,16 @@ panvk_gpu_prerast_lower_vs_before_gs_intr(nir_builder *b,
                : base == nir_type_int ? nir_i2i32(b, value)
                                       : nir_u2u32(b, value);
     }
@@ -371,7 +371,7 @@ index c43eb2e00f1..4da671a62b8 100644
     return true;
  }
  
-@@ -1003,7 +1010,9 @@ panvk_gpu_prerast_emit_generated_records(nir_shader *nir)
+@@ -987,7 +994,9 @@ panvk_gpu_prerast_emit_generated_records(nir_shader *nir)
        nir_iadd_imm(&b, params,
                     offsetof(struct panvk_gpu_prerast_params, generated_indices)),
        .align_mul = 8);
@@ -382,7 +382,7 @@ index c43eb2e00f1..4da671a62b8 100644
     nir_store_global(&b, nir_bcsel(&b, is_restart, nir_imm_int(&b, -1), vertex),
                      nir_iadd(&b, generated_indices,
                               nir_u2u64(&b, nir_imul_imm(&b, vertex, 4))),
-@@ -1011,6 +1020,200 @@ panvk_gpu_prerast_emit_generated_records(nir_shader *nir)
+@@ -995,6 +1004,200 @@ panvk_gpu_prerast_emit_generated_records(nir_shader *nir)
     nir_pop_if(&b, NULL);
     nir_progress(true, impl, nir_metadata_none);
  }
@@ -583,7 +583,7 @@ index c43eb2e00f1..4da671a62b8 100644
  #endif
  
  static void
-@@ -1042,6 +1245,12 @@ panvk_hash_state(struct vk_physical_device *device,
+@@ -1026,6 +1229,12 @@ panvk_hash_state(struct vk_physical_device *device,
  
        if (state->ial)
           _mesa_blake3_update(&blake3_ctx, state->ial, sizeof(*state->ial));
@@ -596,7 +596,7 @@ index c43eb2e00f1..4da671a62b8 100644
     }
  
     _mesa_blake3_final(&blake3_ctx, blake3_out);
-@@ -1955,9 +2164,12 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -1945,9 +2154,12 @@ panvk_compile_shader(struct panvk_device *dev,
     case MESA_SHADER_VERTEX: {
  #if PAN_ARCH >= 10
        /* Lowered/passthrough variants only exist on the gpu_prerast path. */
@@ -611,7 +611,7 @@ index c43eb2e00f1..4da671a62b8 100644
        struct panvk_gpu_prerast_out_types out_types = {0};
  #else
        const enum panvk_vs_variant last_variant = PANVK_VS_VARIANT_HW;
-@@ -2114,6 +2326,29 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -2103,6 +2315,29 @@ panvk_compile_shader(struct panvk_device *dev,
              return result;
           }
        }

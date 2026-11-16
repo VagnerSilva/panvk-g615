@@ -32,7 +32,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index aa6e23ee04c..85143c16371 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -344,8 +344,8 @@ panvk_per_arch(get_physical_device_features)(
+@@ -353,8 +353,8 @@ panvk_per_arch(get_physical_device_features)(
        .shaderSampledImageArrayDynamicIndexing = true,
        .shaderStorageBufferArrayDynamicIndexing = true,
        .shaderStorageImageArrayDynamicIndexing = true,
@@ -43,7 +43,7 @@ index aa6e23ee04c..85143c16371 100644
        .shaderFloat64 = false,
        .shaderInt64 = true,
        .shaderInt16 = true,
-@@ -1000,9 +1000,9 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1035,9 +1035,9 @@ panvk_per_arch(get_physical_device_properties)(
           PAN_ARCH >= 10 && device->kmod.dev->props.gpu_can_query_timestamp,
        .timestampPeriod =
           PAN_ARCH >= 10 ? panvk_get_gpu_system_timestamp_period(device) : 0,
@@ -60,7 +60,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 58a5484b2a8..c43eb2e00f1 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -431,6 +431,194 @@ panvk_get_spirv_options(UNUSED struct vk_physical_device *vk_pdev,
+@@ -403,6 +403,194 @@ panvk_get_spirv_options(UNUSED struct vk_physical_device *vk_pdev,
     };
  }
  
@@ -255,17 +255,17 @@ index 58a5484b2a8..c43eb2e00f1 100644
  static void
  panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
                       nir_shader *nir,
-@@ -445,6 +633,9 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
+@@ -436,6 +624,9 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
     NIR_PASS(_, nir, nir_lower_io_vars_to_temporaries,
              nir_shader_get_entrypoint(nir), nir_var_shader_out);
  
 +   if (nir->info.stage == MESA_SHADER_VERTEX)
 +      NIR_PASS(_, nir, panvk_lower_clip_cull_vs);
 +
- #if PAN_ARCH < 9
-    /* This needs to be done just after the io_to_temporaries pass, because we
-     * rely on out temporaries to collect the final layer_id value.
-@@ -1935,6 +2126,20 @@ panvk_compile_shader(struct panvk_device *dev,
+    NIR_PASS(_, nir, nir_lower_global_vars_to_local);
+    NIR_PASS(_, nir, nir_split_var_copies);
+ 
+@@ -1924,6 +2115,20 @@ panvk_compile_shader(struct panvk_device *dev,
        if (state && state->ms && state->ms->sample_shading_enable)
           nir->info.fs.uses_sample_shading = true;
  
@@ -286,7 +286,7 @@ index 58a5484b2a8..c43eb2e00f1 100644
        /* We need to lower input attachments before we lower descriptors */
        NIR_PASS(_, nir, panvk_per_arch(nir_lower_input_attachment_loads),
                 state, &variant->fs.input_attachment_read);
-@@ -2781,7 +2986,7 @@ emit_varying_attrs(struct panvk_pool *desc_pool,
+@@ -2783,7 +2988,7 @@ emit_varying_attrs(struct panvk_pool *desc_pool,
              gl_varying_slot loc = slot->location;
  
              enum pipe_format pfmt = PIPE_FORMAT_NONE;
@@ -295,7 +295,7 @@ index 58a5484b2a8..c43eb2e00f1 100644
              bool is_present = is_hw || bit_sizes[loc] != 0;
  
              if (is_present && !is_hw) {
-@@ -2858,7 +3063,7 @@ panvk_per_arch(link_shaders)(struct panvk_pool *desc_pool,
+@@ -2860,7 +3065,7 @@ panvk_per_arch(link_shaders)(struct panvk_pool *desc_pool,
  
        const gl_varying_slot pos = fs_var->location;
        /* Skip special varyings. */

@@ -69,7 +69,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 07bad5f29eb..d33bee77f7e 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -458,12 +458,24 @@ prepare_vs_desc(struct panvk_cmd_buffer *cmdbuf,
+@@ -460,12 +460,24 @@ prepare_vs_desc(struct panvk_cmd_buffer *cmdbuf,
     return VK_SUCCESS;
  }
  
@@ -96,7 +96,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     const struct panvk_shader_variant *fs =
        panvk_shader_only_variant(get_fs(cmdbuf));
  
-@@ -752,8 +764,7 @@ static VkResult
+@@ -754,8 +766,7 @@ static VkResult
  update_tls(struct panvk_cmd_buffer *cmdbuf)
  {
     struct panvk_tls_state *state = &cmdbuf->state.tls;
@@ -106,7 +106,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     const struct panvk_shader_variant *fs =
        panvk_shader_only_variant(get_fs(cmdbuf));
     struct cs_builder *b =
-@@ -1035,8 +1046,7 @@ prepare_tiler_primitive_size(struct panvk_cmd_buffer *cmdbuf,
+@@ -1037,8 +1048,7 @@ prepare_tiler_primitive_size(struct panvk_cmd_buffer *cmdbuf,
      */
  #if PAN_ARCH < 13
     case MESA_PRIM_POINTS: {
@@ -116,7 +116,7 @@ index 07bad5f29eb..d33bee77f7e 100644
  
        if (vs->info.vs.writes_point_size)
           return;
-@@ -2755,8 +2765,7 @@ static void
+@@ -2757,8 +2767,7 @@ static void
  set_tiler_idvs_flags(struct cs_builder *b, struct panvk_cmd_buffer *cmdbuf,
                       const struct panvk_draw_info *draw)
  {
@@ -126,7 +126,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     const struct panvk_shader_variant *fs =
        panvk_shader_only_variant(get_fs(cmdbuf));
     const struct vk_dynamic_graphics_state *dyns =
-@@ -2838,10 +2847,8 @@ static VkResult
+@@ -2840,10 +2849,8 @@ static VkResult
  prepare_draw(struct panvk_cmd_buffer *cmdbuf,
               const struct panvk_draw_info *draw)
  {
@@ -139,7 +139,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     const struct panvk_shader_variant *fs =
        panvk_shader_only_variant(get_fs(cmdbuf));
     ASSERTED bool idvs = vs->info.vs.idvs;
-@@ -3297,10 +3304,8 @@ launch_indirect_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3299,10 +3306,8 @@ launch_indirect_draw(struct panvk_cmd_buffer *cmdbuf,
  {
     const struct cs_tracing_ctx *tracing_ctx =
        &cmdbuf->state.cs[PANVK_SUBQUEUE_VERTEX_TILER].tracing;
@@ -152,7 +152,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     struct cs_builder *b =
        panvk_get_cs_builder(cmdbuf, PANVK_SUBQUEUE_VERTEX_TILER);
  
-@@ -3503,10 +3508,11 @@ gpu_prerast_release_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
+@@ -3505,10 +3510,11 @@ gpu_prerast_release_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
  }
  
  static void
@@ -168,7 +168,7 @@ index 07bad5f29eb..d33bee77f7e 100644
  {
     /* Same TLS pointer copy as cmd_dispatch(): the global TLS descriptor is
      * only filled at EndCommandBuffer, so copy its pointer on the GPU.
-@@ -3525,14 +3531,171 @@ gpu_prerast_launch_cs(struct panvk_cmd_buffer *cmdbuf,
+@@ -3527,14 +3533,171 @@ gpu_prerast_launch_cs(struct panvk_cmd_buffer *cmdbuf,
     compute_state_set_dirty(cmdbuf, DESC_STATE);
     compute_state_set_dirty(cmdbuf, PUSH_UNIFORMS);
  
@@ -342,7 +342,7 @@ index 07bad5f29eb..d33bee77f7e 100644
  static bool
  gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
                   const struct panvk_draw_info *source)
-@@ -3567,8 +3730,10 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3569,8 +3732,10 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
     uint64_t generated_draw = arena + PANVK_GPU_PRERAST_DRAW_OFFSET;
     uint64_t poly_indices = arena + PANVK_GPU_PRERAST_POLY_INDEX_OFFSET;
     uint64_t poly_draw = arena + PANVK_GPU_PRERAST_POLY_DRAW_OFFSET;
@@ -354,7 +354,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     struct cs_builder *compute =
        panvk_get_cs_builder(cmdbuf, PANVK_SUBQUEUE_COMPUTE);
     struct cs_index addr = cs_scratch_reg64(compute, 0);
-@@ -3754,6 +3919,12 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3756,6 +3921,12 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
        gpu_prerast_launch_cs(cmdbuf, polygon, poly_push.gpu, tsd, &dispatch);
     }
  
@@ -367,7 +367,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     gpu_prerast_wait_compute(cmdbuf);
  
     struct panvk_draw_info generated = *source;
-@@ -3783,6 +3954,29 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3785,6 +3956,29 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
        generated.instance.base = 0;
        generated.instance.count = 1;
        generated.indirect.buffer_dev_addr = poly_draw;
@@ -397,7 +397,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     }
      generated.gpu_prerast_generated = true;
  
-@@ -3798,16 +3992,26 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3800,16 +3994,26 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
  static void
  panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
  {
@@ -428,7 +428,7 @@ index 07bad5f29eb..d33bee77f7e 100644
     /* Needs to be done before get_fs() is called because it depends on
      * fs.required being initialized. */
     cmdbuf->state.gfx.fs.required =
-@@ -3831,7 +4035,8 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
+@@ -3833,7 +4037,8 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
     if (result != VK_SUCCESS)
        return;
  
@@ -671,7 +671,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index d1df4297f6d..75a92e3dbd6 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -585,7 +585,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -680,7 +680,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
     panvk_device_init_mempools(device);
  
  #if PAN_ARCH >= 10
@@ -685,7 +685,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_nir_lower_descriptors.c b/src/panfrost
 index a5327ac9978..54c293ecbcd 100644
 --- a/src/panfrost/vulkan/panvk_vX_nir_lower_descriptors.c
 +++ b/src/panfrost/vulkan/panvk_vX_nir_lower_descriptors.c
-@@ -1200,6 +1200,7 @@ create_copy_table(nir_shader *nir, struct lower_desc_ctx *ctx)
+@@ -1228,6 +1228,7 @@ create_copy_table(nir_shader *nir, struct lower_desc_ctx *ctx)
        dummy_sampler_idx = desc_info->num_varying_attr_descs;
        break;
     case MESA_SHADER_COMPUTE:
@@ -697,7 +697,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index a4d7019e359..81b33336141 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -308,7 +308,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -315,7 +315,7 @@ panvk_per_arch(get_physical_device_features)(
        .fullDrawIndexUint32 = true,
        .imageCubeArray = true,
        .independentBlend = true,
@@ -706,7 +706,7 @@ index a4d7019e359..81b33336141 100644
        .tessellationShader = false,
        .sampleRateShading = true,
        .dualSrcBlend = true,
-@@ -925,12 +925,11 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -955,12 +955,11 @@ panvk_per_arch(get_physical_device_properties)(
        .maxTessellationControlTotalOutputComponents = 0,
        .maxTessellationEvaluationInputComponents = 0,
        .maxTessellationEvaluationOutputComponents = 0,
@@ -728,7 +728,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 4da671a62b8..ef935b3d4a1 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -1214,6 +1214,560 @@ panvk_gpu_prerast_polygon_nir(const nir_shader_compiler_options *options,
+@@ -1198,6 +1198,560 @@ panvk_gpu_prerast_polygon_nir(const nir_shader_compiler_options *options,
     return b.shader;
  }
  #undef PRERAST_PARAM
@@ -1289,7 +1289,7 @@ index 4da671a62b8..ef935b3d4a1 100644
  #endif
  
  static void
-@@ -2166,6 +2720,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -2156,6 +2710,7 @@ panvk_compile_shader(struct panvk_device *dev,
        /* Lowered/passthrough variants only exist on the gpu_prerast path. */
        const bool want_prerast =
           PANVK_DEBUG(GPU_PRERAST) ||
@@ -1297,7 +1297,7 @@ index 4da671a62b8..ef935b3d4a1 100644
           (state && state->rs &&
            state->rs->polygon_mode != VK_POLYGON_MODE_FILL);
        const enum panvk_vs_variant last_variant =
-@@ -2263,8 +2818,10 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -2253,8 +2808,10 @@ panvk_compile_shader(struct panvk_device *dev,
                  */
                 shader->gpu_prerast.io.outputs_written =
                    nir->info.outputs_written;
@@ -1310,7 +1310,7 @@ index 4da671a62b8..ef935b3d4a1 100644
                 nir_shader_intrinsics_pass(nir,
                                            panvk_gpu_prerast_collect_out_type,
                                            nir_metadata_all, &out_types);
-@@ -2352,6 +2909,75 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -2341,6 +2898,75 @@ panvk_compile_shader(struct panvk_device *dev,
        break;
     }
  
@@ -1350,8 +1350,8 @@ index 4da671a62b8..ef935b3d4a1 100644
 +                      info->robustness, state, &pt_desc_info, false);
 +      NIR_PASS(_, pt_nir, nir_opt_constant_folding);
 +      struct pan_varying_layout pt_layout;
-+      pan_varying_collect_formats(&pt_layout, pt_nir, inputs.gpu_id);
-+      pan_build_varying_layout_compact(&pt_layout, pt_nir, inputs.gpu_id);
++      pan_varying_collect_formats(&pt_layout, pt_nir, inputs.arch);
++      pan_build_varying_layout_compact(&pt_layout, pt_nir, inputs.arch);
 +      struct pan_compile_inputs pt_inputs = inputs;
 +      pt_inputs.varying_layout = &pt_layout;
 +      pt->own_bin = true;
@@ -1386,7 +1386,7 @@ index 4da671a62b8..ef935b3d4a1 100644
     case MESA_SHADER_FRAGMENT: {
        struct panvk_shader_variant *variant =
           (struct panvk_shader_variant *)panvk_shader_only_variant(shader);
-@@ -3368,6 +3994,20 @@ panvk_cmd_bind_shader(struct panvk_cmd_buffer *cmd, const mesa_shader_stage stag
+@@ -3370,6 +3996,20 @@ panvk_cmd_bind_shader(struct panvk_cmd_buffer *cmd, const mesa_shader_stage stag
           gfx_state_set_dirty(cmd, FS_PUSH_UNIFORMS);
        }
        break;

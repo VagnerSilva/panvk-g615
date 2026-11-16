@@ -40,7 +40,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 81b33336141..499e13d4413 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -308,7 +308,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -315,7 +315,7 @@ panvk_per_arch(get_physical_device_features)(
        .fullDrawIndexUint32 = true,
        .imageCubeArray = true,
        .independentBlend = true,
