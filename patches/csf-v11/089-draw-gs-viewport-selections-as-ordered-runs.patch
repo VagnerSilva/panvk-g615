@@ -33,23 +33,24 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index 9f5185142da..a0510b628f6 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -11,6 +11,7 @@
+@@ -11,7 +11,8 @@
  #include "poly/cl/restart.h"
  #include "poly/cl/tessellator.h"
  #include "draw_helper.h"
 +#include "draw_helper_vp.h"
  #include "tess_draw.h"
  #include "libpan_xfb.h"
+ #include "poly/geometry.h"
  
-@@ -594,6 +595,8 @@ panlib_xfb_byte_count_draw(constant uint32_t *counter, uint32_t counter_offset,
+@@ -595,6 +596,8 @@ panlib_xfb_byte_count_draw(constant uint32_t *counter, uint32_t counter_offset,
     draw[2] = 0;
     draw[3] = first_instance;
  }
 +
 +#include "vp_runs.cl"
- #endif
  
- #if (PAN_ARCH == 6 || PAN_ARCH == 7)
+ #elif PAN_ARCH < 9
+ 
 diff --git a/src/panfrost/libpan/draw_helper_vp.h b/src/panfrost/libpan/draw_helper_vp.h
 new file mode 100644
 index 00000000000..b155e73ca89
@@ -664,15 +665,16 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 0e9bc667b35..2f06e59a365 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -45,6 +45,7 @@
+@@ -45,7 +45,8 @@
  #include "pan_props.h"
  #include "pan_samples.h"
  #include "pan_shader.h"
 +#include "libpan/draw_helper_vp.h"
  
  #include "util/bitscan.h"
+ #include "vk_android.h"
  #include "vk_format.h"
-@@ -893,8 +894,8 @@ panvk_full_fb_box(const struct panvk_cmd_buffer *cmdbuf,
+@@ -895,8 +896,8 @@ panvk_full_fb_box(const struct panvk_cmd_buffer *cmdbuf,
  }
  
  static void
@@ -683,7 +685,7 @@ index 0e9bc667b35..2f06e59a365 100644
  {
     const struct vk_viewport_state *vp = &cmdbuf->vk.dynamic_graphics_state.vp;
  
-@@ -906,25 +907,30 @@ panvk_prerast_depth_union(const struct panvk_cmd_buffer *cmdbuf,
+@@ -908,25 +909,30 @@ panvk_prerast_depth_union(const struct panvk_cmd_buffer *cmdbuf,
  
     const struct vk_rasterization_state *rs =
        &cmdbuf->vk.dynamic_graphics_state.rs;
@@ -730,7 +732,7 @@ index 0e9bc667b35..2f06e59a365 100644
     }
  }
  
-@@ -1033,9 +1039,7 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
+@@ -1035,9 +1041,7 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
              cfg.max_x = CLAMP(maxx, 0, UINT16_MAX);
              cfg.max_y = CLAMP(maxy, 0, UINT16_MAX);
  
@@ -741,7 +743,7 @@ index 0e9bc667b35..2f06e59a365 100644
           }
           cfg.min_depth = z_min;
           cfg.max_depth = z_max;
-@@ -1130,9 +1134,7 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
+@@ -1132,9 +1136,7 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
        if (indexed)
           panvk_prerast_depth_union(cmdbuf, &z_min, &z_max);
        else
@@ -752,7 +754,7 @@ index 0e9bc667b35..2f06e59a365 100644
        cs_move32_to(b, cs_sr_reg32(b, IDVS, LOW_DEPTH_CLAMP), fui(z_min));
        cs_move32_to(b, cs_sr_reg32(b, IDVS, HIGH_DEPTH_CLAMP), fui(z_max));
     }
-@@ -3254,10 +3256,12 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3256,10 +3258,12 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
  
     cs_update_vt_ctx(b) {
        cs_move32_to(b, cs_sr_reg32(b, IDVS, GLOBAL_ATTRIBUTE_OFFSET), 0);
@@ -767,7 +769,7 @@ index 0e9bc667b35..2f06e59a365 100644
        cs_move32_to(b, cs_sr_reg32(b, IDVS, VERTEX_OFFSET), draw->vertex.base);
        /* NIR expects zero-based instance ID, but even if it did have an
         * intrinsic to load the absolute instance ID, we'd want to keep it
-@@ -3623,9 +3627,12 @@ launch_indirect_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3625,9 +3629,12 @@ launch_indirect_draw(struct panvk_cmd_buffer *cmdbuf,
  
  static void panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf,
                             struct panvk_draw_info draw);
@@ -781,7 +783,7 @@ index 0e9bc667b35..2f06e59a365 100644
  
  static void
  gpu_prerast_wait_compute(struct panvk_cmd_buffer *cmdbuf)
-@@ -4287,16 +4294,97 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -4289,16 +4296,97 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
        gpu_prerast_xfb(cmdbuf, source, arena, PANLIB_BARRIER_CSF_SYNC);
  
     gpu_prerast_wait_compute(cmdbuf);
@@ -881,7 +883,7 @@ index 0e9bc667b35..2f06e59a365 100644
  {
     const struct panvk_shader *gs = cmdbuf->state.gfx.gs.shader;
     uint64_t indices = arena + PANVK_GPU_PRERAST_INDEX_OFFSET;
-@@ -4357,6 +4445,137 @@ gpu_prerast_draw_generated(struct panvk_cmd_buffer *cmdbuf,
+@@ -4359,6 +4447,137 @@ gpu_prerast_draw_generated(struct panvk_cmd_buffer *cmdbuf,
     }
      generated.gpu_prerast_generated = true;
  
@@ -1019,7 +1021,7 @@ index 0e9bc667b35..2f06e59a365 100644
      gfx_state_set_dirty(cmdbuf, VS);
      gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);
      panvk_cmd_draw(cmdbuf, generated);
-@@ -4487,9 +4706,74 @@ gpu_prerast_cond_render_pass(struct panvk_cmd_buffer *cmdbuf,
+@@ -4489,9 +4708,74 @@ gpu_prerast_cond_render_pass(struct panvk_cmd_buffer *cmdbuf,
   * iteration. The vertex/tiler iteration then draws that range. Nothing is
   * dropped: the loop runs until every patch and index is drawn.
   */
@@ -1095,7 +1097,7 @@ index 0e9bc667b35..2f06e59a365 100644
  {
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
     const struct vk_dynamic_graphics_state *dyns =
-@@ -4862,10 +5146,45 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4864,10 +5148,45 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
                 prerast_arena + PANVK_GPU_PRERAST_INDEX_OFFSET,
                 TD(gs_prim_base), PANVK_CSF_BARRIER_WAIT);
           }
@@ -1142,7 +1144,7 @@ index 0e9bc667b35..2f06e59a365 100644
           cmdbuf->state.gfx.vs.shader = vs;
           gfx_state_set_dirty(cmdbuf, VS);
           gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);
-@@ -4902,7 +5221,7 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4904,7 +5223,7 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
           cs_if(vt, MALI_CS_CONDITION_NEQUAL, pred) {
              if (nested)
                 gpu_prerast_draw_generated(cmdbuf, &raster, prerast_arena,
@@ -1151,7 +1153,7 @@ index 0e9bc667b35..2f06e59a365 100644
              else
                 panvk_cmd_draw(cmdbuf, raster);
           }
-@@ -5128,7 +5447,14 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
+@@ -5130,7 +5449,14 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
        return;
  
     if (!draw.gpu_prerast_generated && draw.prim == MESA_PRIM_PATCHES) {
@@ -1195,4 +1197,3 @@ index da3b68a0332..1eeeda04553 100644
  #define PANVK_GPU_PRERAST_GS_INDEX_OFFSET PANVK_GPU_PRERAST_VS_REGION_END
 -- 
 2.55.0
-

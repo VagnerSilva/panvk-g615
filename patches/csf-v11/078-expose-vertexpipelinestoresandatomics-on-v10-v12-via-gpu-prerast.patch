@@ -31,7 +31,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 56f40199713..04fe0b7241f 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4792,6 +4792,18 @@ gpu_prerast_needed(const struct panvk_cmd_buffer *cmdbuf,
+@@ -4794,6 +4794,18 @@ gpu_prerast_needed(const struct panvk_cmd_buffer *cmdbuf,
                PANVK_GPU_PRERAST_POLY_NONE);
  }
  
@@ -50,7 +50,7 @@ index 56f40199713..04fe0b7241f 100644
  /* Returns true if the draw was split into draws that fit the arena. */
  static bool
  gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
-@@ -4872,6 +4884,8 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -4874,6 +4886,8 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
         * vertex range, the kernels need a first-vertex/strip-end input for
         * that.
         */
@@ -59,7 +59,7 @@ index 56f40199713..04fe0b7241f 100644
        gpu_prerast_unhandled("vertex count over the arena capacity");
        return true;
     }
-@@ -4883,6 +4897,8 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -4885,6 +4899,8 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
      */
     if (!step || (overlap && draw->index.index_size &&
                   draw->index.restart_enable)) {
@@ -68,7 +68,7 @@ index 56f40199713..04fe0b7241f 100644
        gpu_prerast_unhandled("vertex count over the arena capacity");
        return true;
     }
-@@ -4927,7 +4943,7 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
+@@ -4929,7 +4945,7 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
        draw.pstats_counted = true;
     }
  
@@ -81,7 +81,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 5e6d037d1d3..66a11693d7e 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -336,8 +336,10 @@ panvk_per_arch(get_physical_device_features)(
+@@ -343,8 +343,10 @@ panvk_per_arch(get_physical_device_features)(
        .occlusionQueryPrecise = true,
        .pipelineStatisticsQuery = PAN_ARCH >= 10,
        /* On v13+, the hardware isn't speculatively referencing to invalid
@@ -97,7 +97,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 074168afc5c..2dc8cd2bab2 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -1189,6 +1189,45 @@ panvk_gpu_prerast_passthrough_nir(const nir_shader *source, uint64_t outputs,
+@@ -1173,6 +1173,45 @@ panvk_gpu_prerast_passthrough_nir(const nir_shader *source, uint64_t outputs,
     return b.shader;
  }
  
@@ -143,7 +143,7 @@ index 074168afc5c..2dc8cd2bab2 100644
  static void
  panvk_gpu_prerast_emit_generated_records(nir_shader *nir)
  {
-@@ -1198,27 +1237,7 @@ panvk_gpu_prerast_emit_generated_records(nir_shader *nir)
+@@ -1182,27 +1221,7 @@ panvk_gpu_prerast_emit_generated_records(nir_shader *nir)
     nir_def *vertex = nir_channel(&b, gid, 0);
     nir_def *instance = nir_channel(&b, gid, 1);
     nir_def *params = load_sysval(&b, graphics, 64, gpu_prerast_params);
@@ -172,7 +172,7 @@ index 074168afc5c..2dc8cd2bab2 100644
     nir_def *verts = nir_load_global(
        &b, 1, 32,
        nir_iadd_imm(&b, params,
-@@ -3141,6 +3160,8 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3131,6 +3150,8 @@ panvk_compile_shader(struct panvk_device *dev,
           info->nir->info.clip_distance_array_size;
        shader->gpu_prerast.io.cull_distance_array_size =
           info->nir->info.cull_distance_array_size;
@@ -181,7 +181,7 @@ index 074168afc5c..2dc8cd2bab2 100644
        shader->gpu_prerast.has_side_effects = info->nir->info.writes_memory;
     }
  #endif
-@@ -3171,6 +3192,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3161,6 +3182,7 @@ panvk_compile_shader(struct panvk_device *dev,
           BITSET_TEST(state->dynamic, MESA_VK_DYNAMIC_RS_POLYGON_MODE);
        const bool want_prerast =
           PANVK_DEBUG(GPU_PRERAST) || info->nir->xfb_info ||
@@ -189,9 +189,9 @@ index 074168afc5c..2dc8cd2bab2 100644
           (info->next_stage_mask & (VK_SHADER_STAGE_GEOMETRY_BIT |
                                     VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT)) ||
           (dev->vk.enabled_features.fillModeNonSolid &&
-@@ -3280,6 +3302,9 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3270,6 +3292,9 @@ panvk_compile_shader(struct panvk_device *dev,
                                            nir_metadata_all, &out_types);
-                NIR_PASS(_, nir, pan_nir_lower_vs_inputs_poly, inputs.gpu_id);
+                NIR_PASS(_, nir, pan_nir_lower_vs_inputs_poly);
                 NIR_PASS(_, nir, panvk_gpu_prerast_lower_vs_outputs);
 +               if (info->stage == MESA_SHADER_VERTEX &&
 +                   nir->info.writes_memory)
