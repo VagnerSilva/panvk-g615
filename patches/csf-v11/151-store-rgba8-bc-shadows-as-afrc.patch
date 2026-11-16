@@ -137,7 +137,7 @@ index a67b7cc5c3a308cd22a2eeb2e5b654587016239f..0abf821f31248116fb81bdc436c95aa9
        vk_image_init(&dev->vk, &tmp.vk, &sci);
        VkResult result = panvk_image_init(&tmp, &sci);
        vk_image_finish(&tmp.vk);
-@@ -942,8 +973,9 @@ panvk_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+@@ -965,8 +996,9 @@ panvk_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
  
     if (image->bc_gfx) {
        VkImageCreateInfo sci;

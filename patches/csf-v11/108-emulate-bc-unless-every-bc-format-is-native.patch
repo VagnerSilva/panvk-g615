@@ -31,10 +31,10 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index 7aa9d6abea21198cfe9557895e52fc2bcb36356a..a56fe757f247cdda93223102e77f54c4be92f5d0 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1785,12 +1785,26 @@ panvk_bc_emul_enabled(const struct panvk_physical_device *physical_device)
+@@ -1839,12 +1839,26 @@ panvk_bc_emul_enabled(const struct panvk_physical_device *physical_device)
     if (PANVK_DEBUG(NO_BC_EMUL))
        return false;
-
+ 
 -   const struct pan_format fmt =
 -      physical_device->formats.all[PIPE_FORMAT_DXT1_RGBA];
 +   /* Emulate unless every BC format is native. Some v9/v10 kbase GPUs
@@ -49,7 +49,7 @@ index 7aa9d6abea21198cfe9557895e52fc2bcb36356a..a56fe757f247cdda93223102e77f54c4
 +   };
     uint32_t supported_compr_fmts =
        pan_query_compressed_formats(&physical_device->kmod.dev->props);
-
+ 
 -   return !(BITFIELD_BIT(fmt.texfeat_bit) & supported_compr_fmts);
 +   for (unsigned i = 0; i < ARRAY_SIZE(bc_fmts); i++) {
 +      const struct pan_format fmt = physical_device->formats.all[bc_fmts[i]];
@@ -59,12 +59,12 @@ index 7aa9d6abea21198cfe9557895e52fc2bcb36356a..a56fe757f247cdda93223102e77f54c4
 +
 +   return false;
  }
-
+ 
  static VkFormatFeatureFlags2
-@@ -1802,10 +1816,8 @@ get_image_plane_format_features(struct panvk_physical_device *physical_device,
+@@ -1856,10 +1870,8 @@ get_image_plane_format_features(struct panvk_physical_device *physical_device,
     const struct pan_format fmt = physical_device->formats.all[pfmt];
     unsigned arch = pan_arch(physical_device->kmod.dev->props.gpu_id);
-
+ 
 -   if (panvk_format_is_bc(format)) {
 -      if (!panvk_bc_emul_enabled(physical_device))
 -         return 0;

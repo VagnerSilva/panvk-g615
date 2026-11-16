@@ -7392,7 +7392,7 @@ diff --git a/src/panfrost/vulkan/panvk_image.c b/src/panfrost/vulkan/panvk_image
 index aeecd4ae2a8..a86597c8532 100644
 --- a/src/panfrost/vulkan/panvk_image.c
 +++ b/src/panfrost/vulkan/panvk_image.c
-@@ -381,7 +381,7 @@ panvk_image_get_mod(struct panvk_image *image,
+@@ -347,7 +347,7 @@ panvk_image_get_mod(struct panvk_image *image,
     }
  
     /* legacy scanout (images without any external modifier info) should default to LINEAR. */
@@ -7401,7 +7401,7 @@ index aeecd4ae2a8..a86597c8532 100644
        return DRM_FORMAT_MOD_LINEAR;
  
     /* Without external dependencies, pick the best modifier that supports the image. */
-@@ -554,6 +554,22 @@ panvk_image_init_layouts(struct panvk_image *image,
+@@ -520,6 +520,22 @@ panvk_image_init_layouts(struct panvk_image *image,
           plane_layout.offset_B += image->planes[plane].plane.layout.data_size_B;
     }
  
@@ -7424,7 +7424,7 @@ index aeecd4ae2a8..a86597c8532 100644
     return VK_SUCCESS;
  }
  
-@@ -643,6 +659,10 @@ panvk_image_get_total_size(const struct panvk_image *image)
+@@ -609,6 +625,10 @@ panvk_image_get_total_size(const struct panvk_image *image)
     uint64_t size = 0;
     for (uint8_t plane = 0; plane < image->plane_count; plane++)
        size = MAX2(size, panvk_image_plane_size(image, plane));
@@ -7435,7 +7435,7 @@ index aeecd4ae2a8..a86597c8532 100644
     return size;
  }
  
-@@ -685,6 +705,10 @@ panvk_image_init(struct panvk_image *image,
+@@ -651,6 +671,10 @@ panvk_image_init(struct panvk_image *image,
  {
     /* Needs to happen early for some panvk_image_ helpers to work. */
     image->plane_count = get_plane_count(image);
@@ -7446,7 +7446,7 @@ index aeecd4ae2a8..a86597c8532 100644
  
     /* Add any create/usage flags that might be needed for meta operations.
      * This is run before the modifier selection because some
-@@ -1448,6 +1472,8 @@ panvk_image_bind(struct panvk_device *dev,
+@@ -1441,6 +1465,8 @@ panvk_image_bind(struct panvk_device *dev,
     } else {
        for (unsigned plane = 0; plane < image->plane_count; plane++)
           panvk_image_plane_bind_mem(dev, &image->planes[plane], mem, offset);
@@ -7471,10 +7471,7 @@ index 293d9ae9a32..4602e3b7b12 100644
  };
  
  VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_image, vk.base, VkImage,
-@@ -62,6 +67,45 @@ bool panvk_image_can_use_afbc(
-    VkImageUsageFlags usage, VkImageType type, VkImageTiling tiling,
-    VkImageCreateFlags flags);
- 
+@@ -57,3 +62,42 @@
 +static inline bool
 +panvk_format_is_bc(VkFormat format)
 +{
@@ -7514,9 +7511,9 @@ index 293d9ae9a32..4602e3b7b12 100644
 +   }
 +}
 +
- static inline unsigned
- panvk_plane_index(const struct panvk_image *image,
-                   VkImageAspectFlags aspect_mask)
+ static inline void
+ panvk_image_set_compression_props(VkImageCompressionPropertiesEXT *props,
+                                   bool compressed)
 diff --git a/src/panfrost/vulkan/panvk_instance.c b/src/panfrost/vulkan/panvk_instance.c
 index d3448ea60d2..88f89cdf76e 100644
 --- a/src/panfrost/vulkan/panvk_instance.c
@@ -7558,7 +7555,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index cc15fb139db..e5ed4733463 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1753,6 +1753,20 @@ format_is_supported(struct panvk_physical_device *physical_device,
+@@ -1807,6 +1807,20 @@ format_is_supported(struct panvk_physical_device *physical_device,
     return true;
  }
  
@@ -7579,7 +7576,7 @@ index cc15fb139db..e5ed4733463 100644
  static VkFormatFeatureFlags2
  get_image_plane_format_features(struct panvk_physical_device *physical_device,
                                  VkFormat format)
-@@ -1762,6 +1776,20 @@ get_image_plane_format_features(struct panvk_physical_device *physical_device,
+@@ -1816,6 +1830,20 @@ get_image_plane_format_features(struct panvk_physical_device *physical_device,
     const struct pan_format fmt = physical_device->formats.all[pfmt];
     unsigned arch = pan_arch(physical_device->kmod.dev->props.gpu_id);
  
@@ -7600,7 +7597,7 @@ index cc15fb139db..e5ed4733463 100644
     if (!format_is_supported(physical_device, fmt, pfmt))
        return 0;
  
-@@ -2006,8 +2034,10 @@ panvk_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
+@@ -2074,8 +2102,10 @@ panvk_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
     VkFormatFeatureFlags buffer_legacy =
        vk_format_features2_to_features(buffer);
  
@@ -7612,7 +7609,7 @@ index cc15fb139db..e5ed4733463 100644
        .optimalTilingFeatures = tex_legacy,
        .bufferFeatures = buffer_legacy,
     };
-@@ -2015,7 +2045,7 @@ panvk_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
+@@ -2083,7 +2113,7 @@ panvk_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
     VkFormatProperties3 *formatProperties3 =
        vk_find_struct(pFormatProperties->pNext, FORMAT_PROPERTIES_3);
     if (formatProperties3) {
@@ -7621,16 +7618,7 @@ index cc15fb139db..e5ed4733463 100644
        formatProperties3->optimalTilingFeatures = tex;
        formatProperties3->bufferFeatures = buffer;
     }
-@@ -2073,7 +2103,7 @@ panvk_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
-       pFormatProperties->pNext, DRM_FORMAT_MODIFIER_PROPERTIES_LIST_2_EXT);
-    if (list2) {
-       VkFormatFeatureFlags2 optimal_features2 = tex;
--      VkFormatFeatureFlags2 linear_features2 = tex;
-+      VkFormatFeatureFlags2 linear_features2 = optimal_only ? 0 : tex;
- 
-       VK_OUTARRAY_MAKE_TYPED(VkDrmFormatModifierProperties2EXT, out,
-                               list2->pDrmFormatModifierProperties,
-@@ -2244,6 +2274,19 @@ get_image_format_properties(struct panvk_physical_device *physical_device,
+@@ -2272,6 +2302,19 @@ get_image_format_properties(struct panvk_physical_device *physical_device,
     if (format_feature_flags == 0)
        goto unsupported;
  
@@ -7647,14 +7635,14 @@ index cc15fb139db..e5ed4733463 100644
 +                        VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))))
 +      goto unsupported;
 +
-    if (ycbcr_info && info->type != VK_IMAGE_TYPE_2D)
-       goto unsupported;
- 
+    switch (info->tiling) {
+    case VK_IMAGE_TILING_LINEAR:
+    case VK_IMAGE_TILING_OPTIMAL:
 diff --git a/src/panfrost/vulkan/panvk_physical_device.h b/src/panfrost/vulkan/panvk_physical_device.h
 index 317fd4648ab..f840aefcd3d 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.h
 +++ b/src/panfrost/vulkan/panvk_physical_device.h
-@@ -131,6 +131,8 @@ panvk_get_max_resource_size(const struct panvk_physical_device *device);
+@@ -141,6 +141,8 @@ panvk_get_max_resource_size(const struct panvk_physical_device *device);
  VkDeviceSize
  panvk_get_max_buffer_size(const struct panvk_physical_device *device);
  
@@ -7679,7 +7667,7 @@ index 738b35a96fb..b858aeccac0 100644
  #include "panvk_cmd_precomp.h"
  #include "libpan.h"
  #include "libpan_copy.h"
-@@ -472,10 +477,229 @@ lower_copy_memory_to_image(
+@@ -471,10 +476,229 @@ lower_copy_memory_to_image(
     return true;
  }
  
@@ -7909,7 +7897,7 @@ index 738b35a96fb..b858aeccac0 100644
  {
     VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
-@@ -677,6 +901,37 @@ lower_copy_image(VkCommandBuffer commandBuffer,
+@@ -676,6 +900,37 @@ lower_copy_image(VkCommandBuffer commandBuffer,
  VKAPI_ATTR void VKAPI_CALL
  panvk_per_arch(CmdCopyImage2)(VkCommandBuffer commandBuffer,
                                const VkCopyImageInfo2 *pCopyImageInfo)
@@ -7975,14 +7963,14 @@ index d92e1aa8c36..46dc621f1a9 100644
 +      }
 +   }
 +
-    VkImageUsageFlags tex_usage_mask = VK_IMAGE_USAGE_SAMPLED_BIT;
+    VkImageUsageFlags2KHR tex_usage_mask = VK_IMAGE_USAGE_2_SAMPLED_BIT_KHR;
  
  #if PAN_ARCH >= 9
 diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulkan/panvk_vX_physical_device.c
 index 6d986830343..aa6e23ee04c 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -324,7 +324,8 @@ panvk_per_arch(get_physical_device_features)(
+@@ -333,7 +333,8 @@ panvk_per_arch(get_physical_device_features)(
        .samplerAnisotropy = true,
        .textureCompressionETC2 = has_texture_compression_etc2(device),
        .textureCompressionASTC_LDR = has_texture_compression_astc_ldr(device),
