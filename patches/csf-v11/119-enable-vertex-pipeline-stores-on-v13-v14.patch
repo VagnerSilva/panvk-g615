@@ -42,7 +42,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index d4f2b7f..83d4f67 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -341,10 +341,11 @@ panvk_per_arch(get_physical_device_features)(
+@@ -348,10 +348,11 @@ panvk_per_arch(get_physical_device_features)(
        .pipelineStatisticsQuery = PAN_ARCH >= 10,
        /* On v13+, the hardware isn't speculatively referencing to invalid
           indices anymore. On v10-v12, pre-rasterization stages that write

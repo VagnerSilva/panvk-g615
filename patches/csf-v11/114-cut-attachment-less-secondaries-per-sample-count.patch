@@ -28,7 +28,7 @@ Generated-by: LLM
 diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 --- a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 +++ b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
-@@ -611,6 +611,19 @@
+@@ -612,6 +612,19 @@
  
        struct panvk_cond_render_state cond_render;
     } state;
@@ -48,7 +48,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/cs
  };
  
  VK_DEFINE_HANDLE_CASTS(panvk_cmd_buffer, vk.base, VkCommandBuffer,
-@@ -901,7 +914,10 @@
+@@ -902,7 +915,10 @@
     bool is_set_event);
  
  VkResult panvk_per_arch(cmd_prepare_exec_cmd_for_draws)(
@@ -63,7 +63,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/cs
 diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -888,7 +888,7 @@
+@@ -927,7 +927,7 @@
  }
  
  static void
@@ -72,7 +72,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
  {
     struct panvk_physical_device *phys_dev =
        to_panvk_physical_device(cmdbuf->vk.base.device->physical);
-@@ -902,7 +902,7 @@
+@@ -941,7 +941,7 @@
     const struct drm_panthor_csif_info *csif_info =
        panvk_get_csif_props(dev);
  
@@ -81,7 +81,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
        struct cs_builder *b = &cmdbuf->state.cs[i].builder;
        /* Lazy allocation of the root CS. */
        struct cs_buffer root_cs = {0};
-@@ -937,6 +937,70 @@
+@@ -976,6 +976,70 @@
  }
  
  static void
@@ -152,7 +152,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
  panvk_reset_cmdbuf(struct vk_command_buffer *vk_cmdbuf,
                     VkCommandBufferResetFlags flags)
  {
-@@ -964,6 +1028,7 @@
+@@ -1003,6 +1067,7 @@
        cs_builder_fini(&cmdbuf->state.cs[i].builder);
  
     memset(&cmdbuf->state, 0, sizeof(cmdbuf->state));
@@ -160,7 +160,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
     init_cs_builders(cmdbuf);
  }
  
-@@ -982,6 +1047,7 @@
+@@ -1021,6 +1086,7 @@
     for (uint32_t i = 0; i < ARRAY_SIZE(cmdbuf->state.cs); i++)
        cs_builder_fini(&cmdbuf->state.cs[i].builder);
  
@@ -168,7 +168,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
     panvk_pool_cleanup(&cmdbuf->cs_pool);
     panvk_pool_cleanup(&cmdbuf->desc_pool);
     panvk_pool_cleanup(&cmdbuf->tls_pool);
-@@ -1149,7 +1215,12 @@
+@@ -1196,7 +1262,12 @@
        primary->state.tls.info.tls.size =
           MAX2(primary->state.tls.info.tls.size,
                secondary->state.tls.info.tls.size);
@@ -182,7 +182,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
  
        /* Write the conditional rendering flag into the subqueue context
         * for inherited secondaries. The secondary's draws load from this
-@@ -1158,7 +1229,7 @@
+@@ -1205,7 +1276,7 @@
        if (secondary->state.cond_render.inherited) {
           for (uint32_t j = 0; j < ARRAY_SIZE(primary->state.cs); j++) {
              struct cs_builder *sec_b = panvk_get_cs_builder(secondary, j);
@@ -191,7 +191,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
                 continue;
  
              struct cs_builder *prim_b = panvk_get_cs_builder(primary, j);
-@@ -1199,6 +1270,35 @@
+@@ -1246,6 +1317,35 @@
              cs_flush_stores(prim_b);
           }
        }
@@ -230,7 +230,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3065,17 +3065,14 @@
+@@ -3067,17 +3067,14 @@
         */
        if (!cmdbuf->state.gfx.render.bound_attachments) {
           assert(rasterization_samples > 0);
@@ -255,7 +255,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
           } else if (fb->sample_count != 0 &&
                      fb->sample_count != rasterization_samples) {
              result = split_render_ctx(cmdbuf);
-@@ -5761,6 +5758,29 @@
+@@ -5763,6 +5760,29 @@
     return true;
  }
  
@@ -285,7 +285,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
  static void
  panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
  {
-@@ -5781,6 +5801,7 @@
+@@ -5783,6 +5803,7 @@
  
     /* Count once per API draw, before gpu_prerast splits or lowers it. */
     if (!draw.gpu_prerast_generated && !draw.pstats_counted) {
@@ -293,7 +293,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
        panvk_per_arch(cmd_pstats_draw)(cmdbuf, &draw);
        draw.pstats_counted = true;
     }
-@@ -5850,25 +5871,21 @@
+@@ -5852,25 +5873,21 @@
  VkResult
  panvk_per_arch(cmd_prepare_exec_cmd_for_draws)(
     struct panvk_cmd_buffer *primary,
@@ -325,7 +325,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
        if (fb->sample_count != 0 && fb->sample_count != sec_samples) {
           VkResult result = split_render_ctx(primary);
           if (result != VK_SUCCESS)
-@@ -6137,7 +6154,7 @@
+@@ -6139,7 +6156,7 @@
  
     assert(pBeginInfo->pInheritanceInfo);
     cmdbuf->state.gfx.render.vmr_samples = 0;
@@ -334,7 +334,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
     char gcbiar_data[VK_GCBIARR_DATA_SIZE(MAX_RTS)];
     const VkRenderingInfo *resume_info =
        vk_get_command_buffer_inheritance_as_rendering_resume(cmdbuf->vk.level,
-@@ -6300,6 +6317,13 @@
+@@ -6322,6 +6339,13 @@
        resuming ? state->render.fb.layout.tile_rt_alloc_B : 0;
  
     panvk_per_arch(cmd_init_render_state)(cmdbuf, pRenderingInfo);
@@ -348,7 +348,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
  
     if (suspended_sample_count != 0) {
        state->render.fb.layout.sample_count = suspended_sample_count;
-@@ -7270,6 +7294,8 @@
+@@ -7292,6 +7316,8 @@
  
     panvk_per_arch(cmd_pstats_flush_pending)(cmdbuf);
  
@@ -357,7 +357,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
     cmdbuf->state.gfx.render.oq.chain = 0;
     memset(&cmdbuf->state.gfx.render.fbds, 0,
            sizeof(cmdbuf->state.gfx.render.fbds));
-@@ -7326,6 +7352,13 @@
+@@ -7350,6 +7376,13 @@
  
           handle_deferred_queries(cmdbuf);
        }
@@ -374,7 +374,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 diff --git a/src/panfrost/vulkan/panvk_cmd_draw.h b/src/panfrost/vulkan/panvk_cmd_draw.h
 --- a/src/panfrost/vulkan/panvk_cmd_draw.h
 +++ b/src/panfrost/vulkan/panvk_cmd_draw.h
-@@ -109,12 +109,11 @@
+@@ -110,12 +110,11 @@
      * inherited context, and the primary command buffer needs to know. */
     bool invalidate_inherited_ctx;
  

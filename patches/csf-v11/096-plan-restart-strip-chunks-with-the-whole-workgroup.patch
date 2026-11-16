@@ -26,7 +26,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index dec39872678..33e92fadeec 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -359,15 +359,77 @@ chunk_ends_strip(global struct panlib_chunk_draw *c, uint32_t pos)
+@@ -360,15 +360,77 @@ chunk_ends_strip(global struct panlib_chunk_draw *c, uint32_t pos)
        return *(global uint8_t *)addr == 0xff;
  }
  
@@ -105,7 +105,7 @@ index dec39872678..33e92fadeec 100644
     uint32_t align, overlap, div;
     panlib_chunk_topology(c->prim, &align, &overlap, &div);
  
-@@ -375,6 +437,27 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -376,6 +438,27 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
     const uint32_t verts = c->in_draw[0], insts = c->in_draw[1];
     const uint32_t inst = c->next_inst;
     const bool strips = c->restart && overlap;
@@ -133,7 +133,7 @@ index dec39872678..33e92fadeec 100644
  
     for (uint32_t i = 0; i < 5; i++)
        c->draw[i] = c->in_draw[i];
-@@ -394,17 +477,7 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -395,17 +478,7 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
        n_insts = min(max(c->max_verts / verts, 1u), insts - inst);
        n_insts = min(n_insts, PANLIB_CHUNK_MAX_INSTANCES);
        if (strips) {
@@ -152,7 +152,7 @@ index dec39872678..33e92fadeec 100644
        } else {
           prims = u_decomposed_prims_for_vertices(prim, verts);
        }
-@@ -414,9 +487,7 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -415,9 +488,7 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
        c->next_inst = inst + n_insts;
        c->next_vertex = 0;
     } else {
@@ -163,7 +163,7 @@ index dec39872678..33e92fadeec 100644
        bool done;
  
        if (!step) {
-@@ -424,11 +495,7 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -425,11 +496,7 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
           return;
        }
  
@@ -176,7 +176,7 @@ index dec39872678..33e92fadeec 100644
        if (i >= verts) {
           c->next_inst = inst + 1;
           c->next_vertex = 0;
-@@ -439,21 +506,11 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -440,21 +507,11 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
  
        if (strips) {
           const uint32_t window = min(c->max_verts, verts - i);
