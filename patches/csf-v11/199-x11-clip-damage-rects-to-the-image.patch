@@ -23,7 +23,7 @@ diff --git a/src/vulkan/wsi/wsi_common_x11.c b/src/vulkan/wsi/wsi_common_x11.c
 index 25d2619..536dcd7 100644
 --- a/src/vulkan/wsi/wsi_common_x11.c
 +++ b/src/vulkan/wsi/wsi_common_x11.c
-@@ -1919,7 +1919,7 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
+@@ -1962,7 +1962,7 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
        const xcb_rectangle_t *rects = n > 0 ? image->rects : &full;
        for (int i = 0; i < MAX2(n, 1); i++) {
           xcb_rectangle_t rect = rects[i];
@@ -32,7 +32,7 @@ index 25d2619..536dcd7 100644
           if (rect.x < 0 || rect.y < 0 ||
               rect.x >= chain->extent.width || rect.y >= chain->extent.height)
              continue;
-@@ -2319,17 +2319,34 @@ x11_queue_present(struct wsi_swapchain *wsi_chain,
+@@ -2292,17 +2292,34 @@ x11_queue_present(struct wsi_swapchain *wsi_chain,
         damage->rectangleCount <= MAX_DAMAGE_RECTS) {
        xcb_rectangle_t *rects = chain->images[image_index].rects;
  

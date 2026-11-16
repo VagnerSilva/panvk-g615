@@ -15,7 +15,7 @@ diff --git a/src/vulkan/wsi/wsi_common_x11.c b/src/vulkan/wsi/wsi_common_x11.c
 index 0960ec2f63a..c9d35d31b42 100644
 --- a/src/vulkan/wsi/wsi_common_x11.c
 +++ b/src/vulkan/wsi/wsi_common_x11.c
-@@ -1955,6 +1955,15 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
+@@ -1998,6 +1998,15 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
     free(err);
     free(geom);
  
@@ -31,12 +31,3 @@ index 0960ec2f63a..c9d35d31b42 100644
     wsi_queue_push(&chain->acquire_queue, image_index);
     return result;
  }
-@@ -3081,7 +3090,7 @@ static VkResult x11_wait_for_present(struct wsi_swapchain *wsi_chain,
-       int ret = u_cnd_monotonic_timedwait(&chain->present_progress_cond,
-                                           &chain->present_progress_mutex,
-                                           &abs_timespec);
--      if (ret == ETIMEDOUT) {
-+      if (ret == thrd_timedout) {
-          result = VK_TIMEOUT;
-          break;
-       }
