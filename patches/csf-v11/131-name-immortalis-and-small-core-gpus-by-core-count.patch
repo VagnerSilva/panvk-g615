@@ -25,10 +25,10 @@ Measured on a G925 (gpu_id 0xd8300015, MC12):
 
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1161,6 +1161,28 @@
+@@ -1206,6 +1206,28 @@
     vk_physical_device_finish(&device->vk);
  }
-
+ 
 +/* Arm ships some GPUs of one product id under several names, picked by the
 + * shader core count (same split as panthor). Keep the "Mali-" prefix, as Arm
 + * does: apps and tests match on it. */
@@ -54,23 +54,23 @@ Measured on a G925 (gpu_id 0xd8300015, MC12):
  VkResult
  panvk_physical_device_init(struct panvk_physical_device *device,
                             struct panvk_instance *instance,
-@@ -1221,7 +1243,8 @@
-       pan_query_core_count(&device->kmod.dev->props);
-
-    memset(device->name, 0, sizeof(device->name));
--   sprintf(device->name, "%s MC%u", device->model->name, core_count);
-+   sprintf(device->name, "%s MC%u",
+@@ -1266,7 +1288,8 @@
+    device->formats.all = pan_format_table(arch);
+    device->formats.blendable = pan_blendable_format_table(arch);
+ 
+-   pan_model_device_name(device->name, sizeof(device->name), device->model, core_count, "");
++   snprintf(device->name, sizeof(device->name), "%s MC%u",
 +           panvk_marketing_name(device->model, core_count), core_count);
-
+ 
     result = get_core_masks(device, instance);
     if (result != VK_SUCCESS)
-@@ -1371,7 +1394,8 @@
+@@ -1419,7 +1442,8 @@
        pan_query_core_count(&device->kmod.dev->props);
-
+ 
     memset(device->name, 0, sizeof(device->name));
 -   sprintf(device->name, "%s MC%u", device->model->name, core_count);
 +   sprintf(device->name, "%s MC%u",
 +           panvk_marketing_name(device->model, core_count), core_count);
-
+ 
     result = get_core_masks(device, instance);
     if (result != VK_SUCCESS)

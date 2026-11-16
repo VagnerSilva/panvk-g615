@@ -34,7 +34,7 @@ diff --git a/src/panfrost/vulkan/panvk_image.c b/src/panfrost/vulkan/panvk_image
 index baf506db..af89690e 100644
 --- a/src/panfrost/vulkan/panvk_image.c
 +++ b/src/panfrost/vulkan/panvk_image.c
-@@ -1811,6 +1811,7 @@ panvk_BindImageMemory2(VkDevice device, uint32_t bindInfoCount,
+@@ -1831,6 +1831,7 @@ panvk_BindImageMemory2(VkDevice device, uint32_t bindInfoCount,
  #include <fcntl.h>
  #include <unistd.h>
  #include "util/detect_os.h"
@@ -42,7 +42,7 @@ index baf506db..af89690e 100644
  #include "util/u_queue.h"
  #include "panvk_priv_bo.h"
  
-@@ -1908,26 +1909,13 @@ panvk_bc_raw_rebind(struct panvk_image *image)
+@@ -1928,26 +1929,13 @@ panvk_bc_raw_rebind(struct panvk_image *image)
     simple_mtx_unlock(&bc_raw_lock);
  }
  
@@ -72,7 +72,7 @@ index baf506db..af89690e 100644
  #else
     return NULL;
  #endif
-@@ -1941,7 +1929,7 @@ bc_raw_file(struct panvk_device *dev)
+@@ -1961,7 +1949,7 @@ bc_raw_file(struct panvk_device *dev)
     if (dev->bc_raw.fd_plus1)
        return dev->bc_raw.fd_plus1 - 1;
  
@@ -93,7 +93,7 @@ index 58904335..bdc1b765 100644
  
  #if DETECT_OS_WINDOWS
  
-@@ -932,33 +933,29 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
+@@ -1009,33 +1010,29 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
        if (xdg_cache_home) {
           path = concatenate_and_mkdir(mem_ctx, xdg_cache_home, cache_dir_name,
                                        mkdir);

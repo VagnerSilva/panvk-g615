@@ -26,7 +26,7 @@ diff --git a/src/util/disk_cache_os.c b/src/util/disk_cache_os.c
 index 66a3f5b..08165bb 100644
 --- a/src/util/disk_cache_os.c
 +++ b/src/util/disk_cache_os.c
-@@ -1007,14 +1007,13 @@ disk_cache_enabled()
+@@ -1084,14 +1084,13 @@ disk_cache_enabled()
        return false;
  
     /* At user request, disable shader cache entirely.

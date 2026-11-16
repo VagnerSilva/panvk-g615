@@ -48,11 +48,12 @@ diff --git a/src/util/u_queue.c b/src/util/u_queue.c
 index 6c135210..3031506e 100644
 --- a/src/util/u_queue.c
 +++ b/src/util/u_queue.c
-@@ -35,6 +35,12 @@
+@@ -34,6 +34,13 @@
  #include "util/timespec.h"
  #include "u_process.h"
  
 +#include "util/detect_os.h"
++#include "util/u_cpu_detect.h"
 +
 +#if DETECT_OS_POSIX
 +#include <pthread.h>
@@ -61,16 +62,15 @@ index 6c135210..3031506e 100644
  #if defined(__linux__)
  #include <sys/time.h>
  #include <sys/resource.h>
-@@ -48,6 +54,8 @@
+@@ -47,5 +54,7 @@
  static void
- util_queue_kill_threads(struct util_queue *queue, unsigned keep_num_threads,
-                         bool locked);
+ util_queue_kill_threads_locked(struct util_queue *queue, unsigned keep_num_threads);
 +static bool
 +util_queue_create_thread(struct util_queue *queue, unsigned index);
  
  /****************************************************************************
   * Wait for all queues to assert idle when exit() is called.
-@@ -76,11 +84,119 @@ atexit_handler(void)
+@@ -78,11 +87,124 @@ atexit_handler(void)
     mtx_unlock(&exit_mutex);
  }
  
@@ -107,8 +107,10 @@ index 6c135210..3031506e 100644
 +   util_get_cpu_caps();
 +
 +   mtx_lock(&exit_mutex);
-+   LIST_FOR_EACH_ENTRY(iter, &queue_list, head)
++   LIST_FOR_EACH_ENTRY(iter, &queue_list, head) {
++      simple_mtx_lock(&iter->finish_lock);
 +      mtx_lock(&iter->lock);
++   }
 +}
 +
 +static void
@@ -116,8 +118,10 @@ index 6c135210..3031506e 100644
 +{
 +   struct util_queue *iter;
 +
-+   LIST_FOR_EACH_ENTRY(iter, &queue_list, head)
++   LIST_FOR_EACH_ENTRY(iter, &queue_list, head) {
 +      mtx_unlock(&iter->lock);
++      simple_mtx_unlock(&iter->finish_lock);
++   }
 +   mtx_unlock(&exit_mutex);
 +}
 +
@@ -149,6 +153,7 @@ index 6c135210..3031506e 100644
 +      cnd_init(&iter->has_queued_cond);
 +      cnd_init(&iter->has_space_cond);
 +      mtx_unlock(&iter->lock);
++      simple_mtx_unlock(&iter->finish_lock);
 +   }
 +   mtx_unlock(&exit_mutex);
 +}
@@ -190,22 +195,22 @@ index 6c135210..3031506e 100644
  }
  
  static void
-@@ -555,6 +671,10 @@ util_queue_add_job_locked(struct util_queue *queue,
+@@ -555,6 +677,10 @@ util_queue_add_job_locked(struct util_queue *queue,
+ {
+    struct util_queue_job *ptr;
  
-    if (!locked)
-       mtx_lock(&queue->lock);
 +#if DETECT_OS_POSIX
 +   if (queue->num_threads == 0 && queue->respawn_after_fork)
 +      util_queue_respawn_after_fork_locked(queue);
 +#endif
     if (queue->num_threads == 0) {
-       if (!locked)
-          mtx_unlock(&queue->lock);
+       /* well no good option here, but any leaks will be
+        * short-lived as things are shutting down..
 diff --git a/src/util/u_queue.h b/src/util/u_queue.h
 index 7cbb89cd..f38e7730 100644
 --- a/src/util/u_queue.h
 +++ b/src/util/u_queue.h
-@@ -232,6 +232,9 @@ struct util_queue {
+@@ -237,6 +237,9 @@ struct util_queue {
     int num_queued;
     unsigned max_threads;
     unsigned num_threads; /* decreasing this number will terminate threads */
