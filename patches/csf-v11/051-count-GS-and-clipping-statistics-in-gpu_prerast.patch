@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 06ce34fe394..23cdf6c7bda 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3681,6 +3681,19 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
+@@ -3683,6 +3683,19 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
                cmdbuf->vk.dynamic_graphics_state.rs.provoking_vertex ==
                   VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT);
     STORE_GS32(prim_id_base, source->gpu_prerast_prim_base);
@@ -53,7 +53,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index ade8419b26f..ebfe1149b55 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -1232,6 +1232,10 @@ struct panvk_gs_lower_state {
+@@ -1216,6 +1216,10 @@ struct panvk_gs_lower_state {
     const struct panvk_gpu_prerast_gs_info *gs;
     nir_variable *vcount;
     nir_variable *ipos;
@@ -64,7 +64,7 @@ index ade8419b26f..ebfe1149b55 100644
     nir_def *vin[6];
     unsigned nvin;
     nir_def *inst;
-@@ -1381,6 +1385,17 @@ panvk_gs_lower_intr(nir_builder *b, nir_intrinsic_instr *intr, void *data)
+@@ -1365,6 +1369,17 @@ panvk_gs_lower_intr(nir_builder *b, nir_intrinsic_instr *intr, void *data)
           nir_pop_if(b, NULL);
           nir_store_var(b, s->ipos, nir_iadd_imm(b, ip, 1), 1);
           nir_store_var(b, s->vcount, nir_iadd_imm(b, vc, 1), 1);
@@ -82,7 +82,7 @@ index ade8419b26f..ebfe1149b55 100644
        }
        nir_pop_if(b, NULL);
        return true;
-@@ -1392,6 +1407,7 @@ panvk_gs_lower_intr(nir_builder *b, nir_intrinsic_instr *intr, void *data)
+@@ -1376,6 +1391,7 @@ panvk_gs_lower_intr(nir_builder *b, nir_intrinsic_instr *intr, void *data)
           return true;
        nir_store_var(b, s->ipos, nir_iadd_imm(b, nir_load_var(b, s->ipos), 1),
                      1);
@@ -90,7 +90,7 @@ index ade8419b26f..ebfe1149b55 100644
        return true;
     }
  
-@@ -1463,6 +1479,9 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
+@@ -1447,6 +1463,9 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
     };
     s.vcount = nir_local_variable_create(impl, glsl_uint_type(), "gs_vcount");
     s.ipos = nir_local_variable_create(impl, glsl_uint_type(), "gs_ipos");
@@ -100,7 +100,7 @@ index ade8419b26f..ebfe1149b55 100644
  
     nir_def *gid = nir_load_global_invocation_id(b, 32);
     nir_def *j = nir_channel(b, gid, 0);
-@@ -1704,11 +1723,34 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
+@@ -1688,11 +1707,34 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
  
     nir_store_var(b, s.vcount, zero, 1);
     nir_store_var(b, s.ipos, zero, 1);

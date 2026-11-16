@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 499e13d4413..f51d215217d 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -329,7 +329,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -336,7 +336,7 @@ panvk_per_arch(get_physical_device_features)(
        .textureCompressionBC = has_texture_compression_bc(device) ||
                                panvk_bc_emul_enabled(device),
        .occlusionQueryPrecise = true,
