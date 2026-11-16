@@ -56,6 +56,7 @@
 #include "drm-uapi/panthor_drm.h"
 
 #include "kbase_kmod.h"
+#include "kbase_sync_provider.h"
 #include "pan_kmod_backend.h"
 #include "pan_props.h"
 #include "pan_trace.h"
@@ -1125,7 +1126,6 @@ kbase_kmod_alias_destroy(struct pan_kmod_dev *dev, uint64_t va, uint64_t size,
 
 static struct pan_kmod_dev *
 kbase_kmod_dev_create(int fd, uint32_t flags,
-                      UNUSED const struct pan_kmod_driver *drv_info,
                       const struct pan_kmod_allocator *allocator)
 {
    /* Version handshake.  This must be the very first ioctl on the fd; all
@@ -1240,8 +1240,22 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
    if (user_cache_sync && !strcmp(user_cache_sync, "0"))
       flags |= PAN_KMOD_DEV_FLAG_MMAP_SYNC_THROUGH_KERNEL;
 
-   pan_kmod_dev_init(&kbase_dev->base, fd, flags, &kbase_drv,
-                     &kbase_kmod_ops, allocator);
+   struct util_sync_provider *sync_ops = kbase_sync_provider_create();
+   if (!sync_ops) {
+      pan_kmod_free(allocator, kbase_dev);
+      free(props_buf);
+      goto err_unmap_tracking;
+   }
+
+   int ret = pan_kmod_dev_init(&kbase_dev->base, fd, flags, &kbase_drv,
+                              allocator, &kbase_kmod_ops, sync_ops);
+   if (ret) {
+      mesa_loge("kbase: pan_kmod_dev_init failed: %d", ret);
+      sync_ops->finalize(sync_ops);
+      pan_kmod_free(allocator, kbase_dev);
+      free(props_buf);
+      goto err_unmap_tracking;
+   }
 
    kbase_dev->is_csf = is_csf;
    kbase_dev->tracking_page = tracking_page;
@@ -1730,28 +1744,21 @@ kbase_kmod_bo_free(struct pan_kmod_bo *bo)
 }
 
 /*
- * dma-buf import is not yet implemented: pan_kmod_bo_import() first calls
- * drmPrimeFDToHandle() which requires a DRM fd.  It will fail gracefully
- * (returns NULL) on a kbase fd, so callers get NULL without a crash.
- * A full implementation would call KBASE_IOCTL_MEM_IMPORT here.
+ * The Kbase backend imports dma-bufs directly through KBASE_IOCTL_MEM_IMPORT.
  */
 static struct pan_kmod_bo *
-kbase_kmod_bo_import(struct pan_kmod_dev *dev, uint32_t handle, uint64_t size)
+kbase_kmod_bo_import(struct pan_kmod_dev *dev, int fd)
 {
-   mesa_loge("kbase: bo_import not yet implemented "
-             "(dma-buf import requires KBASE_IOCTL_MEM_IMPORT)");
-   errno = ENOSYS;
-   return NULL;
-}
-
-static struct pan_kmod_bo *
-kbase_kmod_bo_import_fd(struct pan_kmod_dev *dev, int fd, uint64_t size)
-{
+   off_t size = lseek(fd, 0, SEEK_END);
+   if (size <= 0) {
+      mesa_loge("kbase: invalid dma-buf size");
+      return NULL;
+   }
    return kbase_kmod_import_dmabuf(dev, NULL, fd, size, 0, true);
 }
 
 static int
-kbase_kmod_bo_export_fd(struct pan_kmod_bo *bo)
+kbase_kmod_bo_export(struct pan_kmod_bo *bo)
 {
    struct kbase_kmod_bo *kbase_bo =
       container_of(bo, struct kbase_kmod_bo, base);
@@ -1762,17 +1769,6 @@ kbase_kmod_bo_export_fd(struct pan_kmod_bo *bo)
    }
 
    return fcntl(kbase_bo->dmabuf_fd, F_DUPFD_CLOEXEC, 3);
-}
-
-/* The GPU VA doubles as the mmap() file offset in kbase, but BOs are mapped
- * once at allocation time and bo_mmap below returns the cached mapping, so
- * this is only kept as a fallback. */
-static off_t
-kbase_kmod_bo_get_mmap_offset(struct pan_kmod_bo *bo)
-{
-   struct kbase_kmod_bo *kbase_bo =
-      container_of(bo, struct kbase_kmod_bo, base);
-   return (off_t)kbase_bo->gpu_va;
 }
 
 /* Return the CPU mapping established at allocation time.  A SAME_VA region
@@ -2015,9 +2011,7 @@ const struct pan_kmod_ops kbase_kmod_ops = {
    .bo_alloc               = kbase_kmod_bo_alloc,
    .bo_free                = kbase_kmod_bo_free,
    .bo_import              = kbase_kmod_bo_import,
-   .bo_import_fd           = kbase_kmod_bo_import_fd,
-   .bo_export_fd           = kbase_kmod_bo_export_fd,
-   .bo_get_mmap_offset     = kbase_kmod_bo_get_mmap_offset,
+   .bo_export              = kbase_kmod_bo_export,
    .bo_mmap                = kbase_kmod_bo_mmap,
    .bo_munmap              = kbase_kmod_bo_munmap,
    .flush_bo_map_syncs     = kbase_kmod_flush_bo_map_syncs,

@@ -12,13 +12,13 @@ Source/Reference: https://github.com/wonderkast02/panvk-g720-kbase-csf
  pure additions, no removals, no arch-list changes (v11 kept).
 Tested GPU: none yet (compile-level).
 Tested Kbase UAPI: n/a.
-Mesa base range: 26.3.0-devel (pinned 5a07217f).
+Mesa base range: 27.0.0-devel (pinned 13baeb70c066).
 Dependencies: 003 (kbase_kmod backend + create_with_driver).
 Validation test: build with kbase; DRM enumeration unchanged.
 
 --- a/src/panfrost/vulkan/panvk_physical_device.h
 +++ b/src/panfrost/vulkan/panvk_physical_device.h
-@@ -49,6 +49,12 @@
+@@ -58,6 +58,12 @@
        dev_t render_rdev;
     } drm;
  
@@ -31,7 +31,7 @@ Validation test: build with kbase; DRM enumeration unchanged.
     struct {
        const struct pan_blendable_format *blendable;
        const struct pan_format *all;
-@@ -94,6 +100,23 @@
+@@ -104,6 +110,23 @@
                                      struct panvk_instance *instance,
                                      drmDevicePtr drm_device);
  
@@ -57,7 +57,7 @@ Validation test: build with kbase; DRM enumeration unchanged.
  
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -109,6 +121,269 @@
+@@ -105,6 +105,269 @@
     return VK_SUCCESS;
  }
  
@@ -307,7 +307,7 @@ Validation test: build with kbase; DRM enumeration unchanged.
 +   if (PANVK_DEBUG(NO_USER_MMAP_SYNC))
 +      flags |= PAN_KMOD_DEV_FLAG_MMAP_SYNC_THROUGH_KERNEL;
 +
-+   device->kmod.dev = pan_kmod_dev_create_with_driver(fd, flags, "kbase", NULL,
++   device->kmod.dev = pan_kmod_dev_create_with_driver(fd, flags, "kbase",
 +                                                      &instance->kmod.allocator);
 +
 +   if (!device->kmod.dev) {
@@ -327,7 +327,7 @@ Validation test: build with kbase; DRM enumeration unchanged.
  static VkResult
  get_drm_device_ids(struct panvk_physical_device *device,
                     const struct panvk_instance *instance,
-@@ -346,6 +619,509 @@
+@@ -399,6 +662,509 @@
     return VK_SUCCESS;
  }
  
@@ -837,7 +837,7 @@ Validation test: build with kbase; DRM enumeration unchanged.
  float
  panvk_get_gpu_system_timestamp_period(const struct panvk_physical_device *device)
  {
-@@ -473,6 +1275,143 @@
+@@ -557,6 +1323,143 @@
     return result;
  }
  

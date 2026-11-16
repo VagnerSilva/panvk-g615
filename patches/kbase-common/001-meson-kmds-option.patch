@@ -10,7 +10,7 @@ Source/Reference: https://github.com/wonderkast02/panvk-g720-kbase-csf
  panfrost_kmds block), adapted to pinned Mesa (context verified identical).
 Tested GPU: none yet (build plumbing only).
 Tested Kbase UAPI: n/a.
-Mesa base range: 26.3.0-devel (pinned 5a07217f034b3e50d8c7c7794f97a2df1742613b).
+Mesa base range: 27.0.0-devel (pinned 13baeb70c066a9f82d2bcfb29f06e4865212affa).
 Dependencies: none.
 Validation test: meson setup configures with
  -Dpanfrost-kmds=panfrost,panthor,kbase; config shows HAVE_PAN_KMOD_KBASE.
@@ -18,11 +18,7 @@ Validation test: meson setup configures with
 diff --git a/meson.options b/meson.options
 --- a/meson.options
 +++ b/meson.options
-@@ -226,10 +226,19 @@
-   description : 'List of kernel-mode drivers to enable for freedreno ' +
-                 'gallium and vulkan driver',
- )
-
+@@ -216,2 +216,11 @@
  option(
 +  'panfrost-kmds',
 +  type : 'array',
@@ -33,19 +29,13 @@ diff --git a/meson.options b/meson.options
 +)
 +
 +option(
-   'amdgpu-virtio',
-   type : 'boolean',
-   value : false,
-   description : 'use experimental virtio backend for radeonsi/radv',
- )
- diff --git a/meson.build b/meson.build
+   'amd-options',
+diff --git a/meson.build b/meson.build
 --- a/meson.build
 +++ b/meson.build
-@@ -337,6 +337,21 @@
-     system_has_kms_drm = false
-   endif
+@@ -340,2 +340,17 @@
  endif
-
+ 
 +panfrost_kmds = get_option('panfrost-kmds')
 +if (with_gallium_panfrost or with_panfrost_vk) and panfrost_kmds.length() == 0
 +  error('At least one Panfrost KMD must be enabled when building Panfrost.')
@@ -62,4 +52,3 @@ diff --git a/meson.options b/meson.options
 +endif
 +
  # This has to be below the freedreno_kmds check since that can change system_has_kms_drm
- with_gallium_kmsro = with_gallium_drm or (system_has_kms_drm and with_gallium_zink)

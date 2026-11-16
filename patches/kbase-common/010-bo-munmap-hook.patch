@@ -11,13 +11,13 @@ Source/Reference: https://github.com/wonderkast02/panvk-g720-kbase-csf
  branch android-candidate-beta-1.9.4 (munmap call sites only).
 Tested GPU: Poco X6 Pro / G615 (fixes Gate E crash).
 Tested Kbase UAPI: CSF 1.21.
-Mesa base range: 26.3.0-devel (pinned 5a07217f).
+Mesa base range: 27.0.0-devel (pinned 13baeb70c066).
 Dependencies: 003 (hook), 007 (gpu_queue context).
 Validation test: Gate E compute 10/10 with map/unmap per iteration.
 
 --- a/src/panfrost/vulkan/panvk_device_memory.c
 +++ b/src/panfrost/vulkan/panvk_device_memory.c
-@@ -269,11 +269,13 @@
+@@ -258,11 +258,13 @@
                              pan_kmod_bo_size(mem->bo));
  
        if (mem->debug.host_mapping)
@@ -33,7 +33,7 @@ Validation test: Gate E compute 10/10 with map/unmap per iteration.
        assert(!ret);
     }
  
-@@ -388,7 +390,8 @@
+@@ -372,7 +374,8 @@
           return panvk_errorf(device, VK_ERROR_MEMORY_MAP_FAILED,
                               "Failed to reserve VA on unmap.");
     } else {
@@ -59,7 +59,7 @@ Validation test: Gate E compute 10/10 with map/unmap per iteration.
 +++ b/src/panfrost/vulkan/panvk_image.c
 --- a/src/panfrost/vulkan/panvk_priv_bo.c
 +++ b/src/panfrost/vulkan/panvk_priv_bo.c
-@@ -99,7 +99,7 @@
+@@ -106,7 +106,7 @@
  
  err_munmap_bo:
     if (priv_bo->addr.host) {
@@ -68,7 +68,7 @@ Validation test: Gate E compute 10/10 with map/unmap per iteration.
        assert(!ret);
     }
  
-@@ -159,7 +159,8 @@
+@@ -166,7 +166,8 @@
     }
  
     if (priv_bo->addr.host) {
@@ -80,7 +80,7 @@ Validation test: Gate E compute 10/10 with map/unmap per iteration.
  
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -68,7 +68,7 @@
+@@ -69,7 +69,7 @@
  
     if (ringbuf->addr.host) {
        ASSERTED int ret =
@@ -89,7 +89,7 @@ Validation test: Gate E compute 10/10 with map/unmap per iteration.
        assert(!ret);
     }
  
-@@ -222,7 +222,8 @@
+@@ -225,7 +225,8 @@
  
     if (subq->tracebuf.addr.host) {
        ASSERTED int ret =

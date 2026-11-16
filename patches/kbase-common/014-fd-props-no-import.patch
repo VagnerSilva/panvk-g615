@@ -19,14 +19,14 @@ Source/Reference: G615 bring-up forensics (ioctl trace: 3x aliased
  no fault).
 Tested GPU: Poco X6 Pro / G615 (Gate G).
 Tested Kbase UAPI: CSF 1.21.
-Mesa base range: 26.3.0-devel (pinned 5a07217f).
+Mesa base range: 27.0.0-devel (pinned 13baeb70c066).
 Dependencies: 004 (kbase_node_path).
 Validation test: Gate G (single IMPORT per AHB, GPU clear lands).
 
 diff --git a/src/panfrost/vulkan/panvk_device_memory.c b/src/panfrost/vulkan/panvk_device_memory.c
 --- a/src/panfrost/vulkan/panvk_device_memory.c
 +++ b/src/panfrost/vulkan/panvk_device_memory.c
-@@ -480,5 +480,37 @@
+@@ -464,5 +464,37 @@
     assert(handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
  
 +#if defined(HAVE_PAN_KMOD_KBASE)

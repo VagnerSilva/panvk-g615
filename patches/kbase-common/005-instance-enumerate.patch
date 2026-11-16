@@ -12,7 +12,7 @@ Source/Reference: https://github.com/wonderkast02/panvk-g720-kbase-csf
  kbase includes, new debug bit, enumerate function and hook switch taken.
 Tested GPU: none yet (compile-level).
 Tested Kbase UAPI: n/a.
-Mesa base range: 26.3.0-devel (pinned 5a07217f).
+Mesa base range: 27.0.0-devel (pinned 13baeb70c066).
 Dependencies: 004 (panvk_physical_device_init_kbase).
 Validation test: vkEnumeratePhysicalDevices lists Mali on /dev/mali0,
  DRM path unchanged.
@@ -52,7 +52,7 @@ diff --git a/src/panfrost/vulkan/panvk_instance.c b/src/panfrost/vulkan/panvk_in
     {NULL, 0},
  };
 
-@@ -159,6 +166,69 @@
+@@ -156,6 +163,69 @@
     return VK_SUCCESS;
  }
 
@@ -122,7 +122,7 @@ diff --git a/src/panfrost/vulkan/panvk_instance.c b/src/panfrost/vulkan/panvk_in
  static void
  panvk_destroy_physical_device(struct vk_physical_device *device)
  {
-@@ -258,8 +328,8 @@
+@@ -255,8 +325,8 @@
        .priv = &instance->vk.alloc,
     };
 
