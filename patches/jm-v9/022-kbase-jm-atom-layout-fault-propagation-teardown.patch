@@ -48,7 +48,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 index 2ccb370..477b548 100644
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -1351,39 +1351,70 @@ kbase_kmod_alias_destroy(struct pan_kmod_dev *dev, uint64_t va, uint64_t size,
+@@ -1352,39 +1352,70 @@ kbase_kmod_alias_destroy(struct pan_kmod_dev *dev, uint64_t va, uint64_t size,
     munmap((void *)(uintptr_t)va, size * nents);
  }
  
@@ -158,15 +158,17 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/j
 index 447de37..cf4df11 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c
-@@ -26,6 +26,7 @@
+@@ -26,8 +26,9 @@
  #include "panvk_physical_device.h"
  #include "panvk_priv_bo.h"
  #include "panvk_queue.h"
 +#include "util/os_time.h"
  
  #include "vk_framebuffer.h"
+ 
+ #include "kmod/pan_kmod.h"
  #include "vk_sync.h"
-@@ -72,6 +73,32 @@ panvk_overlap_enabled(void)
+@@ -74,6 +75,32 @@ panvk_overlap_enabled(void)
     }
     return on;
  }
@@ -199,7 +201,7 @@ index 447de37..cf4df11 100644
  static uint64_t
  panvk_queue_submit_batch(struct panvk_gpu_queue *queue,
                           struct panvk_cmd_buffer *cmdbuf,
-@@ -142,13 +169,16 @@ panvk_queue_submit_batch(struct panvk_gpu_queue *queue,
+@@ -144,13 +171,16 @@ panvk_queue_submit_batch(struct panvk_gpu_queue *queue,
           uint32_t vtc_core_req = (BASE_JD_REQ_CS | BASE_JD_REQ_T | BASE_JD_REQ_V);
              const bool v67_ov = panvk_overlap_enabled() && batch->frag_jc.first_job &&
                                  !queue->in_dep && queue->frag_warmed_up; /* v67b */
@@ -220,7 +222,7 @@ index 447de37..cf4df11 100644
              queue->last_vtc_atom = vtc_atom; /* v67b */
              queue->in_dep = 0;
              queue->last_any_atom = vtc_atom;
-@@ -205,14 +235,19 @@ panvk_queue_submit_batch(struct panvk_gpu_queue *queue,
+@@ -207,14 +237,19 @@ panvk_queue_submit_batch(struct panvk_gpu_queue *queue,
           (void)0;
           frag_atom = 0;
        } else {
@@ -244,7 +246,7 @@ index 447de37..cf4df11 100644
           queue->half_frag_atom[batch->heap_half & 1] = frag_atom; /* v67b */
           queue->last_frag_atom = frag_atom; queue->last_any_atom = frag_atom;
           if (!vtc_atom) {
-@@ -295,26 +330,31 @@ panvk_jm_kbase_wait_atoms(void *data, const uint64_t targets[PANVK_KBASE_SYNC_TA
+@@ -297,26 +332,31 @@ panvk_jm_kbase_wait_atoms(void *data, const uint64_t targets[PANVK_KBASE_SYNC_TA
  {
     struct pan_kmod_dev *kmod_dev = data;
  
@@ -288,7 +290,7 @@ index 447de37..cf4df11 100644
              int64_t now2_ns = (int64_t)now2.tv_sec * 1000000000ll + now2.tv_nsec;
              if (now2_ns >= (int64_t)abs_timeout_ns)
                 return VK_TIMEOUT;
-@@ -336,6 +376,10 @@ panvk_per_arch(gpu_queue_submit)(struct vk_queue *vk_queue, struct vk_queue_subm
+@@ -338,6 +378,10 @@ panvk_per_arch(gpu_queue_submit)(struct vk_queue *vk_queue, struct vk_queue_subm
     uint64_t targets[PANVK_KBASE_SYNC_TARGET_COUNT] = {0};
     unsigned ntargets = 0;
  
@@ -299,7 +301,7 @@ index 447de37..cf4df11 100644
     if (submit->wait_count) {
        (void)0;
  
-@@ -527,6 +571,15 @@ void panvk_per_arch(destroy_gpu_queue)(struct vk_queue *vk_queue)
+@@ -529,6 +573,15 @@ void panvk_per_arch(destroy_gpu_queue)(struct vk_queue *vk_queue)
     struct panvk_gpu_queue *queue = container_of(vk_queue, struct panvk_gpu_queue, vk);
     struct panvk_device *dev = to_panvk_device(vk_queue->base.device);
  

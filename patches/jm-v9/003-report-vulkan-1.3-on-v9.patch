@@ -37,7 +37,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan/
 index 9230e5d..9533f3c 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_buffer.c
-@@ -203,7 +203,11 @@ panvk_per_arch(cmd_close_batch)(struct panvk_cmd_buffer *cmdbuf)
+@@ -204,7 +204,11 @@ panvk_per_arch(cmd_close_batch)(struct panvk_cmd_buffer *cmdbuf)
  
           fbd_info.layer = layer_id;
           fbd_info.frame_shaders = fs;
@@ -50,7 +50,7 @@ index 9230e5d..9533f3c 100644
  
           const struct pan_fb_descs fb_descs = {
              .fbd = fbd.cpu,
-@@ -363,10 +367,16 @@ panvk_per_arch(cmd_prepare_tiler_context)(struct panvk_cmd_buffer *cmdbuf,
+@@ -364,10 +368,16 @@ panvk_per_arch(cmd_prepare_tiler_context)(struct panvk_cmd_buffer *cmdbuf,
     }
  
  out_set_layer_ctx:
@@ -73,7 +73,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index b6d9423..00cb21d 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -2422,7 +2422,7 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
+@@ -2388,7 +2388,7 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
  }
  
  static void
@@ -82,7 +82,7 @@ index b6d9423..00cb21d 100644
  {
     /* ponytail: JM tessellation from FristOneRR not ported; needs libpoly tess + panvk_tess_info */
     if (info->prim == MESA_PRIM_PATCHES)
-@@ -2460,8 +2460,7 @@ v9_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
+@@ -2426,8 +2426,7 @@ v9_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
     result = panvk_per_arch(cmd_alloc_tls_desc)(cmdbuf, true);
     if (result != VK_SUCCESS)
        return;
@@ -92,7 +92,7 @@ index b6d9423..00cb21d 100644
     if (result != VK_SUCCESS)
        return;
  
-@@ -2525,6 +2524,29 @@ v9_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
+@@ -2491,6 +2490,29 @@ v9_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
        gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);
  }
  
@@ -174,7 +174,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/panvk
 index 85c5563..4b3bc1e 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_draw.c
-@@ -925,6 +925,8 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -948,6 +948,8 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
  #if PAN_ARCH < 9
     set_gfx_sysval(cmdbuf, dirty_sysvals, vs.raw_vertex_offset,
                    info->vertex.raw_offset);
@@ -206,16 +206,17 @@ index 38b3e87..18fdb05 100644
 -#if PAN_ARCH < 9
 +#if PAN_ARCH <= 9
  static bool
- lower_gl_pos_layer_writes(nir_builder *b, nir_instr *instr, void *data)
+ lower_layer_writes(nir_shader *nir)
  {
-@@ -651,9 +656,13 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
-        nir->info.stage == MESA_SHADER_TESS_EVAL)
-       NIR_PASS(_, nir, panvk_lower_clip_cull_vs);
+@@ -626,10 +631,14 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
+    if (nir->info.stage == MESA_SHADER_FRAGMENT)
+       NIR_PASS(_, nir, nir_opt_vectorize_io_vars, nir_var_shader_out);
  
 -#if PAN_ARCH < 9
 +#if PAN_ARCH <= 9
-    /* This needs to be done just after the io_to_temporaries pass, because we
-     * rely on out temporaries to collect the final layer_id value.
+    /* This needs to be done before lower_io_vars_to_temporaries, because we
+     * generate additional writes to gl_Position and we want those to be
+     * collected into one by lower_io_vars_to_temporaries.
 +    *
 +    * v9 JM uses the Bifrost scheme too: one draw per layer, each with its
 +    * own tiler context, and primitives whose gl_Layer is not the drawn layer
@@ -223,7 +224,7 @@ index 38b3e87..18fdb05 100644
      */
     NIR_PASS(_, nir, lower_layer_writes);
  #endif
-@@ -3394,6 +3403,13 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3384,6 +3393,13 @@ panvk_compile_shader(struct panvk_device *dev,
        .robust_descriptors = dev->vk.enabled_features.nullDescriptor,
     };
  
@@ -237,7 +238,7 @@ index 38b3e87..18fdb05 100644
     switch (info->stage) {
  #if PAN_ARCH >= 10
     case MESA_SHADER_TESS_EVAL:
-@@ -4266,6 +4282,9 @@ panvk_deserialize_shader(struct vk_device *vk_dev, struct blob_reader *blob,
+@@ -4268,6 +4284,9 @@ panvk_deserialize_shader(struct vk_device *vk_dev, struct blob_reader *blob,
     if (shader->gpu_prerast.io.abi_version != PANVK_GPU_PRERAST_ABI_VERSION)
        blob->overrun = true;
  #endif
@@ -247,7 +248,7 @@ index 38b3e87..18fdb05 100644
  
     result = shader_desc_info_deserialize(device, blob, shader);
     if (result != VK_SUCCESS) {
-@@ -4388,6 +4407,9 @@ panvk_shader_serialize(struct vk_device *vk_dev,
+@@ -4390,6 +4409,9 @@ panvk_shader_serialize(struct vk_device *vk_dev,
  #if PAN_ARCH >= 10
     blob_write_bytes(blob, &shader->gpu_prerast, sizeof(shader->gpu_prerast));
  #endif

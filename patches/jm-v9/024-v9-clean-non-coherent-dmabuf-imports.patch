@@ -52,7 +52,7 @@ index 1b7035b..bb7eaee 100644
  
  #include "drm-uapi/mali_kbase_ioctl.h"
  /* Only used as the interchange format for CSF interface information; no
-@@ -187,6 +190,11 @@ struct kbase_kmod_dev {
+@@ -188,6 +191,11 @@ struct kbase_kmod_dev {
     bool atom_failed[KBASE_MAX_ATOMS];
     uint64_t last_done_atom_ctx[KBASE_MAX_ATOMS];
     uint32_t last_done_code_ctx[KBASE_MAX_ATOMS];
@@ -64,7 +64,7 @@ index 1b7035b..bb7eaee 100644
  };
  
  struct kbase_kmod_vm {
-@@ -232,6 +240,10 @@ struct kbase_kmod_bo {
+@@ -233,6 +241,10 @@ struct kbase_kmod_bo {
      * for dma-heap imports with EINVAL); the kernel keeps CPU/GPU coherent.
      */
     bool cpu_gpu_coherent;
@@ -75,7 +75,7 @@ index 1b7035b..bb7eaee 100644
  };
  
  bool
-@@ -1567,6 +1579,8 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
+@@ -1581,6 +1593,8 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
     kbase_dev->kcpu.fence_fd = -1;
     simple_mtx_init(&kbase_dev->kcpu.lock, mtx_plain);
     simple_mtx_init(&kbase_dev->kcpu_export.lock, mtx_plain);
@@ -84,7 +84,7 @@ index 1b7035b..bb7eaee 100644
     if (!is_csf) {
        kbase_dev->atom_stride = atom_stride;
        simple_mtx_init(&kbase_dev->atoms_lock, mtx_plain);
-@@ -1686,6 +1700,7 @@ kbase_kmod_dev_destroy(struct pan_kmod_dev *dev)
+@@ -1700,6 +1714,7 @@ kbase_kmod_dev_destroy(struct pan_kmod_dev *dev)
        ioctl(dev->fd, KBASE_IOCTL_KCPU_QUEUE_DELETE, &delete);
     }
     simple_mtx_destroy(&kbase_dev->kcpu_export.lock);
@@ -92,7 +92,7 @@ index 1b7035b..bb7eaee 100644
  
     if (!kbase_dev->is_csf) {
        simple_mtx_destroy(&kbase_dev->atoms_read_lock);
-@@ -1999,6 +2014,24 @@ kbase_kmod_import_dmabuf(struct pan_kmod_dev *dev,
+@@ -2013,6 +2028,24 @@ kbase_kmod_import_dmabuf(struct pan_kmod_dev *dev,
  
     pan_kmod_bo_init(&kbase_bo->base, dev, exclusive_vm, bo_size, flags,
                      handle);
@@ -117,7 +117,7 @@ index 1b7035b..bb7eaee 100644
     mesa_log(MESA_LOG_DEBUG, MESA_LOG_TAG, "kbase_kmod_bo_alloc_dmabuf: succeeded for %d, bo_size=%lu, handle=%u", kbase_bo->dmabuf_fd, bo_size, handle);
     mesa_log(MESA_LOG_DEBUG, MESA_LOG_TAG, "kbase: import flags=0x%llx -> va=0x%llx pages=%llu outflags=0x%llx",
               (unsigned long long)import_flags,
-@@ -2231,6 +2264,14 @@ kbase_kmod_bo_free(struct pan_kmod_bo *bo)
+@@ -2245,6 +2278,14 @@ kbase_kmod_bo_free(struct pan_kmod_bo *bo)
  {
     struct kbase_kmod_bo *kbase_bo =
        container_of(bo, struct kbase_kmod_bo, base);
@@ -132,7 +132,7 @@ index 1b7035b..bb7eaee 100644
  
     pan_kmod_bo_cleanup(bo);
  
-@@ -2908,6 +2949,32 @@ kbase_kmod_job_submit_retry(struct pan_kmod_dev *dev, uint64_t jc,
+@@ -2904,6 +2945,32 @@ kbase_kmod_job_submit_retry(struct pan_kmod_dev *dev, uint64_t jc,
     return false;
  }
  
@@ -181,7 +181,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/j
 index 7a2023f..0900a0c 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c
-@@ -378,6 +378,8 @@ panvk_per_arch(gpu_queue_submit)(struct vk_queue *vk_queue, struct vk_queue_subm
+@@ -380,6 +380,8 @@ panvk_per_arch(gpu_queue_submit)(struct vk_queue *vk_queue, struct vk_queue_subm
  
  #if PAN_ARCH == 9
     BITSET_ZERO(queue->submit_atoms);

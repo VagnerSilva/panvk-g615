@@ -54,29 +54,7 @@ index 912d8d3..2ccb370 100644
     };
     if (ioctl(fd, KBASE_IOCTL_MEM_JIT_INIT, &jit_init)) {
        mesa_logw("kbase: KBASE_IOCTL_MEM_JIT_INIT failed: %s "
-@@ -1544,10 +1546,6 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
-       kbase_dev->base.flags &= ~PAN_KMOD_DEV_FLAG_OWNS_FD;
-       pan_kmod_dev_cleanup(&kbase_dev->base);
-       simple_mtx_destroy(&kbase_dev->kcpu.lock);
--      if (!is_csf) {
--         simple_mtx_destroy(&kbase_dev->atoms_read_lock);
--         simple_mtx_destroy(&kbase_dev->atoms_lock);
--      }
-       pan_kmod_free(allocator, kbase_dev);
-       return NULL;
-    }
-@@ -1588,6 +1586,10 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
-       kbase_dev->base.flags &= ~PAN_KMOD_DEV_FLAG_OWNS_FD;
-       pan_kmod_dev_cleanup(&kbase_dev->base);
-       simple_mtx_destroy(&kbase_dev->kcpu.lock);
-+      if (!is_csf) {
-+         simple_mtx_destroy(&kbase_dev->atoms_read_lock);
-+         simple_mtx_destroy(&kbase_dev->atoms_lock);
-+      }
-       pan_kmod_free(allocator, kbase_dev);
-       return NULL;
-    }
-@@ -1745,7 +1747,7 @@ kbase_kmod_bo_import_host(struct pan_kmod_dev *dev, void *host_ptr,
+@@ -1759,7 +1761,7 @@ kbase_kmod_bo_import_host(struct pan_kmod_dev *dev, void *host_ptr,
  {
     struct kbase_kmod_dev *kbase_dev =
        container_of(dev, struct kbase_kmod_dev, base);

@@ -40,7 +40,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan/
 index 9533f3c..09400e9 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_buffer.c
-@@ -389,6 +389,9 @@ panvk_per_arch(cmd_open_batch)(struct panvk_cmd_buffer *cmdbuf)
+@@ -390,6 +390,9 @@ panvk_per_arch(cmd_open_batch)(struct panvk_cmd_buffer *cmdbuf)
        vk_zalloc(&cmdbuf->vk.pool->alloc, sizeof(*cmdbuf->cur_batch), 8,
                  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     cmdbuf->cur_batch->jobs = UTIL_DYNARRAY_INIT;
@@ -50,7 +50,9 @@ index 9533f3c..09400e9 100644
     cmdbuf->cur_batch->event_ops = UTIL_DYNARRAY_INIT;
     assert(cmdbuf->cur_batch);
     return cmdbuf->cur_batch;
-@@ -436,6 +439,9 @@ panvk_reset_cmdbuf(struct vk_command_buffer *vk_cmdbuf,
+@@ -472,8 +475,11 @@ panvk_reset_cmdbuf(struct vk_command_buffer *vk_cmdbuf,
+    vk_command_buffer_reset(&cmdbuf->vk);
+ 
     list_for_each_entry_safe(struct panvk_batch, batch, &cmdbuf->batches, node) {
        list_del(&batch->node);
        util_dynarray_fini(&batch->jobs);
@@ -60,7 +62,7 @@ index 9533f3c..09400e9 100644
        util_dynarray_fini(&batch->event_ops);
  
        vk_free(&cmdbuf->vk.pool->alloc, batch);
-@@ -459,6 +465,9 @@ panvk_destroy_cmdbuf(struct vk_command_buffer *vk_cmdbuf)
+@@ -497,6 +503,9 @@ panvk_destroy_cmdbuf(struct vk_command_buffer *vk_cmdbuf)
     list_for_each_entry_safe(struct panvk_batch, batch, &cmdbuf->batches, node) {
        list_del(&batch->node);
        util_dynarray_fini(&batch->jobs);
@@ -74,7 +76,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index 00cb21d..1f09b17 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -2226,6 +2226,7 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
+@@ -2192,6 +2192,7 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
     if (!job.gpu)
        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
     util_dynarray_append(&batch->jobs, job.cpu);
@@ -86,7 +88,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/j
 index 66857bb..f5e4f06 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_gpu_queue.c
-@@ -89,6 +89,21 @@ panvk_queue_submit_batch(struct panvk_gpu_queue *queue,
+@@ -91,6 +91,21 @@ panvk_queue_submit_batch(struct panvk_gpu_queue *queue,
        util_dynarray_foreach(&batch->jobs, void *, job)
           memset((*job), 0, 4 * 4);
  
