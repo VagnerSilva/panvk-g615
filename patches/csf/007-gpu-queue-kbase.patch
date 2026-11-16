@@ -18,7 +18,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
 
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -13,21 +13,1091 @@
+@@ -13,23 +13,1109 @@
  #include "panvk_cmd_buffer.h"
  #include "panvk_device_memory.h"
  #include "panvk_macros.h"
@@ -28,6 +28,8 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  #include "panvk_utrace.h"
  
  #include "pan_trace.h"
+ 
+ #include "kmod/pan_kmod.h"
  
  #include "util/bitscan.h"
 -#include "util/log.h"
@@ -1127,7 +1129,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  static void
  finish_render_desc_ringbuf(struct panvk_gpu_queue *queue)
  {
-@@ -62,6 +1132,15 @@
+@@ -48,6 +1134,15 @@
                                 ringbuf->size);
     }
  
@@ -1143,7 +1145,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     if (ringbuf->addr.dev) {
        panvk_address_binding_report(dev, NULL, ringbuf->addr.dev, ringbuf->size,
                                     VK_DEVICE_ADDRESS_BINDING_TYPE_UNBIND_EXT);
-@@ -125,6 +1204,45 @@
+@@ -113,6 +1208,45 @@
                               "Failed to CPU map ringbuf BO");
     }
  
@@ -1189,7 +1191,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     /* We choose the alignment to guarantee that we won't ever cross a 4G
      * boundary when accessing the mapping. This way we can encode the wraparound
      * using 32-bit operations. */
-@@ -172,9 +1290,11 @@
+@@ -160,9 +1294,11 @@
  
     ringbuf->addr.dev = dev_addr;
  
@@ -1202,7 +1204,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     if (dev->debug.decode_ctx) {
        pandecode_inject_mmap(dev->debug.decode_ctx, ringbuf->addr.dev,
                              ringbuf->addr.host, ringbuf->size, NULL);
-@@ -199,6 +1319,11 @@
+@@ -187,6 +1323,11 @@
           .seqno = RENDER_DESC_RINGBUF_SIZE,
        };
     }
@@ -1214,7 +1216,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  
     return VK_SUCCESS;
  }
-@@ -247,6 +1373,49 @@
+@@ -235,6 +1376,49 @@
     vk_free(&dev->vk.alloc, subq->reg_file);
  }
  
@@ -1264,7 +1266,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  static VkResult
  init_subqueue_tracing(struct panvk_gpu_queue *queue,
                        enum panvk_subqueue_id subqueue)
-@@ -338,6 +1507,9 @@
+@@ -327,6 +1511,9 @@
     panvk_pool_free_mem(&queue->subqueues[subqueue].context);
     panvk_pool_free_mem(&queue->subqueues[subqueue].req_resource.buf);
     panvk_pool_free_mem(&queue->subqueues[subqueue].regs_save);
@@ -1274,7 +1276,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     finish_subqueue_tracing(queue, subqueue);
  }
  
-@@ -350,8 +1522,22 @@
+@@ -339,8 +1526,22 @@
     VkResult result;
  
     const struct vk_sync_type *sync_type = phys_dev->sync_types[0];
@@ -1299,7 +1301,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  
     result = vk_sync_create(&dev->vk, sync_type, VK_SYNC_IS_TIMELINE, 0,
                             &queue->utrace.sync);
-@@ -466,6 +1652,14 @@
+@@ -455,6 +1656,14 @@
           .reg_dump_addr = panvk_priv_mem_dev_addr(subq->regs_save),
        };
  
@@ -1314,7 +1316,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
        if (subqueue != PANVK_SUBQUEUE_COMPUTE) {
           cs_ctx->render.tiler_heap =
              panvk_priv_mem_dev_addr(queue->tiler_heap.desc);
-@@ -494,13 +1688,36 @@
+@@ -483,13 +1692,36 @@
              panvk_priv_mem_dev_addr(queue->tiler_heap.oom_fbd);
        }
     }
@@ -1356,7 +1358,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     conf = (struct cs_builder_conf){
        .nr_registers = csif_info->cs_reg_count,
        .nr_kernel_registers = MAX2(csif_info->unpreserved_cs_reg_count, 4),
-@@ -535,6 +1752,13 @@
+@@ -524,6 +1756,13 @@
                          struct panvk_cs_sync64, syncobj) {
        syncobj->seqno = 1;
     }
@@ -1370,7 +1372,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  
     if (subqueue != PANVK_SUBQUEUE_COMPUTE) {
        struct cs_index heap_ctx_addr = cs_scratch_reg64(&b, 0);
-@@ -547,7 +1771,16 @@
+@@ -536,7 +1775,16 @@
  
     assert(cs_is_valid(&b));
  
@@ -1388,7 +1390,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  
     struct drm_panthor_sync_op syncop = {
        .flags =
-@@ -571,19 +1804,29 @@
+@@ -560,19 +1808,29 @@
  
     pan_kmod_flush_bo_map_syncs(dev->kmod.dev);
  
@@ -1398,8 +1400,8 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
 -      return panvk_errorf(dev->vk.physical, VK_ERROR_INITIALIZATION_FAILED,
 -                          "Failed to initialized subqueue: %m");
 -
--   ret = drmSyncobjWait(dev->drm_fd, &queue->syncobj_handle, 1, INT64_MAX, 0,
--                        NULL);
+-   ret = pan_kmod_sync_wait(dev->kmod.dev, &queue->syncobj_handle, 1, INT64_MAX, 0,
+-                            NULL);
 -   if (ret)
 -      return panvk_errorf(dev->vk.physical, VK_ERROR_INITIALIZATION_FAILED,
 -                          "SyncobjWait failed: %m");
@@ -1418,19 +1420,19 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
 +         return panvk_errorf(dev->vk.physical, VK_ERROR_INITIALIZATION_FAILED,
 +                             "Failed to initialized subqueue: %m");
 +
-+      ret = drmSyncobjWait(dev->drm_fd, &queue->syncobj_handle, 1, INT64_MAX,
++      ret = pan_kmod_sync_wait(dev->kmod.dev, &queue->syncobj_handle, 1, INT64_MAX,
 +                           0, NULL);
 +      if (ret)
 +         return panvk_errorf(dev->vk.physical, VK_ERROR_INITIALIZATION_FAILED,
 +                             "SyncobjWait failed: %m");
  
--   drmSyncobjReset(dev->drm_fd, &queue->syncobj_handle, 1);
-+      drmSyncobjReset(dev->drm_fd, &queue->syncobj_handle, 1);
+-   pan_kmod_sync_reset(dev->kmod.dev, &queue->syncobj_handle, 1);
++      pan_kmod_sync_reset(dev->kmod.dev, &queue->syncobj_handle, 1);
 +   }
  
     if (PANVK_DEBUG(TRACE)) {
        pandecode_user_msg(dev->debug.decode_ctx, "Init subqueue %d binary\n\n",
-@@ -610,6 +1853,10 @@
+@@ -599,6 +1857,10 @@
     finish_render_desc_ringbuf(queue);
  
     panvk_pool_free_mem(&queue->syncobjs);
@@ -1441,7 +1443,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  }
  
  static VkResult
-@@ -624,11 +1871,37 @@
+@@ -613,11 +1875,37 @@
        .alignment = 64,
     };
  
@@ -1452,7 +1454,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
 +      result = panvk_priv_bo_create(dev, alloc_info.size,
 +                                    PAN_KMOD_BO_FLAG_CSF_EVENT,
 +                                    VK_SYSTEM_ALLOCATION_SCOPE_DEVICE,
-+                                    &sync_bo);
++                                    "GPU queue sync", &sync_bo);
 +      if (result != VK_SUCCESS)
 +         return result;
 +
@@ -1480,7 +1482,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     result = init_render_desc_ringbuf(queue);
     if (result != VK_SUCCESS)
        goto err_cleanup_queue;
-@@ -643,6 +1916,14 @@
+@@ -632,6 +1920,14 @@
           goto err_cleanup_queue;
     }
  
@@ -1495,7 +1497,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     if (PANVK_DEBUG(TRACE))
        pandecode_next_frame(dev->debug.decode_ctx);
  
-@@ -762,32 +2043,78 @@
+@@ -751,32 +2047,78 @@
        goto err_free_desc;
     }
  
@@ -1591,7 +1593,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     return VK_SUCCESS;
  
  err_free_desc:
-@@ -801,17 +2128,110 @@
+@@ -790,17 +2132,110 @@
  {
     struct panvk_device *dev = to_panvk_device(queue->vk.base.device);
     struct panvk_tiler_heap *tiler_heap = &queue->tiler_heap;
@@ -1708,7 +1710,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  struct panvk_queue_submit {
     const struct panvk_physical_device *phys_dev;
     struct panvk_device *dev;
-@@ -824,11 +2244,16 @@
+@@ -813,11 +2248,16 @@
     uint32_t wait_queue_mask;
     uint32_t signal_queue_mask;
     uint32_t req_resource_subqueue_mask;
@@ -1725,7 +1727,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     struct {
        uint32_t queue_mask;
        enum panvk_subqueue_id first_subqueue;
-@@ -1044,6 +2485,13 @@
+@@ -1058,6 +2498,13 @@
     if (!submit->wait_queue_mask)
        return;
  
@@ -1739,7 +1741,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     for (uint32_t i = 0; i < vk_submit->wait_count; i++) {
        const struct vk_sync_wait *wait = &vk_submit->waits[i];
        const struct vk_drm_syncobj *syncobj = vk_sync_as_drm_syncobj(wait->sync);
-@@ -1080,13 +2528,22 @@
+@@ -1094,13 +2541,22 @@
        struct panvk_cmd_buffer *cmdbuf = container_of(
           vk_submit->command_buffers[i], struct panvk_cmd_buffer, vk);
  
@@ -1763,7 +1765,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
           submit->qsubmits[submit->qsubmit_count++] =
              (struct drm_panthor_queue_submit){
                 .queue_index = j,
-@@ -1171,6 +2624,13 @@
+@@ -1181,6 +2637,13 @@
     PAN_TRACE_FUNC(PAN_TRACE_VK_CSF);
     struct panvk_gpu_queue *queue = submit->queue;
  
@@ -1777,7 +1779,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     uint32_t signal_op = 0;
     u_foreach_bit(i, submit->signal_queue_mask) {
        submit->signal_ops[signal_op] = (struct drm_panthor_sync_op){
-@@ -1188,6 +2648,185 @@
+@@ -1198,6 +2661,185 @@
     }
  }
  
@@ -1963,7 +1965,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
  static VkResult
  panvk_queue_submit_ioctl(struct panvk_queue_submit *submit)
  {
-@@ -1372,6 +3011,18 @@
+@@ -1384,6 +3026,18 @@
     panvk_queue_submit_init_cmdbufs(&submit, vk_submit);
     panvk_queue_submit_init_signals(&submit, vk_submit);
  
@@ -1982,11 +1984,11 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     result = panvk_queue_submit_ioctl(&submit);
     if (result != VK_SUCCESS)
        goto out;
-@@ -1424,42 +3075,82 @@
+@@ -1436,42 +3090,82 @@
     if (result != VK_SUCCESS)
        goto err_free_queue;
  
--   int ret = drmSyncobjCreate(dev->drm_fd, 0, &queue->syncobj_handle);
+-   int ret = pan_kmod_sync_create(dev->kmod.dev, 0, &queue->syncobj_handle);
 -   if (ret) {
 -      result = panvk_errorf(dev, VK_ERROR_INITIALIZATION_FAILED,
 -                            "Failed to create our internal sync object");
@@ -2004,7 +2006,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
 -   if (result != VK_SUCCESS)
 -      goto err_destroy_syncobj;
 +   if (!uses_kbase) {
-+      int ret = drmSyncobjCreate(dev->drm_fd, 0, &queue->syncobj_handle);
++      int ret = pan_kmod_sync_create(dev->kmod.dev, 0, &queue->syncobj_handle);
 +      if (ret) {
 +         result = panvk_errorf(dev, VK_ERROR_INITIALIZATION_FAILED,
 +                               "Failed to create our internal sync object");
@@ -2079,13 +2081,13 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
 +   }
  
  err_destroy_syncobj:
--   drmSyncobjDestroy(dev->drm_fd, queue->syncobj_handle);
+-   pan_kmod_sync_destroy(dev->kmod.dev, queue->syncobj_handle);
 +   if (!uses_kbase)
-+      drmSyncobjDestroy(dev->drm_fd, queue->syncobj_handle);
++      pan_kmod_sync_destroy(dev->kmod.dev, queue->syncobj_handle);
  
  err_finish_queue:
     vk_queue_finish(&queue->vk);
-@@ -1475,10 +3166,25 @@
+@@ -1487,10 +3181,25 @@
     struct panvk_gpu_queue *queue = container_of(vk_queue, struct panvk_gpu_queue, vk);
     struct panvk_device *dev = to_panvk_device(queue->vk.base.device);
  
@@ -2097,7 +2099,7 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
     cleanup_queue(queue);
 -   destroy_group(queue);
 -   cleanup_tiler(queue);
--   drmSyncobjDestroy(dev->drm_fd, queue->syncobj_handle);
+-   pan_kmod_sync_destroy(dev->kmod.dev, queue->syncobj_handle);
 +#ifdef HAVE_PAN_KMOD_KBASE
 +   if (gpu_queue_uses_kbase(dev)) {
 +      /* Terminate the groups first so no firmware CS can still hold a
@@ -2109,12 +2111,12 @@ Validation test: x86 smoke build; runtime Gates C-H on Poco.
 +   {
 +      destroy_group(queue);
 +      cleanup_tiler(queue);
-+      drmSyncobjDestroy(dev->drm_fd, queue->syncobj_handle);
++      pan_kmod_sync_destroy(dev->kmod.dev, queue->syncobj_handle);
 +   }
     vk_queue_finish(&queue->vk);
     vk_free(&dev->vk.alloc, queue);
  }
-@@ -1492,6 +3198,22 @@
+@@ -1504,6 +3213,22 @@
        .group_handle = queue->group_handle,
     };
  
