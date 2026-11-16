@@ -21,7 +21,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index e9b9baf..c5605c5 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -3587,6 +3587,13 @@ v9_prerast_chunked(struct panvk_cmd_buffer *cmdbuf,
+@@ -3553,6 +3553,13 @@ v9_prerast_chunked(struct panvk_cmd_buffer *cmdbuf,
     if (!v9_prerast_reserve_jobs(cmdbuf, 2))
        return;
  
@@ -35,7 +35,7 @@ index e9b9baf..c5605c5 100644
     struct panvk_precomp_ctx ctx = panvk_per_arch(precomp_cs)(cmdbuf);
     panlib_chunk_setup(&ctx, panlib_1d(1), PANLIB_BARRIER_JM_BARRIER, cd.gpu,
                        draw->indirect.buffer_dev_addr,
-@@ -3826,6 +3833,11 @@ v9_tess_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3792,6 +3799,11 @@ v9_tess_draw(struct panvk_cmd_buffer *cmdbuf,
                    : (uint64_t)draw->instance.count *
                         DIV_ROUND_UP((uint64_t)ppi, max_patches);
     }

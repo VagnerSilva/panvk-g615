@@ -26,7 +26,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index 9bad986..ee5a41a 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -1744,4 +1744,52 @@ panlib_v9_copy32(global uint32_t *dst, constant uint32_t *src)
+@@ -1734,4 +1734,52 @@ panlib_v9_copy32(global uint32_t *dst, constant uint32_t *src)
  {
     *dst = *src;
  }
@@ -91,7 +91,7 @@ index 22d36d6..fc176f0 100644
  #include "pan_desc.h"
  #include "pan_earlyzs.h"
  #include "pan_encoder.h"
-@@ -2181,9 +2182,57 @@ v9_prepare_blend_zsd(struct panvk_cmd_buffer *cmdbuf,
+@@ -2147,9 +2148,57 @@ v9_prepare_blend_zsd(struct panvk_cmd_buffer *cmdbuf,
     return VK_SUCCESS;
  }
  
@@ -149,7 +149,7 @@ index 22d36d6..fc176f0 100644
     const VkViewport *vp = &cmdbuf->vk.dynamic_graphics_state.vp.viewports[0];
     const VkRect2D *sc = &cmdbuf->vk.dynamic_graphics_state.vp.scissors[0];
     int minx = MAX2(sc->offset.x, (int)vp->x);
-@@ -2281,7 +2330,10 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
+@@ -2247,7 +2296,10 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
     enum mesa_prim reduced = u_reduced_prim(info->prim);
     bool polygon = reduced == MESA_PRIM_TRIANGLES;
     float z_min, z_max;
@@ -161,7 +161,7 @@ index 22d36d6..fc176f0 100644
  
     const bool secondary_shader = vs->info.vs.secondary_enable && fs != NULL;
     /* Use the real varying count from the linked vs/fs pair instead of a
-@@ -3039,6 +3091,172 @@ v9_prerast_indirect(struct panvk_cmd_buffer *cmdbuf,
+@@ -3005,6 +3057,172 @@ v9_prerast_indirect(struct panvk_cmd_buffer *cmdbuf,
     return gen.gpu;
  }
  
@@ -334,7 +334,7 @@ index 22d36d6..fc176f0 100644
  /* Lowers one draw that fits the arena (direct) or is dropped when it does
   * not (indirect, see panlib_v9_prerast_indirect()). */
  static void
-@@ -3093,7 +3311,16 @@ v9_prerast_draw_one(struct panvk_cmd_buffer *cmdbuf,
+@@ -3059,7 +3277,16 @@ v9_prerast_draw_one(struct panvk_cmd_buffer *cmdbuf,
        v9_prerast_xfb(cmdbuf, src, arena, has_gs ? gs.params : vs.params);
  
     /* Capture-only draws (rasterizer discard) have nothing to tile. */
@@ -370,7 +370,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 4b5c9d0..8d014b0 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -331,7 +331,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -338,7 +338,7 @@ panvk_per_arch(get_physical_device_features)(
        .wideLines = true,
        .largePoints = true,
        .alphaToOne = PAN_ARCH >= 10,
@@ -379,7 +379,7 @@ index 4b5c9d0..8d014b0 100644
        .samplerAnisotropy = true,
        .textureCompressionETC2 = has_texture_compression_etc2(device),
        .textureCompressionASTC_LDR = has_texture_compression_astc_ldr(device),
-@@ -441,7 +441,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -448,7 +448,7 @@ panvk_per_arch(get_physical_device_features)(
        .vulkanMemoryModel = true,
        .vulkanMemoryModelDeviceScope = true,
        .vulkanMemoryModelAvailabilityVisibilityChains = true,
@@ -388,7 +388,7 @@ index 4b5c9d0..8d014b0 100644
        .shaderOutputLayer = PAN_ARCH >= 10,
        .subgroupBroadcastDynamicId = true,
  
-@@ -999,7 +999,7 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1029,7 +1029,7 @@ panvk_per_arch(get_physical_device_properties)(
                                                : 1,
        .maxSamplerLodBias = (float)INT16_MAX / 256.0f,
        .maxSamplerAnisotropy = 16,

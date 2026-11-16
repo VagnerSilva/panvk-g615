@@ -28,7 +28,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index ee5a41a..c5699a8 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -476,7 +476,8 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -477,7 +477,8 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
     if (verts <= c->max_verts) {
        n_verts = verts;
        n_insts = min(max(c->max_verts / verts, 1u), insts - inst);
@@ -38,7 +38,7 @@ index ee5a41a..c5699a8 100644
        if (strips) {
           prims = sc.closed + u_decomposed_prims_for_vertices(prim, sc.run);
        } else {
-@@ -1661,8 +1662,8 @@ v9_patch_compute_job(global uint8_t *job, bool null_job, uint32_t x,
+@@ -1651,8 +1652,8 @@ v9_patch_compute_job(global uint8_t *job, bool null_job, uint32_t x,
   * instance sysvals and writes the generated draw. A draw past the indirect
   * count, empty, or over the record capacity becomes NULL jobs and an empty
   * generated draw.
@@ -65,7 +65,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index 3abd4bf..2519522 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -3261,7 +3261,7 @@ v9_prerast_draw_viewports(struct panvk_cmd_buffer *cmdbuf,
+@@ -3227,7 +3227,7 @@ v9_prerast_draw_viewports(struct panvk_cmd_buffer *cmdbuf,
   * not (indirect, see panlib_v9_prerast_indirect()). */
  static void
  v9_prerast_draw_one(struct panvk_cmd_buffer *cmdbuf,
@@ -74,7 +74,7 @@ index 3abd4bf..2519522 100644
  {
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
     const struct panvk_shader *shader = cmdbuf->state.gfx.vs.shader;
-@@ -3294,7 +3294,7 @@ v9_prerast_draw_one(struct panvk_cmd_buffer *cmdbuf,
+@@ -3260,7 +3260,7 @@ v9_prerast_draw_one(struct panvk_cmd_buffer *cmdbuf,
         (has_gs && !v9_prerast_gs(cmdbuf, src, arena, &gs)) ||
         (src->indirect.buffer_dev_addr &&
          !(gen_draw = v9_prerast_indirect(cmdbuf, src, &vs,
@@ -83,7 +83,7 @@ index 3abd4bf..2519522 100644
        vk_command_buffer_set_error(&cmdbuf->vk, VK_ERROR_OUT_OF_DEVICE_MEMORY);
        return;
     }
-@@ -3366,27 +3366,119 @@ v9_prerast_split_fan(struct panvk_cmd_buffer *cmdbuf,
+@@ -3332,27 +3332,119 @@ v9_prerast_split_fan(struct panvk_cmd_buffer *cmdbuf,
           chunk.index.buffer_size = (n + 1) * sizeof(uint32_t);
           chunk.vertex.count = n + 1;
           chunk.gpu_prerast_prim_base = s - 1;
@@ -213,7 +213,7 @@ index 3abd4bf..2519522 100644
     const struct panvk_shader *vs = cmdbuf->state.gfx.vs.shader;
     const struct panvk_shader *gs = cmdbuf->state.gfx.gs.shader;
     uint32_t max_verts =
-@@ -3396,8 +3488,20 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3362,8 +3454,20 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
                         panvk_gpu_prerast_gs_cap_slots(&gs->gpu_prerast.gs) /
                            gs->gpu_prerast.gs.invocations);
  
@@ -235,7 +235,7 @@ index 3abd4bf..2519522 100644
        return;
     }
  
-@@ -3407,7 +3511,7 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3373,7 +3477,7 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
        for (uint32_t i = 0; i < draw->instance.count; i += step) {
           chunk.instance.base = draw->instance.base + i;
           chunk.instance.count = MIN2(step, draw->instance.count - i);
@@ -244,7 +244,7 @@ index 3abd4bf..2519522 100644
        }
        return;
     }
-@@ -3419,8 +3523,6 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3385,8 +3489,6 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
        return;
     }
  
@@ -253,7 +253,7 @@ index 3abd4bf..2519522 100644
     const uint32_t step =
        max_verts > overlap ? (max_verts - overlap) / align * align : 0;
     if (!step || draw->prim == MESA_PRIM_TRIANGLE_FAN ||
-@@ -3440,7 +3542,7 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3406,7 +3508,7 @@ v9_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
           else
              chunk.vertex.base = draw->vertex.base + i;
           chunk.gpu_prerast_prim_base = i / prim_div;

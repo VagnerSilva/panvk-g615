@@ -38,16 +38,17 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index 9e04977a2e3b94919a30026c1e6ddb1cbc91756f..a217629ce58e14b5480d6710f4cfdf9e5f25967f 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -15,7 +15,7 @@
+@@ -15,8 +15,8 @@
  #include "tess_draw.h"
  #include "libpan_xfb.h"
+ #include "poly/geometry.h"
  
 -#if PAN_ARCH >= 10
 +#if PAN_ARCH >= 9
  
  /* Subgroup size is always 16 on v10+ */
  #define SUBGROUP_SIZE 16
-@@ -1595,4 +1595,133 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
+@@ -1585,4 +1585,133 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
        *offset = (int32_t)(ii[0] + (first_instance / ii[2]) * ii[1]);
     }
  }
@@ -185,7 +186,7 @@ diff --git a/src/panfrost/libpan/draw_helper.h b/src/panfrost/libpan/draw_helper
 index bcdab62a24a30e8a2e7b4c896980cb6457b49ccd..c93a0038d89b56cf400549b9855fcfcaba24e696 100644
 --- a/src/panfrost/libpan/draw_helper.h
 +++ b/src/panfrost/libpan/draw_helper.h
-@@ -45,3 +45,37 @@ struct libpan_draw_helper_attrib_info {
+@@ -39,3 +39,37 @@ struct libpan_draw_helper_attrib_info {
      uint32_t stride;
  };
  #endif
@@ -241,7 +242,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index fa089f0830100e6fbf10fa07d24ce64e6b7e0e1a..bc53e1ce2eb440a9e401059fec6415316eb41cfc 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -2209,6 +2209,44 @@ panvk_skip_fs(unsigned regs, unsigned tls)
+@@ -2175,6 +2175,44 @@ panvk_skip_fs(unsigned regs, unsigned tls)
     return (mode == 1 && tls > 0) || (mode == 2 && (tls > 0 || regs > 32));
  }
  
@@ -286,7 +287,7 @@ index fa089f0830100e6fbf10fa07d24ce64e6b7e0e1a..bc53e1ce2eb440a9e401059fec641531
  static VkResult
  v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
                            const struct panvk_draw_info *info,
-@@ -2401,34 +2439,10 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
+@@ -2367,34 +2405,10 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
                    shader_remapped_sysval_offset(
                       vs, sysval_offset(graphics, vs.base_instance));
  
@@ -325,7 +326,7 @@ index fa089f0830100e6fbf10fa07d24ce64e6b7e0e1a..bc53e1ce2eb440a9e401059fec641531
  
        struct panvk_precomp_ctx pctx = panvk_per_arch(precomp_cs)(cmdbuf);
        panlib_v9_draw_indirect_patch(&pctx, panlib_1d(1),
-@@ -2449,20 +2463,566 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
+@@ -2415,20 +2429,566 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
        if (draw_barrier)
           (void)0;
     }
@@ -895,7 +896,7 @@ index fa089f0830100e6fbf10fa07d24ce64e6b7e0e1a..bc53e1ce2eb440a9e401059fec641531
     if (!vs || !panvk_priv_mem_check_alloc(vs->spds.pos_triangles))
        return;
  
-@@ -2726,6 +3286,140 @@ panvk_per_arch(CmdDrawIndexedIndirectCount)(VkCommandBuffer commandBuffer,
+@@ -2692,6 +3252,140 @@ panvk_per_arch(CmdDrawIndexedIndirectCount)(VkCommandBuffer commandBuffer,
        panvk_buffer_gpu_ptr(count_buffer, countBufferOffset));
  }
  
@@ -1055,7 +1056,7 @@ diff --git a/src/panfrost/vulkan/panvk_cmd_draw.h b/src/panfrost/vulkan/panvk_cm
 index c60e682cb33fad9bf9fe99654cd279b997d2ad3e..a8798a0596718cd2035ec754aec2ad92f99dc16c 100644
 --- a/src/panfrost/vulkan/panvk_cmd_draw.h
 +++ b/src/panfrost/vulkan/panvk_cmd_draw.h
-@@ -169,7 +169,7 @@ struct panvk_cmd_graphics_state {
+@@ -170,7 +170,7 @@ struct panvk_cmd_graphics_state {
     } dynamic;
  
     struct panvk_occlusion_query_state occlusion_query;
@@ -1188,7 +1189,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/panvk
 index 06e95238c146b6a39f20a9ca7ff6db4add2389b3..f66c9edfee8e79573815aa5a41d1c6ae8e0642aa 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_draw.c
-@@ -828,7 +828,7 @@ prepare_iam_sysvals(struct panvk_cmd_buffer *cmdbuf, BITSET_WORD *dirty_sysvals)
+@@ -851,7 +851,7 @@ prepare_iam_sysvals(struct panvk_cmd_buffer *cmdbuf, BITSET_WORD *dirty_sysvals)
        set_gfx_sysval(cmdbuf, dirty_sysvals, iam[i], iam[i]);
  }
  
@@ -1197,7 +1198,7 @@ index 06e95238c146b6a39f20a9ca7ff6db4add2389b3..f66c9edfee8e79573815aa5a41d1c6ae
  static void
  panvk_upload_prerast_viewports(struct panvk_cmd_buffer *cmdbuf,
                                 BITSET_WORD *dirty_sysvals)
-@@ -989,9 +989,11 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -1012,9 +1012,11 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
  
     }
  
@@ -1210,7 +1211,7 @@ index 06e95238c146b6a39f20a9ca7ff6db4add2389b3..f66c9edfee8e79573815aa5a41d1c6ae
     {
        const struct vk_depth_stencil_state *dss =
           &cmdbuf->vk.dynamic_graphics_state.ds;
-@@ -1054,7 +1056,7 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -1077,7 +1079,7 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
     if (!BITSET_IS_EMPTY(dirty_shader_sysvals))
        gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);
  
@@ -1254,7 +1255,7 @@ index 51e669c2c1486639be0952406b4cfc342a3fa68d..bfba7b310d5207490b86671cba9f35ad
  #include "panvk_gpu_prerast.h"
  #endif
  #include "panvk_cmd_draw.h"
-@@ -132,7 +132,7 @@ panvk_device_cleanup_tls(struct panvk_device *dev)
+@@ -133,7 +133,7 @@ panvk_device_cleanup_tls(struct panvk_device *dev)
     simple_mtx_destroy(&dev->tls.lock);
  }
  
@@ -1263,7 +1264,7 @@ index 51e669c2c1486639be0952406b4cfc342a3fa68d..bfba7b310d5207490b86671cba9f35ad
  /* Commit the gpu_prerast arenas at creation.  On MediaTek kbase (CSF 1.21),
   * GPU-fault growth loses the first gpu_prerast draw's output: PanProbe
   * gs_viewport_depth case A drew nothing on every run; without alloc-on-fault,
-@@ -687,7 +687,7 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -782,7 +782,7 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
     simple_mtx_init(&device->tls.lock, mtx_plain);
     util_dynarray_init(&device->tls.bos, NULL);
  
@@ -1276,7 +1277,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 2e69f1e0d80a11f5673bf2f8e1389f78bf17e689..28caf3981be8838ede5d0e52a9d3d6a031445c3f 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -216,7 +216,7 @@ panvk_per_arch(get_physical_device_extensions)(
+@@ -219,7 +219,7 @@ panvk_per_arch(get_physical_device_extensions)(
        .EXT_scalar_block_layout = true,
        .EXT_separate_stencil_usage = true,
        .EXT_shader_atomic_float = true,
@@ -1285,7 +1286,7 @@ index 2e69f1e0d80a11f5673bf2f8e1389f78bf17e689..28caf3981be8838ede5d0e52a9d3d6a0
        .EXT_shader_demote_to_helper_invocation = true,
        .EXT_shader_image_atomic_int64 = PAN_ARCH >= 9,
        .EXT_shader_module_identifier = true,
-@@ -631,7 +631,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -647,7 +647,7 @@ panvk_per_arch(get_physical_device_features)(
        .transformFeedbackPreservesProvokingVertex = false,
  
        /* VK_EXT_transform_feedback */
@@ -1294,7 +1295,7 @@ index 2e69f1e0d80a11f5673bf2f8e1389f78bf17e689..28caf3981be8838ede5d0e52a9d3d6a0
        .geometryStreams = PAN_ARCH >= 10 && !PANVK_DEBUG(NO_GS),
  
        /* v7 doesn't support AFBC(BGR). We need to tweak the texture swizzle to
-@@ -1334,15 +1334,17 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1369,15 +1369,17 @@ panvk_per_arch(get_physical_device_properties)(
        .maxMultiDrawCount = 2048,
  
        /* VK_EXT_transform_feedback */
@@ -1330,8 +1331,8 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
  #include "panvk_gpu_prerast.h"
  #include "libpan/draw_helper_vp.h"
  #include "poly/nir/poly_nir.h"
-@@ -726,7 +726,7 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
-    pan_preprocess_nir(nir, pdev->kmod.dev->props.gpu_id);
+@@ -710,7 +710,7 @@ panvk_preprocess_nir(struct vk_physical_device *vk_pdev,
+    pan_preprocess_nir(nir, PAN_ARCH);
  }
  
 -#if PAN_ARCH >= 10
@@ -1339,7 +1340,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
  static bool
  panvk_lower_gpu_prerast_sysval(nir_builder *b, nir_intrinsic_instr *intr,
                                 UNUSED void *data)
-@@ -2428,7 +2428,7 @@ panvk_hash_state(struct vk_physical_device *device,
+@@ -2412,7 +2412,7 @@ panvk_hash_state(struct vk_physical_device *device,
     struct mesa_blake3 blake3_ctx;
     _mesa_blake3_init(&blake3_ctx);
  
@@ -1348,7 +1349,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
     const uint32_t gpu_prerast_abi = PANVK_GPU_PRERAST_ABI_VERSION;
     _mesa_blake3_update(&blake3_ctx, &gpu_prerast_abi, sizeof(gpu_prerast_abi));
  #endif
-@@ -3373,7 +3373,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3363,7 +3363,7 @@ panvk_compile_shader(struct panvk_device *dev,
     if (shader == NULL)
        return panvk_error(dev, VK_ERROR_OUT_OF_HOST_MEMORY);
  
@@ -1357,7 +1358,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
     shader->gpu_prerast.io.abi_version = PANVK_GPU_PRERAST_ABI_VERSION;
  
     if (info->stage == MESA_SHADER_TESS_EVAL)
-@@ -3417,11 +3417,11 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3407,11 +3407,11 @@ panvk_compile_shader(struct panvk_device *dev,
  #endif
  
     switch (info->stage) {
@@ -1371,7 +1372,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
        /* Lowered/passthrough variants only exist on the gpu_prerast path. */
        const bool dyn_polygon_mode =
           !state || !state->rs ||
-@@ -3457,7 +3457,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3447,7 +3447,7 @@ panvk_compile_shader(struct panvk_device *dev,
           /* Each variant gets its own NIR. To save an extra clone, we use the
            * original NIR for the last stage.
            */
@@ -1380,7 +1381,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
           const bool clone_nir = true;
           const uint64_t pt_outputs = shader->gpu_prerast.io.outputs_written;
           const uint8_t vp_loc =
-@@ -3480,7 +3480,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3470,7 +3470,7 @@ panvk_compile_shader(struct panvk_device *dev,
              clone_nir ? nir_shader_clone(NULL, info->nir) : info->nir;
  #endif
  
@@ -1389,7 +1390,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
           bool gpu_lower = false;
           gpu_lower = v == PANVK_VS_VARIANT_GPU_LOWERED;
           if (gpu_lower) {
-@@ -3521,7 +3521,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3511,7 +3511,7 @@ panvk_compile_shader(struct panvk_device *dev,
            * vk_vertex_input_state where there are holes in the attribute
            * locations.
            */
@@ -1398,7 +1399,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
           if (v != PANVK_VS_VARIANT_GPU_PASSTHROUGH) {
  #endif
              nir_foreach_shader_in_variable(var, nir) {
-@@ -3530,17 +3530,17 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3520,17 +3520,17 @@ panvk_compile_shader(struct panvk_device *dev,
                 var->data.driver_location =
                    var->data.location - VERT_ATTRIB_GENERIC0;
              }
@@ -1419,9 +1420,8 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
              if (gpu_lower) {
                 /* outputs_written is only valid after panvk_lower_nir()
                  * gathered info; info->nir may still report 0. The record
-@@ -3583,13 +3583,13 @@ panvk_compile_shader(struct panvk_device *dev,
-             pan_build_varying_layout_compact(&varying_layout, nir,
-                                              inputs.gpu_id);
+@@ -3573,16 +3573,16 @@ panvk_compile_shader(struct panvk_device *dev,
+             pan_build_varying_layout_compact(&varying_layout, nir, PAN_ARCH);
              inputs.varying_layout = &varying_layout;
 -#if PAN_ARCH >= 10
 +#if PAN_ARCH >= 9
@@ -1434,8 +1434,14 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
 +#if PAN_ARCH >= 9
           if (vp_loc) {
              shader->gpu_prerast.vp_scissor_loc = vp_loc;
-             pan_varying_collect_formats(&vp_layout, nir, inputs.gpu_id);
-@@ -3602,7 +3602,7 @@ panvk_compile_shader(struct panvk_device *dev,
+-            pan_varying_collect_formats(&vp_layout, nir, inputs.gpu_id);
+-            pan_build_varying_layout_compact(&vp_layout, nir, inputs.gpu_id);
++            pan_varying_collect_formats(&vp_layout, nir, inputs.arch);
++            pan_build_varying_layout_compact(&vp_layout, nir, inputs.arch);
+             inputs.varying_layout = &vp_layout;
+             inputs.skip_viewport_transform = true;
+          } else if (v == PANVK_VS_VARIANT_GPU_PASSTHROUGH) {
+@@ -3591,7 +3591,7 @@ panvk_compile_shader(struct panvk_device *dev,
  #endif
  
           if (v == PANVK_VS_VARIANT_HW
@@ -1444,7 +1450,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
               || v == PANVK_VS_VARIANT_GPU_PASSTHROUGH
  #endif
           ) {
-@@ -3616,7 +3616,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3605,7 +3605,7 @@ panvk_compile_shader(struct panvk_device *dev,
                                      noperspective_varyings,
                                      &shader->desc_info, variant);
  
@@ -1453,7 +1459,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
           if (result == VK_SUCCESS && gpu_lower)
              shader->gpu_prerast.lowered_vs_compiled = true;
           if (result == VK_SUCCESS && v == PANVK_VS_VARIANT_GPU_PASSTHROUGH)
-@@ -3633,7 +3633,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3622,7 +3622,7 @@ panvk_compile_shader(struct panvk_device *dev,
              return result;
           }
        }
@@ -1462,7 +1468,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
        if (shader->gpu_prerast.lowered_vs_compiled)
           panvk_gpu_prerast_gather_xfb(&shader->gpu_prerast.xfb,
                                        info->nir->xfb_info,
-@@ -3669,7 +3669,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3658,7 +3658,7 @@ panvk_compile_shader(struct panvk_device *dev,
        break;
     }
  
@@ -1471,7 +1477,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
     case MESA_SHADER_GEOMETRY: {
        struct panvk_gpu_prerast_gs_info *gs = &shader->gpu_prerast.gs;
        struct panvk_gpu_prerast_out_types out_types = {0};
-@@ -4023,7 +4023,7 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
+@@ -4014,7 +4014,7 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
           /* The last geometry stage before the FS will always have a HW vertex
            * shader variant. Geometry's first vertex variant is the passthrough.
            */
@@ -1480,7 +1486,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
           /* A VS/TES that selects a viewport is drawn through its
            * passthrough, whose layout carries the scissor planes.
            */
-@@ -4043,7 +4043,7 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
+@@ -4034,7 +4034,7 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
                 break;
              }
           }
@@ -1489,7 +1495,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
           if (prev_shader->vk.stage == MESA_SHADER_GEOMETRY)
              scissor_loc = prev_shader->gpu_prerast.gs.scissor_clip_loc;
  #endif
-@@ -4283,7 +4283,7 @@ panvk_deserialize_shader(struct vk_device *vk_dev, struct blob_reader *blob,
+@@ -4285,7 +4285,7 @@ panvk_deserialize_shader(struct vk_device *vk_dev, struct blob_reader *blob,
     if (shader == NULL)
        return panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
  
@@ -1498,7 +1504,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
     blob_copy_bytes(blob, &shader->gpu_prerast, sizeof(shader->gpu_prerast));
     if (shader->gpu_prerast.io.abi_version != PANVK_GPU_PRERAST_ABI_VERSION)
        blob->overrun = true;
-@@ -4410,7 +4410,7 @@ panvk_shader_serialize(struct vk_device *vk_dev,
+@@ -4412,7 +4412,7 @@ panvk_shader_serialize(struct vk_device *vk_dev,
  
     blob_write_uint8(blob, vk_shader->stage);
  
@@ -1507,7 +1513,7 @@ index fb061bf8b10b48644da504aa1a385ed912ddf267..1474eee8f2e515551820f2525f9c1189
     blob_write_bytes(blob, &shader->gpu_prerast, sizeof(shader->gpu_prerast));
  #endif
  #if PAN_ARCH == 9
-@@ -4889,7 +4889,7 @@ panvk_cmd_bind_shader(struct panvk_cmd_buffer *cmd, const mesa_shader_stage stag
+@@ -4891,7 +4891,7 @@ panvk_cmd_bind_shader(struct panvk_cmd_buffer *cmd, const mesa_shader_stage stag
           gfx_state_set_dirty(cmd, FS_PUSH_UNIFORMS);
        }
        break;

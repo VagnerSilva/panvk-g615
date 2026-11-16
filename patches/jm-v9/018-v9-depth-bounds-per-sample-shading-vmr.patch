@@ -26,7 +26,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index 2519522..0f0a236 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -2435,6 +2435,39 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
+@@ -2401,6 +2401,39 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
              late_zs ? MALI_PIXEL_KILL_FORCE_LATE : MALI_PIXEL_KILL_FORCE_EARLY;
           cfg.flags_0.zs_update_operation =
              late_zs ? MALI_PIXEL_KILL_FORCE_LATE : MALI_PIXEL_KILL_FORCE_EARLY;
@@ -66,7 +66,7 @@ index 2519522..0f0a236 100644
           /* the GPU must wait for the shader's coverage (discard,
            * sample mask, alpha-to-coverage) before updating depth/stencil. */
           cfg.flags_0.shader_modifies_coverage = !v61a_no_smc() &&
-@@ -4121,9 +4154,38 @@ v9_count_draw_queries(struct panvk_cmd_buffer *cmdbuf,
+@@ -4087,9 +4120,38 @@ v9_count_draw_queries(struct panvk_cmd_buffer *cmdbuf,
   * gl_Layer), each copy with its own tiler context and the view or layer in
   * the layer_id sysval. The fragment jobs are emitted per layer when the
   * batch is closed. */
@@ -109,7 +109,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/panvk
 index f66c9ed..b2b80c8 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_draw.c
-@@ -993,7 +993,7 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -1016,7 +1016,7 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
     panvk_upload_prerast_viewports(cmdbuf, dirty_sysvals);
  #endif
  
@@ -122,7 +122,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 3cf68c9..0a9fd1f 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -327,7 +327,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -334,7 +334,7 @@ panvk_per_arch(get_physical_device_features)(
        .depthClamp = true,
        .depthBiasClamp = true,
        .fillModeNonSolid = PAN_ARCH >= 10,
@@ -131,7 +131,7 @@ index 3cf68c9..0a9fd1f 100644
        .wideLines = true,
        .largePoints = true,
        .alphaToOne = PAN_ARCH >= 10,
-@@ -374,7 +374,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -381,7 +381,7 @@ panvk_per_arch(get_physical_device_features)(
        .sparseResidency8Samples = false,
        .sparseResidency16Samples = false,
        .sparseResidencyAliased = false, /* https://gitlab.freedesktop.org/panfrost/mesa/-/issues/237 */
@@ -144,7 +144,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index f2a6e7f..53778f6 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -2351,7 +2351,7 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
+@@ -2335,7 +2335,7 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
  #undef GS_PARAM
  #endif
  
@@ -153,7 +153,7 @@ index f2a6e7f..53778f6 100644
  /* The FS tests the depth bounds against the tile-resident depth. Lowered
   * whenever the test may be on: statically enabled, or dynamic.
   */
-@@ -2482,7 +2482,7 @@ panvk_hash_state(struct vk_physical_device *device,
+@@ -2466,7 +2466,7 @@ panvk_hash_state(struct vk_physical_device *device,
        if (state->ial)
           _mesa_blake3_update(&blake3_ctx, state->ial, sizeof(*state->ial));
  
@@ -162,7 +162,7 @@ index f2a6e7f..53778f6 100644
        bool depth_bounds = panvk_depth_bounds_lowered(enabled_features, state);
        _mesa_blake3_update(&blake3_ctx, &depth_bounds, sizeof(depth_bounds));
        bool non_solid = (stages & VK_SHADER_STAGE_VERTEX_BIT) && state->rs &&
-@@ -3861,7 +3861,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3850,7 +3850,7 @@ panvk_compile_shader(struct panvk_device *dev,
                 &variant->fs.tile_image_z_read,
                 &variant->fs.tile_image_s_read);
  
@@ -171,7 +171,7 @@ index f2a6e7f..53778f6 100644
        if (panvk_depth_bounds_lowered(&dev->vk.enabled_features, state)) {
           variant->fs.depth_bounds_app_mask = panvk_lower_depth_bounds(nir);
           variant->fs.depth_bounds = true;
-@@ -4861,7 +4861,7 @@ static const struct vk_shader_ops panvk_shader_ops = {
+@@ -4863,7 +4863,7 @@ static const struct vk_shader_ops panvk_shader_ops = {
  VkResult
  panvk_per_arch(create_depth_bounds_fs)(struct panvk_device *dev)
  {

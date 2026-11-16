@@ -31,7 +31,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index 72907b5..9e04977 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -1521,7 +1521,11 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
+@@ -1511,7 +1511,11 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
                                uint64_t index_base,
                                global uint32_t *first_vertex_sysval,
                                global uint32_t *base_instance_sysval,
@@ -44,7 +44,7 @@ index 72907b5..9e04977 100644
  {
     const bool indexed = index_size != 0;
     const uint32_t count = cmd[0];
-@@ -1529,7 +1533,10 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
+@@ -1519,7 +1523,10 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
     const uint32_t first_index = indexed ? cmd[2] : 0;
     const int32_t vertex_base = indexed ? (int32_t)cmd[3] : (int32_t)cmd[2];
     const uint32_t first_instance = indexed ? cmd[4] : cmd[3];
@@ -56,7 +56,7 @@ index 72907b5..9e04977 100644
  
     global struct mali_job_header_packed *hdr =
        (global struct mali_job_header_packed *)job;
-@@ -1574,5 +1581,18 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
+@@ -1564,5 +1571,18 @@ panlib_v9_draw_indirect_patch(global uint32_t *cmd, global uint8_t *job,
        *first_vertex_sysval = vertex_base;
     if (base_instance_sysval)
        *base_instance_sysval = first_instance;
@@ -79,7 +79,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index 1f09b17..fa089f0 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -2401,13 +2401,45 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
+@@ -2367,13 +2367,45 @@ v9_emit_malloc_vertex_job(struct panvk_cmd_buffer *cmdbuf,
                    shader_remapped_sysval_offset(
                       vs, sysval_offset(graphics, vs.base_instance));
  
@@ -126,7 +126,7 @@ index 1f09b17..fa089f0 100644
        indirect_dep = batch->vtc_jc.job_index;
     }
     static int draw_barrier = -1;
-@@ -2442,6 +2474,13 @@ v9_cmd_draw_layer(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
+@@ -2408,6 +2440,13 @@ v9_cmd_draw_layer(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
     if (!cmdbuf->cur_batch)
        panvk_per_arch(cmd_open_batch)(cmdbuf);
  
@@ -140,7 +140,7 @@ index 1f09b17..fa089f0 100644
     if (cmdbuf->state.gfx.render.first_provoking_vertex == U_TRISTATE_UNSET) {
        cmdbuf->state.gfx.render.first_provoking_vertex = u_tristate_make(
           cmdbuf->vk.dynamic_graphics_state.rs.provoking_vertex ==
-@@ -2594,34 +2633,53 @@ panvk_per_arch(CmdDrawIndexed)(VkCommandBuffer commandBuffer,
+@@ -2560,34 +2599,53 @@ panvk_per_arch(CmdDrawIndexed)(VkCommandBuffer commandBuffer,
     v9_cmd_draw(cmdbuf, &info);
  }
  
@@ -206,7 +206,7 @@ index 1f09b17..fa089f0 100644
  VKAPI_ATTR void VKAPI_CALL
  panvk_per_arch(CmdDrawIndexedIndirect)(VkCommandBuffer commandBuffer,
                                         VkBuffer _buffer, VkDeviceSize offset,
-@@ -2630,26 +2688,42 @@ panvk_per_arch(CmdDrawIndexedIndirect)(VkCommandBuffer commandBuffer,
+@@ -2596,26 +2654,42 @@ panvk_per_arch(CmdDrawIndexedIndirect)(VkCommandBuffer commandBuffer,
     VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
     VK_FROM_HANDLE(panvk_buffer, buffer, _buffer);
  
@@ -288,7 +288,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/panvk
 index 4b3bc1e..06e9523 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_draw.c
-@@ -929,6 +929,9 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -952,6 +952,9 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
  #if PAN_ARCH <= 9
     set_gfx_sysval(cmdbuf, dirty_sysvals, layer_id, info->layer_id);
  #endif
@@ -311,7 +311,7 @@ index 21aa354..67320af 100644
        .KHR_driver_properties = true,
        .KHR_dynamic_rendering = true,
        .KHR_dynamic_rendering_local_read = true,
-@@ -322,7 +322,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -329,7 +329,7 @@ panvk_per_arch(get_physical_device_features)(
        .sampleRateShading = true,
        .dualSrcBlend = true,
        .logicOp = true,
@@ -320,7 +320,7 @@ index 21aa354..67320af 100644
        .drawIndirectFirstInstance = true,
        .depthClamp = true,
        .depthBiasClamp = true,
-@@ -393,7 +393,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -400,7 +400,7 @@ panvk_per_arch(get_physical_device_features)(
  
        /* Vulkan 1.2 */
        .samplerMirrorClampToEdge = true,
@@ -329,7 +329,7 @@ index 21aa354..67320af 100644
        .storageBuffer8BitAccess = true,
        .uniformAndStorageBuffer8BitAccess = true,
        .storagePushConstant8 = true,
-@@ -990,7 +990,11 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1020,7 +1020,11 @@ panvk_per_arch(get_physical_device_properties)(
        .mipmapPrecisionBits = 8,
        /* Software limit. */
        .maxDrawIndexedIndexValue = UINT32_MAX,

@@ -33,7 +33,7 @@ diff --git a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/jm
 index 1427139..e1b4a10 100644
 --- a/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/jm/panvk_vX_cmd_draw.c
-@@ -2521,6 +2521,28 @@ v9_prerast_needed(const struct panvk_cmd_buffer *cmdbuf,
+@@ -2487,6 +2487,28 @@ v9_prerast_needed(const struct panvk_cmd_buffer *cmdbuf,
             v9_prerast_xfb_active(cmdbuf));
  }
  
@@ -62,7 +62,7 @@ index 1427139..e1b4a10 100644
  /* Raster VS of a draw: the GS passthrough after a GS, the VS passthrough for
   * generated draws and viewport-selecting VSs, else the HW variant. */
  static const struct panvk_shader_variant *
-@@ -3190,7 +3212,8 @@ v9_cmd_draw_layer(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
+@@ -3156,7 +3178,8 @@ v9_cmd_draw_layer(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *info)
     if (info->prim == MESA_PRIM_PATCHES)
        return;
  
@@ -76,7 +76,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 2b682c0..bdefbec 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -340,12 +340,12 @@ panvk_per_arch(get_physical_device_features)(
+@@ -347,12 +347,12 @@ panvk_per_arch(get_physical_device_features)(
        .occlusionQueryPrecise = true,
        .pipelineStatisticsQuery = PAN_ARCH >= 10,
        /* On v13+, the hardware isn't speculatively referencing to invalid
@@ -92,7 +92,7 @@ index 2b682c0..bdefbec 100644
           instance->drirc.misc.force_enable_shader_atomics,
        .fragmentStoresAndAtomics = true,
        .shaderTessellationAndGeometryPointSize = PAN_ARCH >= 10,
-@@ -358,8 +358,8 @@ panvk_per_arch(get_physical_device_features)(
+@@ -365,8 +365,8 @@ panvk_per_arch(get_physical_device_features)(
        .shaderSampledImageArrayDynamicIndexing = true,
        .shaderStorageBufferArrayDynamicIndexing = true,
        .shaderStorageImageArrayDynamicIndexing = true,
@@ -103,7 +103,7 @@ index 2b682c0..bdefbec 100644
        .shaderFloat64 = false,
        .shaderInt64 = true,
        .shaderInt16 = true,
-@@ -1036,9 +1036,9 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1066,9 +1066,9 @@ panvk_per_arch(get_physical_device_properties)(
           PAN_ARCH >= 10 && device->kmod.dev->props.gpu_can_query_timestamp,
        .timestampPeriod =
           PAN_ARCH >= 10 ? panvk_get_gpu_system_timestamp_period(device) : 0,

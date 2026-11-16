@@ -24,7 +24,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 67320af..eb230c3 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -211,7 +211,7 @@ panvk_per_arch(get_physical_device_extensions)(
+@@ -214,7 +214,7 @@ panvk_per_arch(get_physical_device_extensions)(
        .EXT_queue_family_foreign = true,
        .EXT_rasterization_order_attachment_access = PAN_ARCH >= 10,
        .EXT_rgba10x6_formats = PAN_ARCH >= 11,
@@ -33,7 +33,7 @@ index 67320af..eb230c3 100644
        .EXT_sampler_filter_minmax = PAN_ARCH >= 10,
        .EXT_scalar_block_layout = true,
        .EXT_separate_stencil_usage = true,
-@@ -648,9 +648,11 @@ panvk_per_arch(get_physical_device_features)(
+@@ -664,9 +664,11 @@ panvk_per_arch(get_physical_device_features)(
        .pipelineExecutableInfo = true,
  
        /* VK_KHR_robustness2 */
