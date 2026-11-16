@@ -29,7 +29,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index 5f72f2e2..b044ce54 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1731,6 +1731,38 @@ panvk_GetPhysicalDeviceMemoryProperties2(
+@@ -1785,6 +1785,38 @@ panvk_GetPhysicalDeviceMemoryProperties2(
              panvk_available_system_memory(physical_device), 0.9f, heap_size,
              used);
  

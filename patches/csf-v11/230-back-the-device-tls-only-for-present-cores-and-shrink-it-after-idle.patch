@@ -62,16 +62,17 @@ index 964a8d0d..53cf5d90 100644
  #include "genxml/gen_macros.h"
  
  #include "panvk_buffer.h"
-@@ -37,6 +48,8 @@
+@@ -37,7 +48,9 @@
  #include "pan_samples.h"
  
  #include "util/bitscan.h"
 +#include "util/os_time.h"
 +#include "util/u_debug.h"
+ #include "poly/geometry.h"
  #include "vk_descriptor_update_template.h"
  #include "vk_format.h"
  #include "vk_synchronization.h"
-@@ -109,26 +122,212 @@ dev_tls_release(struct panvk_cmd_buffer *cmdbuf)
+@@ -110,26 +123,214 @@ dev_tls_release(struct panvk_cmd_buffer *cmdbuf)
     util_dynarray_clear(&cmdbuf->dev_tls_refs);
  }
  
@@ -216,7 +217,8 @@ index 964a8d0d..53cf5d90 100644
 +       l->per_core * l->range == l->span && !(l->per_core % dev_tls_page()) &&
 +       !(flags & PAN_KMOD_BO_FLAG_GPU_UNCACHED)) {
 +      if (panvk_priv_bo_create_kind(dev, l->per_core * cores, flags,
-+                                    VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, &bo,
++                                    VK_SYSTEM_ALLOCATION_SCOPE_DEVICE,
++                                    "Device TLS", &bo,
 +                                    PANVK_MEM_DEV_TLS) == VK_SUCCESS) {
 +         const uint64_t va = dev_tls_alias(dev, bo, l);
 +         if (va) {
@@ -237,7 +239,8 @@ index 964a8d0d..53cf5d90 100644
 +#endif
 +
 +   if (panvk_priv_bo_create_kind(dev, l->span, flags,
-+                                 VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, &bo,
++                                 VK_SYSTEM_ALLOCATION_SCOPE_DEVICE,
++                                 "Device TLS", &bo,
 +                                 PANVK_MEM_DEV_TLS) != VK_SUCCESS)
 +      return NULL;
 +
@@ -275,7 +278,7 @@ index 964a8d0d..53cf5d90 100644
 -      if (panvk_priv_bo_create_kind(
 -             dev, size,
 -             panvk_device_adjust_bo_flags(dev, PAN_KMOD_BO_FLAG_NO_MMAP),
--             VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, &bo,
+-             VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, "Device TLS", &bo,
 -             PANVK_MEM_DEV_TLS) == VK_SUCCESS) {
 +   bool replace = !cur || dev_tls_span(cur) < size;
 +   if (cur && !replace && shrink_ns) {
@@ -292,7 +295,7 @@ index 964a8d0d..53cf5d90 100644
           if (free_old) {
              /* Drop the device's references on the outgrown BOs; command
               * buffers that use them hold their own. */
-@@ -141,7 +340,8 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, uint64_t size)
+@@ -142,7 +343,8 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, uint64_t size)
           }
           util_dynarray_append(&dev->tls.bos, bo);
           cur = bo;
@@ -302,7 +305,7 @@ index 964a8d0d..53cf5d90 100644
           cur = NULL;
        }
     }
-@@ -179,8 +379,16 @@ emit_tls(struct panvk_cmd_buffer *cmdbuf)
+@@ -180,8 +382,16 @@ emit_tls(struct panvk_cmd_buffer *cmdbuf)
           pan_query_thread_tls_alloc(&phys_dev->kmod.dev->props);
        unsigned size = pan_get_total_stack_size(cmdbuf->state.tls.info.tls.size,
                                                 thread_tls_alloc, core_id_range);
@@ -332,7 +335,7 @@ index 02e40ca5..46b8851d 100644
  #include <unistd.h>
  
  #include "util/os_misc.h"
-@@ -228,6 +229,11 @@ panvk_priv_bo_destroy(struct panvk_priv_bo *priv_bo)
+@@ -237,6 +238,11 @@ panvk_priv_bo_destroy(struct panvk_priv_bo *priv_bo)
        assert(!ret);
     }
  
@@ -360,4 +363,3 @@ index e2860aa9..de4c1028 100644
  VkResult panvk_priv_bo_create(struct panvk_device *dev, uint64_t size,
 -- 
 2.55.0
-

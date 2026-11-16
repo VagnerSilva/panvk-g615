@@ -28,7 +28,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 index 8c38eafa..0c507432 100644
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -1770,8 +1770,8 @@ kbase_kmod_import_dmabuf(struct pan_kmod_dev *dev,
+@@ -1784,8 +1784,8 @@ kbase_kmod_import_dmabuf(struct pan_kmod_dev *dev,
  
     pan_kmod_bo_init(&kbase_bo->base, dev, exclusive_vm, bo_size, flags,
                      handle);
@@ -43,7 +43,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 44af595e..a4b74719 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -1034,7 +1034,7 @@ kbase_queue_wait_current(struct panvk_gpu_queue *queue,
+@@ -1036,7 +1036,7 @@ kbase_queue_wait_current(struct panvk_gpu_queue *queue,
        }
     }
  

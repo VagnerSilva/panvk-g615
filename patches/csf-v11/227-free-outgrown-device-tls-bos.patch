@@ -26,7 +26,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/cs
 index c1c24d60..fe562fee 100644
 --- a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 +++ b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
-@@ -641,6 +641,11 @@ struct panvk_cmd_buffer {
+@@ -642,6 +642,11 @@ struct panvk_cmd_buffer {
     /* csf-v11/201: BC raw stores (struct panvk_bc_raw *) this command buffer
      * reads or writes, released when it is reset or freed. */
     struct util_dynarray bc_raw_refs;
@@ -42,7 +42,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index 157a1ed2..964a8d0d 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -87,10 +87,33 @@ panvk_per_arch(kbase_mark_progress)(
+@@ -88,10 +88,33 @@ panvk_per_arch(kbase_mark_progress)(
   * for Speed Most Wanted (1.7 GiB, then Android killed apps).
   * ponytail: outgrown BOs live until device destroy (<= 2x the peak size);
   * refcount them per command buffer if that ever matters. */
@@ -76,9 +76,9 @@ index 157a1ed2..964a8d0d 100644
     uint64_t addr = 0;
  
     simple_mtx_lock(&dev->tls.lock);
-@@ -106,6 +129,16 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, uint64_t size)
+@@ -107,6 +130,16 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, uint64_t size)
               panvk_device_adjust_bo_flags(dev, PAN_KMOD_BO_FLAG_NO_MMAP),
-              VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, &bo,
+              VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, "Device TLS", &bo,
               PANVK_MEM_DEV_TLS) == VK_SUCCESS) {
 +         if (free_old) {
 +            /* Drop the device's references on the outgrown BOs; command
@@ -93,7 +93,7 @@ index 157a1ed2..964a8d0d 100644
           util_dynarray_append(&dev->tls.bos, bo);
           cur = bo;
        } else {
-@@ -113,8 +146,18 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, uint64_t size)
+@@ -114,8 +147,18 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, uint64_t size)
        }
     }
  
@@ -113,7 +113,7 @@ index 157a1ed2..964a8d0d 100644
     simple_mtx_unlock(&dev->tls.lock);
  
     if (!addr)
-@@ -1014,6 +1057,7 @@ panvk_reset_cmdbuf(struct vk_command_buffer *vk_cmdbuf,
+@@ -1053,6 +1096,7 @@ panvk_reset_cmdbuf(struct vk_command_buffer *vk_cmdbuf,
  
     /* Not pending any more: BC timestamps are final. */
     panvk_per_arch(cmd_bc_release)(cmdbuf);
@@ -121,7 +121,7 @@ index 157a1ed2..964a8d0d 100644
  
     panvk_pool_reset(&cmdbuf->cs_pool);
     panvk_pool_reset(&cmdbuf->desc_pool);
-@@ -1051,6 +1095,8 @@ panvk_destroy_cmdbuf(struct vk_command_buffer *vk_cmdbuf)
+@@ -1090,6 +1134,8 @@ panvk_destroy_cmdbuf(struct vk_command_buffer *vk_cmdbuf)
        cs_builder_fini(&cmdbuf->state.cs[i].builder);
  
     panvk_per_arch(cmd_bc_release)(cmdbuf);
@@ -132,4 +132,3 @@ index 157a1ed2..964a8d0d 100644
     util_dynarray_fini(&cmdbuf->vmr_segs);
 -- 
 2.55.0
-
