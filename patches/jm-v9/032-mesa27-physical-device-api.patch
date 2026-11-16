@@ -1,0 +1,64 @@
+From: panvk-kbase-android worker <panvk-worker@localhost>
+Subject: [PATCH jm-v9 032] panvk: adapt Kbase model and memory budget to Mesa 27
+
+Use the Mesa 27 model selection inputs, preserve the per-node heap budget for
+Kbase without treating its node as a DRM render node, and release the budget
+on initialization failure.
+
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -631,7 +631,19 @@
+    device->memory.max_supported_va =
+       pan_clamp_to_usable_va_range(device->kmod.dev, request_va);
+ 
+-   device->memory.budget = get_memory_budget(device->drm.render_rdev);
++   dev_t budget_rdev = device->drm.render_rdev;
++#if defined(HAVE_PAN_KMOD_KBASE)
++   if (device->kbase_node_path[0]) {
++      struct stat st;
++      if (fstat(device->kmod.dev->fd, &st) || !S_ISCHR(st.st_mode)) {
++         return vk_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
++                          "failed to identify kbase device node");
++      }
++      budget_rdev = st.st_rdev;
++   }
++#endif
++
++   device->memory.budget = get_memory_budget(budget_rdev);
+    if (!device->memory.budget)
+       return VK_ERROR_OUT_OF_HOST_MEMORY;
+ 
+@@ -1407,7 +1419,9 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+       return result;
+ 
+    device->model = pan_get_model(device->kmod.dev->props.gpu_id,
+-                                 device->kmod.dev->props.gpu_variant);
++                                 device->kmod.dev->props.gpu_variant,
++                                 pan_query_core_count(&device->kmod.dev->props),
++                                 device->kmod.dev->props.gpu_features);
+ 
+    unsigned arch = pan_arch(device->kmod.dev->props.gpu_id);
+ 
+@@ -1543,6 +1557,9 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+ fail_kbase:
+    free_disk_cache(device);
+ 
++   if (device->memory.budget)
++      release_memory_budget(device->memory.budget);
++
+    if (device->vk.instance)
+       vk_physical_device_finish(&device->vk);
+ 
+diff --git a/src/panfrost/vulkan/panvk_priv_bo.c b/src/panfrost/vulkan/panvk_priv_bo.c
+--- a/src/panfrost/vulkan/panvk_priv_bo.c
++++ b/src/panfrost/vulkan/panvk_priv_bo.c
+@@ -377,7 +377,7 @@ panvk_mem_report(struct panvk_device *dev, bool final)
+    const uint64_t prerast = panvk_priv_mem_size(dev->gpu_prerast_arena) +
+                             panvk_priv_mem_size(dev->gpu_prerast_tess_arena) +
+                             panvk_priv_mem_size(dev->gpu_prerast_tess_arena2);
+-   const uint64_t devmem = p_atomic_read_relaxed(&pdev->memory.heap_used);
++   const uint64_t devmem = p_atomic_read_relaxed(&pdev->memory.budget->heap_used);
+    const uint64_t heap_live = p_atomic_read_relaxed(&s->heap_ctx_live);
+    const uint64_t heap_init = p_atomic_read_relaxed(&s->heap_init_B);
+    uint64_t avail = 0, kb[4];
