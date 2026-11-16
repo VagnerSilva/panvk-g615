@@ -3695,7 +3695,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index d96a4678..abc57076 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -868,6 +868,7 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -867,6 +867,7 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
  #include "bc/panvk_bc_etc2_spv.h"
  #include "bc/panvk_bc_astc_spv.h"
  #include "bc/panvk_bc_scopy_spv.h"
@@ -3703,7 +3703,7 @@ index d96a4678..abc57076 100644
  #define PANVK_BC_EAC_NO_DATA 1
  #include "bc/panvk_bc_eac_lut.h"
  #include "panvk_priv_bo.h"
-@@ -953,13 +954,31 @@ bc_xcode_wg(uint32_t wg[2])
+@@ -952,13 +953,31 @@ bc_xcode_wg(uint32_t wg[2])
     wg[1] = cached[1];
  }
  
@@ -3738,7 +3738,7 @@ index d96a4678..abc57076 100644
     const enum panvk_meta_object_key_type layout_key =
        PANVK_META_OBJECT_KEY_BC_XCODE_LAYOUT;
     const VkPushConstantRange push_range = {
-@@ -978,12 +997,12 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
+@@ -977,12 +996,12 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
        uint32_t wg[2];
        uint32_t mode;
        uint32_t opts;
@@ -3754,7 +3754,7 @@ index d96a4678..abc57076 100644
     };
     bc_xcode_wg(key.wg);
     VkPipeline cached = vk_meta_lookup_pipeline(&dev->meta, &key, sizeof(key));
-@@ -999,15 +1018,23 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
+@@ -998,15 +1017,23 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
        {.constantID = 3, .offset = offsetof(__typeof__(key), opts), .size = 4},
     };
     const VkSpecializationInfo spec = {
@@ -3781,7 +3781,7 @@ index d96a4678..abc57076 100644
     };
     const VkComputePipelineCreateInfo info = {
        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-@@ -1053,7 +1080,7 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1052,7 +1079,7 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
     VkPipelineLayout layout;
     VkPipeline pipeline;
     VkResult result = get_bc_xcode_pipeline(
@@ -3790,7 +3790,7 @@ index d96a4678..abc57076 100644
        &pipeline);
     if (result != VK_SUCCESS) {
        vk_command_buffer_set_error(&cmdbuf->vk, result);
-@@ -1066,7 +1093,7 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1065,7 +1092,7 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
                          subres->baseArrayLayer * dl->array_stride_B;
     const uint32_t bw = DIV_ROUND_UP(w, 4), bh = DIV_ROUND_UP(h, 4);
     uint64_t lut = 0;
@@ -3799,7 +3799,7 @@ index d96a4678..abc57076 100644
        lut = bc_eac_lut_addr(dev, bc_xcode_mode(img->vk.format));
        if (lut == UINT64_MAX) {
           vk_command_buffer_set_error(&cmdbuf->vk,
-@@ -1111,7 +1138,7 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1110,7 +1137,7 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
  /* csf-v11/203: the ETC2/EAC transcoder (not the BC6H ASTC one) writes the
   * raw blocks of an upload itself, so the upload reads its source once and
   * needs no separate raw copy pass. 2D images only (the raw plane address

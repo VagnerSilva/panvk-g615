@@ -10000,7 +10000,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index 60ac82a..f78a373 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -883,6 +883,11 @@ struct panvk_bc_xcode_push {
+@@ -882,6 +882,11 @@ struct panvk_bc_xcode_push {
     uint32_t by0;
     uint32_t bw;
     uint32_t bh;
@@ -10012,7 +10012,7 @@ index 60ac82a..f78a373 100644
  };
  
  /* XC_* in panvk_bc_etc2.comp. */
-@@ -1016,9 +1021,10 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
+@@ -1015,9 +1020,10 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
   * transcoded (panvk_bc_xcoded()) image. Must run between meta_compute_start() and
   * meta_compute_end(). */
  static void
@@ -10026,7 +10026,7 @@ index 60ac82a..f78a373 100644
  {
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
     const struct vk_device_dispatch_table *disp = &dev->vk.dispatch_table;
-@@ -1060,6 +1066,9 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1059,6 +1065,9 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
        .by0 = y0 / 4,
        .bw = bw,
        .bh = bh,
@@ -10036,7 +10036,7 @@ index 60ac82a..f78a373 100644
     };
  
     disp->CmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-@@ -1071,6 +1080,25 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1070,6 +1079,25 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
                       layers);
  }
  
@@ -10062,7 +10062,7 @@ index 60ac82a..f78a373 100644
  /* All-zero BC blocks for the decode of a bc_no_raw image leaving
   * ZERO_INITIALIZED: one block row of the base level, read with zero row
   * and layer pitches. */
-@@ -1450,10 +1478,17 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1449,10 +1477,17 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
                                      &pCopyMemoryInfo->pRegions[i].imageSubresource,
                                      pCopyMemoryInfo->pRegions[i].imageExtent);
  
@@ -10083,7 +10083,7 @@ index 60ac82a..f78a373 100644
  
        /* Decode (or transcode) straight from the copy source: the raw copy
         * and the decode only share reads, so no barrier between them. The
-@@ -1475,12 +1510,19 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1474,12 +1509,19 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
              .slice_B = DIV_ROUND_UP(col_px, 4) * row_B,
           };
  
@@ -10111,7 +10111,7 @@ diff --git a/src/util/disk_cache_os.c b/src/util/disk_cache_os.c
 index 08165bb..5890433 100644
 --- a/src/util/disk_cache_os.c
 +++ b/src/util/disk_cache_os.c
-@@ -937,6 +937,31 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
+@@ -1014,6 +1014,31 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
        }
     }
  

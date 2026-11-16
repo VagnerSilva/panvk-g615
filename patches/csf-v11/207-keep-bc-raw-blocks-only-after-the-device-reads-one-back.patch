@@ -474,7 +474,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index 1f40dba8..894493a9 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -867,6 +867,7 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -866,6 +866,7 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
   * here rather than at the top to keep the later series' hunks in place. */
  #include "bc/panvk_bc_etc2_spv.h"
  #include "bc/panvk_bc_astc_spv.h"
@@ -482,7 +482,7 @@ index 1f40dba8..894493a9 100644
  #define PANVK_BC_EAC_NO_DATA 1
  #include "bc/panvk_bc_eac_lut.h"
  #include "panvk_priv_bo.h"
-@@ -1660,6 +1661,18 @@ copy_memory_to_image_raw(
+@@ -1659,6 +1660,18 @@ copy_memory_to_image_raw(
     }
  }
  
@@ -501,7 +501,7 @@ index 1f40dba8..894493a9 100644
  VKAPI_ATTR void VKAPI_CALL
  panvk_per_arch(CmdCopyImageToMemoryKHR)(
     VkCommandBuffer commandBuffer,
-@@ -1672,6 +1685,12 @@ panvk_per_arch(CmdCopyImageToMemoryKHR)(
+@@ -1671,6 +1684,12 @@ panvk_per_arch(CmdCopyImageToMemoryKHR)(
        panvk_meta_copy_get_image_properties(img, false, false);
     struct panvk_cmd_meta_compute_save_ctx save = {0};
  
@@ -514,7 +514,7 @@ index 1f40dba8..894493a9 100644
     /* Raw blocks of a raw-store image (csf-v11/201). */
     if (!bc_raw_use(cmdbuf, img, false, false))
        return;
-@@ -1930,6 +1949,153 @@ bc_copy_image_no_raw(struct panvk_cmd_buffer *cmdbuf,
+@@ -1929,6 +1948,153 @@ bc_copy_image_no_raw(struct panvk_cmd_buffer *cmdbuf,
     STACK_ARRAY_FINISH(srcs);
  }
  
@@ -668,7 +668,7 @@ index 1f40dba8..894493a9 100644
  static void cmd_copy_image(VkCommandBuffer commandBuffer,
                             const VkCopyImageInfo2 *pCopyImageInfo);
  
-@@ -1963,6 +2129,17 @@ cmd_copy_image(VkCommandBuffer commandBuffer,
+@@ -1962,6 +2128,17 @@ cmd_copy_image(VkCommandBuffer commandBuffer,
     VK_FROM_HANDLE(panvk_image, bc_dst, pCopyImageInfo->dstImage);
     VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
  

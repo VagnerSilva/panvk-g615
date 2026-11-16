@@ -3928,7 +3928,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index f0120473..c0871506 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -1041,7 +1041,7 @@ bc_xcode_shader(const struct panvk_image *img)
+@@ -1040,7 +1040,7 @@ bc_xcode_shader(const struct panvk_image *img)
   * only. */
  static VkResult
  get_bc_xcode_pipeline(struct panvk_device *dev, enum bc_xcode_shader shader,
@@ -3937,7 +3937,7 @@ index f0120473..c0871506 100644
                        VkPipeline *pipeline_out)
  {
     const bool etc2 = shader == BC_XCODE_ETC2;
-@@ -1064,11 +1064,13 @@ get_bc_xcode_pipeline(struct panvk_device *dev, enum bc_xcode_shader shader,
+@@ -1063,11 +1063,13 @@ get_bc_xcode_pipeline(struct panvk_device *dev, enum bc_xcode_shader shader,
        uint32_t mode;
        uint32_t opts;
        uint32_t shader; /* enum bc_xcode_shader */
@@ -3951,7 +3951,7 @@ index f0120473..c0871506 100644
     };
     bc_xcode_wg(key.wg);
     VkPipeline cached = vk_meta_lookup_pipeline(&dev->meta, &key, sizeof(key));
-@@ -1077,14 +1079,15 @@ get_bc_xcode_pipeline(struct panvk_device *dev, enum bc_xcode_shader shader,
+@@ -1076,14 +1078,15 @@ get_bc_xcode_pipeline(struct panvk_device *dev, enum bc_xcode_shader shader,
        return VK_SUCCESS;
     }
  
@@ -3969,7 +3969,7 @@ index f0120473..c0871506 100644
        .pMapEntries = spec_map,
        .dataSize = sizeof(key),
        .pData = &key,
-@@ -1146,7 +1149,7 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1145,7 +1148,7 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
     VkPipelineLayout layout;
     VkPipeline pipeline;
     VkResult result = get_bc_xcode_pipeline(
@@ -3978,7 +3978,7 @@ index f0120473..c0871506 100644
        &pipeline);
     if (result != VK_SUCCESS) {
        vk_command_buffer_set_error(&cmdbuf->vk, result);
-@@ -1212,6 +1215,144 @@ bc_xcode_fuses_raw(const struct panvk_image *img)
+@@ -1211,6 +1214,144 @@ bc_xcode_fuses_raw(const struct panvk_image *img)
            img->vk.image_type != VK_IMAGE_TYPE_3D;
  }
  
@@ -4123,7 +4123,7 @@ index f0120473..c0871506 100644
  /* All-zero BC blocks for the decode of a bc_no_raw image leaving
   * ZERO_INITIALIZED: one block row of the base level, read with zero row
   * and layer pitches. */
-@@ -1606,6 +1747,23 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -1605,6 +1746,23 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
                          VK_ACCESS_2_MEMORY_READ_BIT);
  }
  
@@ -4147,7 +4147,7 @@ index f0120473..c0871506 100644
  VKAPI_ATTR void VKAPI_CALL
  panvk_per_arch(CmdCopyMemoryToImageKHR)(
     VkCommandBuffer commandBuffer,
-@@ -1649,18 +1807,23 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1648,18 +1806,23 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
           meta_compute_start(cmdbuf, &csave);
        else
           meta_gfx_start(cmdbuf, &save);

@@ -22416,7 +22416,7 @@ diff --git a/src/panfrost/vulkan/panvk_image.c b/src/panfrost/vulkan/panvk_image
 index af89690e..7ebed15d 100644
 --- a/src/panfrost/vulkan/panvk_image.c
 +++ b/src/panfrost/vulkan/panvk_image.c
-@@ -1812,6 +1812,15 @@ panvk_BindImageMemory2(VkDevice device, uint32_t bindInfoCount,
+@@ -1832,6 +1832,15 @@ panvk_BindImageMemory2(VkDevice device, uint32_t bindInfoCount,
  #include <unistd.h>
  #include "util/detect_os.h"
  #include "util/u_android_app_dir.h"
@@ -22445,13 +22445,13 @@ index 057996c3..a52770cf 100644
 +void panvk_bc_eac_expand_table(int kind, uint32_t *out);
 +
  
- static inline void
- panvk_image_set_compression_props(VkImageCompressionPropertiesEXT *props,
+ static inline bool
+ panvk_format_is_bc(VkFormat format)
 diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
 index 8ae78430..9716d8f0 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1892,12 +1892,16 @@ panvk_bc_lowmem_enabled(const struct panvk_physical_device *device)
+@@ -1946,12 +1946,16 @@ panvk_bc_lowmem_enabled(const struct panvk_physical_device *device)
     return true;
  }
  
@@ -22474,7 +22474,7 @@ index 8ae78430..9716d8f0 100644
  uint32_t
  panvk_bc_lm_opts(void)
  {
-@@ -1905,7 +1909,9 @@ panvk_bc_lm_opts(void)
+@@ -1959,7 +1963,9 @@ panvk_bc_lm_opts(void)
  
     if (opts < 0) {
        const char *s = os_get_option("PANVK_BC_LM_OPTS");
@@ -22489,7 +22489,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index f78a3733..1f40dba8 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -867,6 +867,9 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -866,6 +866,9 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
   * here rather than at the top to keep the later series' hunks in place. */
  #include "bc/panvk_bc_etc2_spv.h"
  #include "bc/panvk_bc_astc_spv.h"
@@ -22499,7 +22499,7 @@ index f78a3733..1f40dba8 100644
  #include "panvk_cmd_alloc.h"
  #include "util/os_misc.h"
  #include "vk_enum_to_str.h"
-@@ -888,6 +891,8 @@ struct panvk_bc_xcode_push {
+@@ -887,6 +890,8 @@ struct panvk_bc_xcode_push {
     uint32_t raw[2];
     uint32_t raw_row_B;
     uint32_t raw_slice_B;
@@ -22508,7 +22508,7 @@ index f78a3733..1f40dba8 100644
  };
  
  /* XC_* in panvk_bc_etc2.comp. */
-@@ -1017,6 +1022,8 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
+@@ -1016,6 +1021,8 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
                                            sizeof(key), pipeline_out);
  }
  
@@ -22517,7 +22517,7 @@ index f78a3733..1f40dba8 100644
  /* Transcode the BC blocks of one region at src into the ETC2/EAC shadow of
   * transcoded (panvk_bc_xcoded()) image. Must run between meta_compute_start() and
   * meta_compute_end(). */
-@@ -1055,7 +1062,17 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1054,7 +1061,17 @@ bc_xcode_region_raw(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
     const uint64_t dst = img->bc_decoded.plane.base + ds->offset_B +
                          subres->baseArrayLayer * dl->array_stride_B;
     const uint32_t bw = DIV_ROUND_UP(w, 4), bh = DIV_ROUND_UP(h, 4);
@@ -22535,7 +22535,7 @@ index f78a3733..1f40dba8 100644
        .src = {(uint32_t)src->addr, (uint32_t)(src->addr >> 32)},
        .dst = {(uint32_t)dst, (uint32_t)(dst >> 32)},
        .src_row_B = src->row_B,
-@@ -1128,6 +1145,39 @@ enum bc_timing_path {
+@@ -1127,6 +1144,39 @@ enum bc_timing_path {
  /* Guards panvk_device::bc (device-wide BC emulation state). */
  static simple_mtx_t bc_dev_lock = SIMPLE_MTX_INITIALIZER;
  
@@ -22561,7 +22561,7 @@ index f78a3733..1f40dba8 100644
 +                            panvk_device_adjust_bo_flags(
 +                               dev, PAN_KMOD_BO_FLAG_WB_MMAP),
 +                            VK_SYSTEM_ALLOCATION_SCOPE_DEVICE,
-+                            &bo) == VK_SUCCESS) {
++                            "BC EAC table", &bo) == VK_SUCCESS) {
 +      panvk_bc_eac_expand_table(kind, bo->addr.host);
 +      panvk_priv_bo_flush(bo, 0, PANVK_BC_EAC_TABLE_B);
 +      dev->bc.eac_lut[kind] = bo;
@@ -22575,7 +22575,7 @@ index f78a3733..1f40dba8 100644
  #if PAN_ARCH >= 10
  #define BC_TIMING_SLOTS 4096
  
-@@ -1273,6 +1323,10 @@ panvk_per_arch(device_bc_finish)(struct panvk_device *dev)
+@@ -1272,6 +1322,10 @@ panvk_per_arch(device_bc_finish)(struct panvk_device *dev)
                                                dev->bc.timing_pool, NULL);
        dev->bc.timing_pool = VK_NULL_HANDLE;
     }
@@ -22588,4 +22588,3 @@ index f78a3733..1f40dba8 100644
  }
 -- 
 2.55.0
-

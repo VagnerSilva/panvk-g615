@@ -6400,7 +6400,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index 888e261..60ac82a 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -866,6 +866,7 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -865,6 +865,7 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
  /* BC lowmem transcoder (csf-v11/197), see bc/panvk_bc_etc2.comp. Included
   * here rather than at the top to keep the later series' hunks in place. */
  #include "bc/panvk_bc_etc2_spv.h"
@@ -6408,7 +6408,7 @@ index 888e261..60ac82a 100644
  #include "panvk_cmd_alloc.h"
  #include "util/os_misc.h"
  #include "vk_enum_to_str.h"
-@@ -907,6 +908,8 @@ bc_xcode_mode(VkFormat format)
+@@ -906,6 +907,8 @@ bc_xcode_mode(VkFormat format)
        return 5;
     case VK_FORMAT_BC5_UNORM_BLOCK:
        return 6;
@@ -6417,7 +6417,7 @@ index 888e261..60ac82a 100644
     default:
        assert(format == VK_FORMAT_BC5_SNORM_BLOCK);
        return 7;
-@@ -941,7 +944,7 @@ bc_xcode_wg(uint32_t wg[2])
+@@ -940,7 +943,7 @@ bc_xcode_wg(uint32_t wg[2])
   * specialization constants of panvk_bc_etc2.comp (2 and 3), next to the
   * workgroup size (0, 1). */
  static VkResult
@@ -6426,7 +6426,7 @@ index 888e261..60ac82a 100644
                        VkPipelineLayout *layout_out, VkPipeline *pipeline_out)
  {
     const enum panvk_meta_object_key_type layout_key =
-@@ -962,10 +965,12 @@ get_bc_xcode_pipeline(struct panvk_device *dev, uint32_t mode,
+@@ -961,10 +964,12 @@ get_bc_xcode_pipeline(struct panvk_device *dev, uint32_t mode,
        uint32_t wg[2];
        uint32_t mode;
        uint32_t opts;
@@ -6441,7 +6441,7 @@ index 888e261..60ac82a 100644
     };
     bc_xcode_wg(key.wg);
     VkPipeline cached = vk_meta_lookup_pipeline(&dev->meta, &key, sizeof(key));
-@@ -981,15 +986,15 @@ get_bc_xcode_pipeline(struct panvk_device *dev, uint32_t mode,
+@@ -980,15 +985,15 @@ get_bc_xcode_pipeline(struct panvk_device *dev, uint32_t mode,
        {.constantID = 3, .offset = offsetof(__typeof__(key), opts), .size = 4},
     };
     const VkSpecializationInfo spec = {
@@ -6460,7 +6460,7 @@ index 888e261..60ac82a 100644
     };
     const VkComputePipelineCreateInfo info = {
        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-@@ -1008,7 +1013,7 @@ get_bc_xcode_pipeline(struct panvk_device *dev, uint32_t mode,
+@@ -1007,7 +1012,7 @@ get_bc_xcode_pipeline(struct panvk_device *dev, uint32_t mode,
  }
  
  /* Transcode the BC blocks of one region at src into the ETC2/EAC shadow of
@@ -6469,7 +6469,7 @@ index 888e261..60ac82a 100644
   * meta_compute_end(). */
  static void
  bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
-@@ -1025,14 +1030,15 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1024,14 +1029,15 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
     const uint32_t h = MIN2(extent.height + (offset.y - y0), mip.height - y0);
     const uint32_t layers = vk_image_subresource_layer_count(&img->vk, subres);
  
@@ -6488,7 +6488,7 @@ index 888e261..60ac82a 100644
     if (result != VK_SUCCESS) {
        vk_command_buffer_set_error(&cmdbuf->vk, result);
        return;
-@@ -1337,7 +1343,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -1336,7 +1342,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
            !img->bc_emul)
           continue;
  
@@ -6497,7 +6497,7 @@ index 888e261..60ac82a 100644
           any_gfx = true;
           continue;
        }
-@@ -1361,7 +1367,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -1360,7 +1366,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
           };
           const VkExtent3D extent = vk_image_mip_level_extent(&img->vk, level);
  
@@ -6506,7 +6506,7 @@ index 888e261..60ac82a 100644
              /* Transcode zero blocks: from the zeroed raw plane, or from a
               * zero row when the image has none. */
              const struct bc_decode_src src =
-@@ -1390,7 +1396,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -1389,7 +1395,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
  
           if (b->oldLayout != VK_IMAGE_LAYOUT_ZERO_INITIALIZED_EXT ||
               b->newLayout == VK_IMAGE_LAYOUT_ZERO_INITIALIZED_EXT ||
@@ -6515,7 +6515,7 @@ index 888e261..60ac82a 100644
              continue;
  
           const uint32_t level_count =
-@@ -1435,7 +1441,7 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1434,7 +1440,7 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
        struct panvk_cmd_meta_graphics_save_ctx save = {0};
        struct panvk_cmd_meta_compute_save_ctx csave = {0};
        const uint32_t blk_B = vk_format_get_blocksize(bc_img->vk.format);
@@ -6524,7 +6524,7 @@ index 888e261..60ac82a 100644
        const uint32_t timing = bc_timing_begin(cmdbuf);
  
        uint64_t blocks = 0;
-@@ -1789,7 +1795,7 @@ bc_copy_image_no_raw(struct panvk_cmd_buffer *cmdbuf,
+@@ -1788,7 +1794,7 @@ bc_copy_image_no_raw(struct panvk_cmd_buffer *cmdbuf,
        };
     }
  
@@ -6533,7 +6533,7 @@ index 888e261..60ac82a 100644
  
     if (staged) {
        bc_decode_barrier(cmd,
-@@ -1850,7 +1856,7 @@ panvk_per_arch(CmdCopyImage2)(VkCommandBuffer commandBuffer,
+@@ -1849,7 +1855,7 @@ panvk_per_arch(CmdCopyImage2)(VkCommandBuffer commandBuffer,
     bc_timing_end(cmdbuf, timing, dst, r0->extent, pCopyImageInfo->regionCount,
                   vk_image_subresource_layer_count(&dst->vk,
                                                    &r0->dstSubresource),
@@ -6542,7 +6542,7 @@ index 888e261..60ac82a 100644
  }
  
  static void
-@@ -1888,7 +1894,7 @@ cmd_copy_image(VkCommandBuffer commandBuffer,
+@@ -1887,7 +1893,7 @@ cmd_copy_image(VkCommandBuffer commandBuffer,
  
     const bool src_blocks = vk_format_is_compressed(bc_src->vk.format);
  

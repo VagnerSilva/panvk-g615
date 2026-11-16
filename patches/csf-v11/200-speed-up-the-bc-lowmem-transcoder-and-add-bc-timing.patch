@@ -8794,7 +8794,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/cs
 index c2bcdca..34b446b 100644
 --- a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 +++ b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
-@@ -623,6 +623,10 @@ struct panvk_cmd_buffer {
+@@ -624,6 +624,10 @@ struct panvk_cmd_buffer {
      * segments; the builders hold the last one, with gfx.render.vmr_samples.
      */
     struct util_dynarray vmr_segs;
@@ -8809,7 +8809,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index 659cfd6..5be7d79 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -1012,6 +1012,9 @@ panvk_reset_cmdbuf(struct vk_command_buffer *vk_cmdbuf,
+@@ -1051,6 +1051,9 @@ panvk_reset_cmdbuf(struct vk_command_buffer *vk_cmdbuf,
  
     vk_command_buffer_reset(&cmdbuf->vk);
  
@@ -8819,7 +8819,7 @@ index 659cfd6..5be7d79 100644
     panvk_pool_reset(&cmdbuf->cs_pool);
     panvk_pool_reset(&cmdbuf->desc_pool);
     panvk_pool_reset(&cmdbuf->tls_pool);
-@@ -1047,6 +1050,8 @@ panvk_destroy_cmdbuf(struct vk_command_buffer *vk_cmdbuf)
+@@ -1086,6 +1089,8 @@ panvk_destroy_cmdbuf(struct vk_command_buffer *vk_cmdbuf)
     for (uint32_t i = 0; i < ARRAY_SIZE(cmdbuf->state.cs); i++)
        cs_builder_fini(&cmdbuf->state.cs[i].builder);
  
@@ -8848,7 +8848,7 @@ index e90787b..e37f239 100644
     /* Bound in place of a missing FS so the depth bounds test still runs. */
     struct panvk_shader *depth_bounds_fs;
  
-@@ -303,6 +312,10 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -353,6 +362,10 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
  void panvk_per_arch(destroy_device)(struct panvk_device *device,
                                      const VkAllocationCallbacks *pAllocator);
  
@@ -8902,7 +8902,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index 529d7a2..2d0e6eb 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -867,6 +867,9 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -866,6 +866,9 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
   * here rather than at the top to keep the later series' hunks in place. */
  #include "bc/panvk_bc_etc2_spv.h"
  #include "panvk_cmd_alloc.h"
@@ -8912,7 +8912,7 @@ index 529d7a2..2d0e6eb 100644
  
  struct panvk_bc_xcode_push {
     uint32_t src[2];
-@@ -879,8 +882,6 @@ struct panvk_bc_xcode_push {
+@@ -878,8 +881,6 @@ struct panvk_bc_xcode_push {
     uint32_t by0;
     uint32_t bw;
     uint32_t bh;
@@ -8921,7 +8921,7 @@ index 529d7a2..2d0e6eb 100644
  };
  
  /* XC_* in panvk_bc_etc2.comp. */
-@@ -912,9 +913,36 @@ bc_xcode_mode(VkFormat format)
+@@ -911,9 +912,36 @@ bc_xcode_mode(VkFormat format)
     }
  }
  
@@ -8960,7 +8960,7 @@ index 529d7a2..2d0e6eb 100644
  {
     const enum panvk_meta_object_key_type layout_key =
        PANVK_META_OBJECT_KEY_BC_XCODE_LAYOUT;
-@@ -929,14 +957,35 @@ get_bc_xcode_pipeline(struct panvk_device *dev, VkPipelineLayout *layout_out,
+@@ -928,14 +956,35 @@ get_bc_xcode_pipeline(struct panvk_device *dev, VkPipelineLayout *layout_out,
     if (result != VK_SUCCESS)
        return result;
  
@@ -8998,7 +8998,13 @@ index 529d7a2..2d0e6eb 100644
     const VkShaderModuleCreateInfo module_info = {
        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
        .codeSize = sizeof(panvk_bc_etc2_spv),
-@@ -949,6 +998,7 @@ get_bc_xcode_pipeline(struct panvk_device *dev, VkPipelineLayout *layout_out,
+@@ -942,12 +991,13 @@ get_bc_xcode_pipeline(struct panvk_device *dev, VkPipelineLayout *layout_out,
+       .pCode = panvk_bc_etc2_spv,
+    };
+    const VkComputePipelineCreateInfo info = {
+       .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+       .stage = {
+          .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
           .pNext = &module_info,
           .stage = VK_SHADER_STAGE_COMPUTE_BIT,
           .pName = "main",
@@ -9006,7 +9012,7 @@ index 529d7a2..2d0e6eb 100644
        },
        .layout = *layout_out,
     };
-@@ -981,7 +1031,8 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -980,7 +1030,8 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
  
     VkPipelineLayout layout;
     VkPipeline pipeline;
@@ -9016,7 +9022,7 @@ index 529d7a2..2d0e6eb 100644
     if (result != VK_SUCCESS) {
        vk_command_buffer_set_error(&cmdbuf->vk, result);
        return;
-@@ -1003,14 +1054,15 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -1002,14 +1053,15 @@ bc_xcode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
        .by0 = y0 / 4,
        .bw = bw,
        .bh = bh,
@@ -9035,7 +9041,7 @@ index 529d7a2..2d0e6eb 100644
  }
  
  /* All-zero BC blocks for the decode of a bc_no_raw image leaving
-@@ -1028,6 +1080,167 @@ bc_zero_src(struct panvk_cmd_buffer *cmdbuf, const struct panvk_image *img)
+@@ -1027,6 +1079,167 @@ bc_zero_src(struct panvk_cmd_buffer *cmdbuf, const struct panvk_image *img)
     return (struct bc_decode_src){.addr = ptr.gpu};
  }
  
@@ -9203,7 +9209,7 @@ index 529d7a2..2d0e6eb 100644
  static void
  bc_decode_barrier(VkCommandBuffer cmd, VkPipelineStageFlags2 dst_stage,
                    VkAccessFlags2 dst_access)
-@@ -1165,6 +1378,7 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1164,6 +1377,7 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
     const VkCopyDeviceMemoryImageInfoKHR* pCopyMemoryInfo)
  {
     VK_FROM_HANDLE(panvk_image, bc_img, pCopyMemoryInfo->image);
@@ -9211,7 +9217,7 @@ index 529d7a2..2d0e6eb 100644
  
     if (bc_img->bc_gfx) {
        VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
-@@ -1172,6 +1386,7 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1171,6 +1385,7 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
        struct panvk_cmd_meta_compute_save_ctx csave = {0};
        const uint32_t blk_B = vk_format_get_blocksize(bc_img->vk.format);
        const bool xcode = bc_img->bc_lowmem == 1;
@@ -9219,7 +9225,7 @@ index 529d7a2..2d0e6eb 100644
  
        /* bc_no_raw images keep no raw blocks: only the shadow is written. */
        if (!bc_img->bc_no_raw)
-@@ -1208,12 +1423,18 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1207,12 +1422,18 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
           meta_compute_end(cmdbuf, &csave);
        else
           meta_gfx_end(cmdbuf, &save);
@@ -9238,7 +9244,7 @@ index 529d7a2..2d0e6eb 100644
  
        copy_memory_to_image_raw(commandBuffer, pCopyMemoryInfo);
  
-@@ -1224,6 +1445,11 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1223,6 +1444,11 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
                            r->imageExtent);
        }
        meta_compute_end(cmdbuf, &save);
@@ -9250,7 +9256,7 @@ index 529d7a2..2d0e6eb 100644
        return;
     }
  
-@@ -1541,9 +1767,34 @@ bc_copy_image_no_raw(struct panvk_cmd_buffer *cmdbuf,
+@@ -1540,9 +1766,34 @@ bc_copy_image_no_raw(struct panvk_cmd_buffer *cmdbuf,
     STACK_ARRAY_FINISH(srcs);
  }
  
@@ -9289,7 +9295,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 17b3987..1e3521b 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -854,7 +854,7 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
+@@ -945,7 +945,7 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
  #endif
     if (device->depth_bounds_fs)
        vk_shader_destroy(&device->vk, &device->depth_bounds_fs->vk, NULL);

@@ -3237,7 +3237,7 @@ index 5bcac81..759b97e 100644
  };
  
  VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_image, vk.base, VkImage,
-@@ -148,16 +158,61 @@ panvk_bc_compact_format(VkFormat format, bool wide)
+@@ -134,16 +144,61 @@ panvk_bc_compact_format(VkFormat format, bool wide)
     }
  }
  
@@ -3320,7 +3320,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index 3f7bdf8..8ae7843 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1386,8 +1386,8 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+@@ -1434,8 +1434,8 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
     device->formats.all = pan_format_table(arch);
     device->formats.blendable = pan_blendable_format_table(arch);
  
@@ -3331,7 +3331,7 @@ index 3f7bdf8..8ae7843 100644
               pan_query_compressed_formats(&device->kmod.dev->props));
  
     unsigned core_count =
-@@ -1850,6 +1850,66 @@ panvk_bc_emul_enabled(const struct panvk_physical_device *physical_device)
+@@ -1904,6 +1904,66 @@ panvk_bc_emul_enabled(const struct panvk_physical_device *physical_device)
     return false;
  }
  
@@ -3402,7 +3402,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.h b/src/panfrost/vulkan/p
 index 5458eb0..c62ff16 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.h
 +++ b/src/panfrost/vulkan/panvk_physical_device.h
-@@ -139,6 +139,13 @@ panvk_get_max_buffer_size(const struct panvk_physical_device *device);
+@@ -149,6 +149,13 @@ panvk_get_max_buffer_size(const struct panvk_physical_device *device);
  
  bool panvk_bc_emul_enabled(const struct panvk_physical_device *device);
  
@@ -3420,7 +3420,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index 76960e6..529d7a2 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -863,6 +863,171 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
+@@ -862,6 +862,171 @@ bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
     disp->CmdDispatch(cmd, DIV_ROUND_UP(w, 8), DIV_ROUND_UP(h, 8), d);
  }
  
@@ -3592,7 +3592,7 @@ index 76960e6..529d7a2 100644
  static void
  bc_decode_barrier(VkCommandBuffer cmd, VkPipelineStageFlags2 dst_stage,
                    VkAccessFlags2 dst_access)
-@@ -909,7 +1074,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -908,7 +1073,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
            !img->bc_emul)
           continue;
  
@@ -3601,7 +3601,7 @@ index 76960e6..529d7a2 100644
           any_gfx = true;
           continue;
        }
-@@ -931,8 +1096,21 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -930,8 +1095,21 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
              .baseArrayLayer = b->subresourceRange.baseArrayLayer,
              .layerCount = layer_count,
           };
@@ -3625,7 +3625,7 @@ index 76960e6..529d7a2 100644
        }
     }
  
-@@ -949,7 +1127,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -948,7 +1126,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
  
           if (b->oldLayout != VK_IMAGE_LAYOUT_ZERO_INITIALIZED_EXT ||
               b->newLayout == VK_IMAGE_LAYOUT_ZERO_INITIALIZED_EXT ||
@@ -3634,7 +3634,7 @@ index 76960e6..529d7a2 100644
              continue;
  
           const uint32_t level_count =
-@@ -963,7 +1141,9 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -962,7 +1140,9 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
                    &img->vk, &b->subresourceRange),
              };
              const struct bc_decode_src src =
@@ -3645,7 +3645,7 @@ index 76960e6..529d7a2 100644
              bc_decode_region_gfx(cmdbuf, img, &subres, (VkOffset3D){0, 0, 0},
                                   vk_image_mip_level_extent(&img->vk,
                                                             subres.mipLevel),
-@@ -989,14 +1169,21 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -988,14 +1168,21 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
     if (bc_img->bc_gfx) {
        VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
        struct panvk_cmd_meta_graphics_save_ctx save = {0};
@@ -3672,7 +3672,7 @@ index 76960e6..529d7a2 100644
        for (uint32_t i = 0; i < pCopyMemoryInfo->regionCount; i++) {
           const VkDeviceMemoryImageCopyKHR *r = &pCopyMemoryInfo->pRegions[i];
           const uint32_t row_px =
-@@ -1010,10 +1197,17 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -1009,10 +1196,17 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
              .slice_B = DIV_ROUND_UP(col_px, 4) * row_B,
           };
  
@@ -3693,7 +3693,7 @@ index 76960e6..529d7a2 100644
        return;
     }
  
-@@ -1238,21 +1432,157 @@ lower_copy_image(VkCommandBuffer commandBuffer,
+@@ -1237,21 +1431,157 @@ lower_copy_image(VkCommandBuffer commandBuffer,
     return true;
  }
  

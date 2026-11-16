@@ -11653,7 +11653,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index 9716d8f0..f85674be 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1892,14 +1892,17 @@ panvk_bc_lowmem_enabled(const struct panvk_physical_device *device)
+@@ -1946,14 +1946,17 @@ panvk_bc_lowmem_enabled(const struct panvk_physical_device *device)
     return true;
  }
  
@@ -11673,7 +11673,7 @@ index 9716d8f0..f85674be 100644
   * bit-identical. The value is a specialization constant of the transcode
   * pipeline. */
  uint32_t
-@@ -1910,8 +1913,9 @@ panvk_bc_lm_opts(void)
+@@ -1964,8 +1967,9 @@ panvk_bc_lm_opts(void)
     if (opts < 0) {
        const char *s = os_get_option("PANVK_BC_LM_OPTS");
        /* csf-v11/206: H mode (skipped on blocks ETC1 fits well), no planar,
