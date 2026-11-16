@@ -21,7 +21,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index 6369027c27d..6a79a7308e9 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1389,13 +1389,8 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+@@ -1451,13 +1451,8 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
     switch (arch) {
     case 6:
     case 7:

@@ -2,7 +2,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 index 8322de67327..fc46dcce332 100644
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -60,6 +60,31 @@
+@@ -60,7 +60,32 @@
  #include "drm-uapi/panthor_drm.h"
  
  #include "kbase_kmod.h"
@@ -31,10 +31,11 @@ index 8322de67327..fc46dcce332 100644
 +#define KBASE_ION_IOC_ALLOC      _IOWR('I', 0, struct kbase_ion_alloc)
 +#define KBASE_ION_IOC_HEAP_QUERY _IOWR('I', 8, struct kbase_ion_heap_query)
 +
+ #include "kbase_sync_provider.h"
  #include "pan_kmod_backend.h"
  #include "pan_props.h"
  #include "pan_trace.h"
-@@ -147,6 +172,11 @@ struct kbase_kmod_dev {
+@@ -148,6 +173,11 @@ struct kbase_kmod_dev {
     /* Android dma-heap used for BOs which need to be shared with WSI. */
     int dma_heap_fd;
  
@@ -46,7 +47,7 @@ index 8322de67327..fc46dcce332 100644
     /* Set when the CSF notification stream reports a queue-group error.
      * Vulkan queue status queries use this latch instead of invalidating and
      * reading every GPU subqueue context on every submission. */
-@@ -1697,6 +1727,37 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
+@@ -1711,6 +1741,37 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
        mesa_logd("kbase: dma-heap unavailable at %s: %s", dma_heap,
                  strerror(errno));
  
@@ -84,7 +85,7 @@ index 8322de67327..fc46dcce332 100644
     if (!kbase_dev->base.props.gpu_id) {
        mesa_loge("kbase: failed to determine GPU ID from properties");
        if (kbase_dev->dma_heap_fd >= 0)
-@@ -2138,7 +2199,18 @@ kbase_kmod_bo_alloc_dmabuf(struct pan_kmod_dev *dev, uint64_t size,
+@@ -2152,7 +2213,18 @@ kbase_kmod_bo_alloc_dmabuf(struct pan_kmod_dev *dev, uint64_t size,
        .fd_flags = O_RDWR | O_CLOEXEC,
     };
  
