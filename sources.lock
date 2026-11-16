@@ -1,10 +1,10 @@
 {
   "mesaRepo": "https://gitlab.freedesktop.org/mesa/mesa.git",
-  "mesaCommit": "5a07217f034b3e50d8c7c7794f97a2df1742613b",
-  "mesaVersion": "26.3.0-devel",
+  "mesaCommit": "13baeb70c066a9f82d2bcfb29f06e4865212affa",
+  "mesaVersion": "27.0.0-devel",
   "mesaBranch": "main",
-  "pinnedOn": "2026-09-18",
-  "patchSeriesId": "sha256:8591a64720b7fe0f1f9a1932804e19c5ce949da1be8cfd1fac458b82a500d29d",
+  "pinnedOn": "2026-11-04",
+  "patchSeriesId": "sha256:d3c3e465035bad9d90f628950bb8ce763397a4c69d0e7ffabb7bd138536472a3",
   "referenceRepos": {
     "g720-csf": {
       "url": "https://github.com/wonderkast02/panvk-g720-kbase-csf",

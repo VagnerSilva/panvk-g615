@@ -6,7 +6,7 @@ Android app (Samba S3 / loader-test APK)
     -> generic ICD exports (vk_icdGetInstanceProcAddr, vk_icdNegotiateLoaderICDInterfaceVersion)
     -> Android WSI (VK_KHR_android_surface + swapchain)
     -> AHardwareBuffer / gralloc external-memory interop
-    -> PanVK core (Mesa main / 26.3.0-devel + patch series)
+    -> PanVK core (Mesa main / 27.0.0-devel + patch series)
     -> pan_kmod Kbase backend (CSF queue/group/register/bind/kick; JM job-chain)
     -> Kbase ioctls -> /dev/mali0 -> Mali
 ```

@@ -31,6 +31,22 @@
 - `dxvk/` — DXVK-only profile, Vulkan semantic, and DXVK Native validation.
   Kept separate from historical combined `dxvk-vkd3d/` evidence.
 
+## Mesa 27 Kbase sync provider (host)
+
+Run against the actual pinned Mesa 27 headers, using an isolated checkout:
+
+```sh
+MESA=/path/to/isolated/mesa-27 \
+  python3 -m unittest discover -s tests -p test_kbase_sync_provider.py -v
+```
+
+The test compiles the overlay provider against `util_sync_provider.h`, mocks
+only logging and allocation, and verifies allocation failure, concurrent
+clone/finalize lifetime, unsupported syncobj errors, unchanged outputs and
+preserved input fd ownership. It requires a host C compiler and pthreads;
+without Mesa 27 headers it reports a skip. It does not validate GPU completion
+or KCPU fence behavior; those still require the device tests in `sync/`.
+
 ## Android `vkQueuePresentKHR` diagnostic
 
 The loader APK's default WSI run enables only the base swapchain path, so it
