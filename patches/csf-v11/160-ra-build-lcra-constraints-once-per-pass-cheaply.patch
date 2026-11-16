@@ -580,7 +580,7 @@ diff --git a/src/panfrost/compiler/bifrost/bi_ra.c b/src/panfrost/compiler/bifro
  }
  
  static bi_index
-@@ -1009,14 +1260,24 @@ bi_lower_vector(bi_context *ctx, unsigned first_reg)
+@@ -1014,14 +1265,24 @@ bi_lower_vector(bi_context *ctx, unsigned first_reg)
     free(remap);
  
     /* After generating a pile of moves, clean up */
@@ -610,7 +610,7 @@ diff --git a/src/panfrost/compiler/bifrost/bi_ra.c b/src/panfrost/compiler/bifro
        }
  
        bi_foreach_instr_in_block_safe_rev(block, ins) {
-@@ -1027,15 +1288,32 @@ bi_lower_vector(bi_context *ctx, unsigned first_reg)
+@@ -1032,15 +1293,32 @@ bi_lower_vector(bi_context *ctx, unsigned first_reg)
                 all_null = false;
           }
  
@@ -646,7 +646,7 @@ diff --git a/src/panfrost/compiler/bifrost/bi_ra.c b/src/panfrost/compiler/bifro
  }
  
  /*
-@@ -1440,20 +1718,20 @@ bi_register_allocate(bi_context *ctx)
+@@ -1445,20 +1723,20 @@ bi_register_allocate(bi_context *ctx)
     squeeze_index(ctx);
  
     /* Try with reduced register pressure to improve thread count */

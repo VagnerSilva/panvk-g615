@@ -28,7 +28,7 @@ fills go down.
 diff --git a/src/panfrost/compiler/bifrost/bi_ra.c b/src/panfrost/compiler/bifrost/bi_ra.c
 --- a/src/panfrost/compiler/bifrost/bi_ra.c
 +++ b/src/panfrost/compiler/bifrost/bi_ra.c
-@@ -1411,7 +1411,12 @@ bi_register_allocate(bi_context *ctx)
+@@ -1416,7 +1416,12 @@ bi_register_allocate(bi_context *ctx)
           if (ctx->inputs->is_blend)
              UNREACHABLE("Blend shaders may not spill");
  
