@@ -14,7 +14,7 @@ Validation test: CTS dEQP-VK.api.external.{semaphore,fence}.sync_fd.* + synchron
 diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_kmod.c
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -110,5 +110,11 @@
+@@ -111,5 +111,11 @@
        int fence_fd;
     } kcpu;
 +
@@ -24,9 +24,9 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 +      bool valid;
 +   } kcpu_export;
  };
-
+ 
  struct kbase_kmod_vm {
-@@ -991,6 +997,89 @@
+@@ -992,6 +998,89 @@
     return ret;
  }
  
@@ -116,15 +116,15 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
  bool
  kbase_kmod_csf_has_error(const struct pan_kmod_dev *dev)
  {
-@@ -1251,6 +1340,7 @@
+@@ -1265,6 +1354,7 @@
     kbase_dev->dma_heap_fd = -1;
     kbase_dev->kcpu.fence_fd = -1;
     simple_mtx_init(&kbase_dev->kcpu.lock, mtx_plain);
 +   simple_mtx_init(&kbase_dev->kcpu_export.lock, mtx_plain);
-
+ 
     if (is_csf && kbase_query_csif_info(fd, &kbase_dev->csif_info)) {
        mesa_loge("kbase: failed to query the CSF global interface");
-@@ -1354,6 +1444,14 @@
+@@ -1368,6 +1458,14 @@
     simple_mtx_unlock(&kbase_dev->kcpu.lock);
     simple_mtx_destroy(&kbase_dev->kcpu.lock);
  
@@ -159,7 +159,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 289e0f26d76..255818d2dd6 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -2869,12 +2869,17 @@ static void
+@@ -2882,12 +2882,17 @@ static void
  panvk_queue_submit_process_signals_kbase(struct panvk_queue_submit *submit,
                                           const struct vk_queue_submit *vk_submit)
  {
@@ -182,7 +182,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index e28f5868990..a7850747caa 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -649,6 +649,7 @@ struct kbase_cpu_sync {
+@@ -692,6 +692,7 @@ struct kbase_cpu_sync {
     void *pending_data;
     panvk_kbase_sync_wait_func pending_wait;
     uint64_t targets[PANVK_KBASE_SYNC_TARGET_COUNT];
@@ -190,7 +190,7 @@ index e28f5868990..a7850747caa 100644
  };
  
  static VkResult
-@@ -671,6 +672,7 @@ kbase_cpu_sync_init(struct vk_device *device, struct vk_sync *sync,
+@@ -714,6 +715,7 @@ kbase_cpu_sync_init(struct vk_device *device, struct vk_sync *sync,
     ks->pending_data = NULL;
     ks->pending_wait = NULL;
     memset(ks->targets, 0, sizeof(ks->targets));
@@ -198,7 +198,7 @@ index e28f5868990..a7850747caa 100644
     return VK_SUCCESS;
  }
  
-@@ -712,6 +714,7 @@ kbase_cpu_sync_reset(UNUSED struct vk_device *device, struct vk_sync *sync)
+@@ -755,6 +757,7 @@ kbase_cpu_sync_reset(UNUSED struct vk_device *device, struct vk_sync *sync)
     ks->pending_data = NULL;
     ks->pending_wait = NULL;
     memset(ks->targets, 0, sizeof(ks->targets));
@@ -206,7 +206,7 @@ index e28f5868990..a7850747caa 100644
     mtx_unlock(&ks->mutex);
     return VK_SUCCESS;
  }
-@@ -725,7 +728,8 @@ kbase_cpu_sync_wait_many(struct vk_device *device, uint32_t wait_count,
+@@ -768,7 +771,8 @@ kbase_cpu_sync_wait_many(struct vk_device *device, uint32_t wait_count,
  void
  panvk_kbase_sync_set_pending(
     struct vk_sync *sync, void *data, panvk_kbase_sync_wait_func wait,
@@ -216,7 +216,7 @@ index e28f5868990..a7850747caa 100644
  {
     struct kbase_cpu_sync *ks = container_of(sync, struct kbase_cpu_sync, sync);
  
-@@ -739,6 +743,10 @@ panvk_kbase_sync_set_pending(
+@@ -782,6 +786,10 @@ panvk_kbase_sync_set_pending(
     ks->pending_data = data;
     ks->pending_wait = wait;
     memcpy(ks->targets, targets, sizeof(ks->targets));
@@ -227,7 +227,7 @@ index e28f5868990..a7850747caa 100644
     ks->result = VK_SUCCESS;
     ks->state = KBASE_CPU_SYNC_PENDING;
     u_cnd_monotonic_broadcast(&ks->cond);
-@@ -910,12 +918,15 @@ kbase_cpu_sync_move(UNUSED struct vk_device *device, struct vk_sync *dst,
+@@ -953,12 +961,15 @@ kbase_cpu_sync_move(UNUSED struct vk_device *device, struct vk_sync *dst,
     ks_dst->pending_data = ks_src->pending_data;
     ks_dst->pending_wait = ks_src->pending_wait;
     memcpy(ks_dst->targets, ks_src->targets, sizeof(ks_dst->targets));
@@ -243,7 +243,7 @@ index e28f5868990..a7850747caa 100644
     u_cnd_monotonic_broadcast(&ks_dst->cond);
     u_cnd_monotonic_broadcast(&ks_src->cond);
     mtx_unlock(&second->mutex);
-@@ -1007,110 +1018,72 @@ kbase_cpu_sync_import_sync_file(struct vk_device *device,
+@@ -1050,110 +1061,72 @@ kbase_cpu_sync_import_sync_file(struct vk_device *device,
     kbase_sync_file_waiter_free(ks);
     mtx_unlock(&ks->mutex);
  
@@ -400,7 +400,7 @@ index e28f5868990..a7850747caa 100644
     return VK_SUCCESS;
  }
  
-@@ -1146,6 +1119,8 @@ get_device_sync_types_kbase(struct panvk_physical_device *device,
+@@ -1189,6 +1162,8 @@ get_device_sync_types_kbase(struct panvk_physical_device *device,
     uint32_t sync_type_count = 0;
  
     device->drm_syncobj_type = kbase_cpu_sync_type;
@@ -413,7 +413,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.h b/src/panfrost/vulkan/p
 index e01d87eef20..5458eb0d05d 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.h
 +++ b/src/panfrost/vulkan/panvk_physical_device.h
-@@ -116,7 +116,8 @@ typedef VkResult (*panvk_kbase_sync_wait_func)(
+@@ -126,7 +126,8 @@ typedef VkResult (*panvk_kbase_sync_wait_func)(
  
  void panvk_kbase_sync_set_pending(
     struct vk_sync *sync, void *data, panvk_kbase_sync_wait_func wait,

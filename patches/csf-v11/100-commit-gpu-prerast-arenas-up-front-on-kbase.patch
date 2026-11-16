@@ -28,7 +28,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 6fd68e513f4..17b398789e8 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -131,17 +131,17 @@
+@@ -132,17 +132,17 @@
  }
  
  #if PAN_ARCH >= 10

@@ -18,21 +18,20 @@ Validation test: PanProbe with Mesa debug env (PANVK_DEBUG=trace)
 Generated-by: LLM
 ---
 
---- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c	2026-10-05 11:14:18.551752884 +0530
-+++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c	2026-10-05 11:14:18.551752884 +0530
-@@ -1348,8 +1348,9 @@
+--- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
++++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
+@@ -1352,7 +1352,9 @@
           pan_kmod_vm_bind(dev->kmod.vm, PAN_KMOD_VM_OP_MODE_IMMEDIATE, &op, 1);
        assert(!ret);
  
--      panvk_as_free(dev, dev->as.priv_heap, subq->tracebuf.addr.dev,
--                    subq->tracebuf.size + pgsize);
+-      panvk_as_free(dev, subq->tracebuf.addr.dev, subq->tracebuf.size + pgsize);
 +      if (!(dev->kmod.vm->flags & PAN_KMOD_VM_FLAG_AUTO_VA))
-+         panvk_as_free(dev, dev->as.priv_heap, subq->tracebuf.addr.dev,
++         panvk_as_free(dev, subq->tracebuf.addr.dev,
 +                       subq->tracebuf.size + pgsize);
     }
  
     if (subq->tracebuf.addr.host) {
-@@ -1445,14 +1446,19 @@
+@@ -1450,14 +1452,19 @@
                            "Failed to CPU map tracebuf");
     }
  
@@ -40,7 +39,7 @@ Generated-by: LLM
 +   /* Add a guard page.  kbase (AUTO_VA) assigns the VA itself and cannot map
 +    * at a caller-chosen address, so there is no guard page there. */
     uint64_t pgsize = panvk_get_gpu_page_size(dev);
--   dev_addr = panvk_as_alloc(dev, dev->as.priv_heap,
+-   dev_addr = panvk_as_alloc(dev, PANVK_NO_EXEC_VA_HEAP,
 -                             subq->tracebuf.size + pgsize, pgsize);
 -
 -   if (!dev_addr)
@@ -49,7 +48,7 @@ Generated-by: LLM
 +   const bool auto_va = dev->kmod.vm->flags & PAN_KMOD_VM_FLAG_AUTO_VA;
 +   dev_addr = PAN_KMOD_VM_MAP_AUTO_VA;
 +   if (!auto_va) {
-+      dev_addr = panvk_as_alloc(dev, dev->as.priv_heap,
++      dev_addr = panvk_as_alloc(dev, PANVK_NO_EXEC_VA_HEAP,
 +                                subq->tracebuf.size + pgsize, pgsize);
 +
 +      if (!dev_addr)
@@ -59,15 +58,13 @@ Generated-by: LLM
  
     struct pan_kmod_vm_op vm_op = {
        .type = PAN_KMOD_VM_OP_TYPE_MAP,
-@@ -1471,13 +1477,14 @@
+@@ -1476,12 +1483,13 @@
     int ret =
        pan_kmod_vm_bind(dev->kmod.vm, PAN_KMOD_VM_OP_MODE_IMMEDIATE, &vm_op, 1);
     if (ret) {
--      panvk_as_free(dev, dev->as.priv_heap, dev_addr,
--                    subq->tracebuf.size + pgsize);
+-      panvk_as_free(dev, dev_addr, subq->tracebuf.size + pgsize);
 +      if (!auto_va)
-+         panvk_as_free(dev, dev->as.priv_heap, dev_addr,
-+                       subq->tracebuf.size + pgsize);
++         panvk_as_free(dev, dev_addr, subq->tracebuf.size + pgsize);
        return panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
                            "Failed to GPU map ringbuf BO");
     }

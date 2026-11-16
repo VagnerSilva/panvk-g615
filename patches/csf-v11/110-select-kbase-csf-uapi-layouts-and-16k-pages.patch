@@ -89,7 +89,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 index 68aed39..b7194a6 100644
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -98,6 +98,17 @@ struct kbase_kmod_dev {
+@@ -99,6 +99,17 @@ struct kbase_kmod_dev {
      * reading every GPU subqueue context on every submission. */
     uint32_t csf_error;
  
@@ -107,7 +107,7 @@ index 68aed39..b7194a6 100644
     /* A persistent kernel CPU queue turns GPU timeline writes into pollable
      * sync_file fences.  At most one CQS wait is pending on this queue. */
     struct {
-@@ -171,6 +182,24 @@ kbase_kmod_supports_dmabuf(const struct pan_kmod_dev *dev)
+@@ -172,6 +183,24 @@ kbase_kmod_supports_dmabuf(const struct pan_kmod_dev *dev)
     return kbase_dev->dma_heap_fd >= 0;
  }
  
@@ -132,7 +132,7 @@ index 68aed39..b7194a6 100644
  /* -------------------------------------------------------------------------
   * GPU properties blob parsing helpers
   * ---------------------------------------------------------------------- */
-@@ -514,74 +543,95 @@ kbase_kmod_get_flush_id(const struct pan_kmod_dev *dev)
+@@ -515,74 +544,95 @@ kbase_kmod_get_flush_id(const struct pan_kmod_dev *dev)
   * CSF queue group / queue / tiler heap primitives
   * ---------------------------------------------------------------------- */
  
@@ -284,7 +284,7 @@ index 68aed39..b7194a6 100644
  }
  
  static void
-@@ -728,7 +778,7 @@ kbase_kmod_csf_queue_bind(struct pan_kmod_dev *dev, uint32_t group_handle,
+@@ -729,7 +779,7 @@ kbase_kmod_csf_queue_bind(struct pan_kmod_dev *dev, uint32_t group_handle,
        goto err_term_queue;
     }
  
@@ -293,7 +293,7 @@ index 68aed39..b7194a6 100644
                          PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd,
                          bind.out.mmap_handle);
     if (user_io == MAP_FAILED) {
-@@ -754,7 +804,7 @@ kbase_kmod_csf_queue_term(struct pan_kmod_dev *dev, uint64_t ringbuf_va,
+@@ -755,7 +805,7 @@ kbase_kmod_csf_queue_term(struct pan_kmod_dev *dev, uint64_t ringbuf_va,
                            void *user_io)
  {
     if (user_io)
@@ -302,7 +302,7 @@ index 68aed39..b7194a6 100644
  
     struct kbase_ioctl_cs_queue_terminate term = {
        .buffer_gpu_addr = ringbuf_va,
-@@ -1097,27 +1147,56 @@ kbase_kmod_csf_tiler_heap_create(struct pan_kmod_dev *dev,
+@@ -1098,27 +1148,56 @@ kbase_kmod_csf_tiler_heap_create(struct pan_kmod_dev *dev,
                                   uint64_t *heap_ctx_va,
                                   uint64_t *first_chunk_va)
  {
@@ -377,7 +377,7 @@ index 68aed39..b7194a6 100644
  }
  
  void
-@@ -1137,7 +1216,7 @@ uint64_t
+@@ -1138,7 +1217,7 @@ uint64_t
  kbase_kmod_alias_create(struct pan_kmod_dev *dev, uint64_t bo_va,
                          uint64_t size, uint32_t nents)
  {
@@ -407,7 +407,7 @@ index 68aed39..b7194a6 100644
     if (tracking_page == MAP_FAILED) {
        mesa_loge("kbase: mmap(BASE_MEM_MAP_TRACKING_HANDLE) failed: %s",
                  strerror(errno));
-@@ -1359,7 +1439,7 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
+@@ -1373,7 +1453,7 @@ kbase_kmod_dev_create(int fd, uint32_t flags,
         * makes FLUSH_CACHE2 waits more conservative. */
        kbase_dev->user_reg_page =
           mmap(NULL, 4096, PROT_READ, MAP_SHARED, fd,
@@ -416,7 +416,7 @@ index 68aed39..b7194a6 100644
        if (kbase_dev->user_reg_page == MAP_FAILED) {
           mesa_logw("kbase: mmap of the CSF USER register page failed: %s",
                     strerror(errno));
-@@ -1543,7 +1623,7 @@ kbase_kmod_import_dmabuf(struct pan_kmod_dev *dev,
+@@ -1557,7 +1637,7 @@ kbase_kmod_import_dmabuf(struct pan_kmod_dev *dev,
  {
     struct kbase_kmod_dev *kbase_dev =
        container_of(dev, struct kbase_kmod_dev, base);
@@ -425,7 +425,7 @@ index 68aed39..b7194a6 100644
     struct kbase_kmod_bo *kbase_bo =
        pan_kmod_dev_alloc(dev, sizeof(*kbase_bo));
     if (!kbase_bo)
-@@ -1660,7 +1740,7 @@ kbase_kmod_bo_alloc_dmabuf(struct pan_kmod_dev *dev, uint64_t size,
+@@ -1674,7 +1754,7 @@ kbase_kmod_bo_alloc_dmabuf(struct pan_kmod_dev *dev, uint64_t size,
  {
     struct kbase_kmod_dev *kbase_dev =
        container_of(dev, struct kbase_kmod_dev, base);
@@ -434,7 +434,7 @@ index 68aed39..b7194a6 100644
     struct dma_heap_allocation_data alloc = {
        .len = ALIGN_POT(size, page_size),
        .fd_flags = O_RDWR | O_CLOEXEC,
-@@ -1691,7 +1771,7 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
+@@ -1705,7 +1785,7 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
                         PAN_KMOD_BO_FLAG_CSF_EVENT)))
        return kbase_kmod_bo_alloc_dmabuf(dev, size, kmod_flags);
  
@@ -443,7 +443,7 @@ index 68aed39..b7194a6 100644
     uint64_t va_pages = (size + page_size - 1) / page_size;
  
     struct kbase_kmod_bo *kbase_bo =
-@@ -1719,8 +1799,17 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
+@@ -1733,8 +1813,17 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
                          : MIN2(extension, va_pages);
     }
  
@@ -462,7 +462,7 @@ index 68aed39..b7194a6 100644
        /* Match current Arm userspace on modern CSF kernels.  Besides keeping
         * the allocation ABI aligned with kbase, this leaves room for fixed-VA
         * and future allocation parameters without another backend split. */
-@@ -1733,15 +1822,26 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
+@@ -1747,15 +1836,26 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
           },
        };
  
@@ -496,7 +496,7 @@ index 68aed39..b7194a6 100644
        union kbase_ioctl_mem_alloc req = {
           .in = {
              .va_pages = va_pages,
-@@ -1755,6 +1855,9 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
+@@ -1769,6 +1869,9 @@ kbase_kmod_bo_alloc(struct pan_kmod_dev *dev,
           mesa_loge("kbase: KBASE_IOCTL_MEM_ALLOC failed: %s", strerror(errno));
           goto err_free_bo;
        }
@@ -563,7 +563,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 80089bb..37d1fc5 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -343,7 +343,7 @@ kbase_log_subqueue_state(struct panvk_gpu_queue *queue, uint32_t subqueue,
+@@ -345,7 +345,7 @@ kbase_log_subqueue_state(struct panvk_gpu_queue *queue, uint32_t subqueue,
     volatile uint32_t *stream_progress =
        (volatile uint32_t *)((volatile uint8_t *)cell +
                              KBASE_SEQNO_STREAM_PROGRESS_OFFSET);
@@ -572,7 +572,7 @@ index 80089bb..37d1fc5 100644
     uint64_t extract =
        *(volatile uint64_t *)(output_page + CS_USER_IO_OUTPUT_CS_EXTRACT);
     uint32_t active =
-@@ -434,7 +434,7 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
+@@ -436,7 +436,7 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
  {
     struct panvk_device *dev = to_panvk_device(queue->vk.base.device);
     struct panvk_subqueue *subq = &queue->subqueues[subqueue];
@@ -581,7 +581,7 @@ index 80089bb..37d1fc5 100644
     uint64_t extract = *(volatile uint64_t *)(output_page +
                                               CS_USER_IO_OUTPUT_CS_EXTRACT);
     uint32_t offset = subq->kbase.insert % KBASE_RINGBUF_SIZE;
-@@ -738,7 +738,7 @@ kbase_subqueue_publish(struct panvk_gpu_queue *queue, uint32_t subqueue)
+@@ -740,7 +740,7 @@ kbase_subqueue_publish(struct panvk_gpu_queue *queue, uint32_t subqueue)
  {
     struct panvk_device *dev = to_panvk_device(queue->vk.base.device);
     struct panvk_subqueue *subq = &queue->subqueues[subqueue];
@@ -590,7 +590,7 @@ index 80089bb..37d1fc5 100644
  
     /* kbase_subqueue_emit_job() has already cleaned the CPU-written ring
      * cachelines and completed that clean with kbase_gpu_wmb().  Do not issue
-@@ -752,7 +752,7 @@ kbase_subqueue_publish(struct panvk_gpu_queue *queue, uint32_t subqueue)
+@@ -754,7 +754,7 @@ kbase_subqueue_publish(struct panvk_gpu_queue *queue, uint32_t subqueue)
      * CS_ACTIVE again after ringing it; if a suspend raced the write, the
      * scheduler kick below safely resumes the group. */
     kbase_gpu_wmb();
@@ -599,7 +599,7 @@ index 80089bb..37d1fc5 100644
     volatile uint32_t *active =
        (volatile uint32_t *)(output_page + CS_USER_IO_OUTPUT_CS_ACTIVE);
  
-@@ -790,8 +790,8 @@ kbase_subqueue_wait_seqno(struct panvk_gpu_queue *queue, uint32_t subqueue,
+@@ -792,8 +792,8 @@ kbase_subqueue_wait_seqno(struct panvk_gpu_queue *queue, uint32_t subqueue,
     volatile uint32_t *stream_progress =
        (volatile uint32_t *)((volatile uint8_t *)cell +
                              KBASE_SEQNO_STREAM_PROGRESS_OFFSET);
