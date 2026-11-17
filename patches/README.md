@@ -107,3 +107,29 @@ Build validation checkpoint (isolated native Linux build, not Android):
 - Updating the recorded `patchSeriesId` and hardware queue/rendering tests
   remain open.
   The existing provenance identifier is not certification of this patch set.
+
+Mesa 27 Large_Draw initializer correction:
+
+- Common patch 020 defers shader-global initializer lowering until each libpan
+  variant has a single entrypoint. The earlier multi-entrypoint pass consumed
+  shared zero-array initializers into `panlib_fill` only. Tessellation kernels
+  retained their copies without the source initialization.
+- The affected `CHWTessellator` flags occupy bytes 32 and 33 of an 80-byte
+  object. This is not a 64-byte TLS truncation: triangle `tess_gen` requires
+  1,968 bytes and fused count/draw requires 3,520 bytes, rounded to 2,048 and
+  4,096 bytes respectively. The pipeline correction preserves those sizes.
+- Offline per-pass validation confirms all 80 shared source bytes are
+  initialized in both specialized triangle kernels. The explicit two-flag
+  diagnostic workaround is not included in the patch.
+- The complete 221-patch profile replayed without offsets or fuzz on the pinned
+  commit in an isolated worktree.
+- The clean pipeline correction passed direct and indirect Large_Draw 8/8
+  times at each of 64, 507, 508 and 70,000 patches on Mali-G615 MC2 / Kbase CSF
+  1.21 (Android 16). No shader logging, explicit-flag workaround or debug sync
+  was used. Full Large_Draw, its separate fan opt-in run (41 cases),
+  tessellation, conditional tessellation and XFB standalone tests passed.
+  These targeted tests do not establish full Vulkan conformance or validate
+  Android presentation/AHB behavior.
+- Rebuild the host `panfrost_compile` tool before regenerating libpan kernels.
+  Reusing a host-tool cache keyed only by the upstream Mesa commit can retain
+  the old compiler even when the patch series changes.
