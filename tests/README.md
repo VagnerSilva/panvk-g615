@@ -163,6 +163,23 @@ semaphore before validating the sync-file. It requires Vulkan 1.3 and
 sequence used by the runtime's fallback, but does **not** call
 `vkQueueSignalReleaseImageANDROID` or verify the Android loader or Eden.
 
+`test_kbase_coalesce_mem_sync.py` compiles the implementation in experimental
+003 with a recording ioctl and checks its postimage against the prepared
+Mesa source. After applying 003, run
+`python3 -m unittest discover -s tests -p test_kbase_coalesce_mem_sync.py -v`.
+It checks range coalescing, preservation of operation types and gaps,
+coherent BO bypass, input preservation, allocation/ioctl failures, and
+temporary storage cleanup. It does not measure device ioctl counts or
+validate actual cache coherency on hardware.
+
+`sync/sync_test.c` accepts an optional `--cross-queue` argument. It requires
+two compute queues in one family and tests binary semaphore chains in both
+directions, including 20 chains with GPU work and 20 empty consumer submits.
+It also checks fence completion, queue/device idle, and compute readback.
+Compile with the NDK using `-O2 -I"$MESA/include" -ldl`, then run with the
+driver path followed by `--cross-queue`. This does not validate unsignaled
+external sync-file imports or visible presentation.
+
 `ahb/anb_release.c` is a separate shell diagnostic for the private Android
 native-buffer driver entrypoints. It allocates an AHardwareBuffer, creates a
 `VkNativeBufferANDROID` image, acquires it, submits an empty semaphore
