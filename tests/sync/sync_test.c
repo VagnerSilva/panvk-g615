@@ -23,10 +23,12 @@ static const uint32_t comp_spv[] = {
 
 int main(int argc, char **argv)
 {
-   if (argc < 2) {
-      printf("usage: %s <libvulkan_panfrost.so>\n", argv[0]);
+   if (argc < 2 || argc > 3 ||
+       (argc == 3 && strcmp(argv[2], "--cross-queue"))) {
+      printf("usage: %s <libvulkan_panfrost.so> [--cross-queue]\n", argv[0]);
       return 2;
    }
+   const int cross_queue = argc == 3;
    setvbuf(stdout, NULL, _IONBF, 0);
    void *h = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
    if (!h) {
@@ -127,17 +129,22 @@ int main(int argc, char **argv)
    vkGetPhysicalDeviceQueueFamilyProperties(phys, &qn, qp);
    uint32_t qi = ~0u;
    for (uint32_t i = 0; i < qn; i++)
-      if (qp[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+      if ((qp[i].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
+          qp[i].queueCount >= (cross_queue ? 2u : 1u)) {
          qi = i;
          break;
       }
    free(qp);
+   if (qi == ~0u) {
+      printf("FAIL no compute queue family with %u queues\n", cross_queue ? 2u : 1u);
+      return 1;
+   }
 
-   float prio = 1.0f;
+   float priorities[2] = {1.0f, 1.0f};
    VkDeviceQueueCreateInfo qci = {.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                                   .queueFamilyIndex = qi,
-                                  .queueCount = 1,
-                                  .pQueuePriorities = &prio};
+                                  .queueCount = cross_queue ? 2 : 1,
+                                  .pQueuePriorities = priorities};
    VkDeviceCreateInfo dci = {.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
                              .queueCreateInfoCount = 1,
                              .pQueueCreateInfos = &qci};
@@ -145,6 +152,9 @@ int main(int argc, char **argv)
    CK(vkCreateDevice(phys, &dci, NULL, &dev), "CreateDevice");
    VkQueue queue;
    vkGetDeviceQueue(dev, qi, 0, &queue);
+   VkQueue wait_queue = queue;
+   if (cross_queue)
+      vkGetDeviceQueue(dev, qi, 1, &wait_queue);
 
    /* Staging buffer */
    VkBufferCreateInfo bci = {.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = 4096, .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
@@ -237,9 +247,38 @@ int main(int argc, char **argv)
       .pCommandBuffers = &cmds[1],
    };
    CK(vkQueueSubmit(queue, 1, &si_sig, VK_NULL_HANDLE), "Submit(sem_sig)");
-   CK(vkQueueSubmit(queue, 1, &si_wait, fence), "Submit(sem_wait)");
+   CK(vkQueueSubmit(wait_queue, 1, &si_wait, fence), "Submit(sem_wait)");
    CK(vkWaitForFences(dev, 1, &fence, VK_TRUE, 5000000000ULL), "WaitFence(sem)");
    printf("SYNC: binary semaphore chain OK\n");
+   if (cross_queue) {
+      for (int iter = 0; iter < 20; iter++) {
+         CK(vkResetFences(dev, 1, &fence), "ResetFence(cross-queue)");
+         VkQueue producer = iter & 1 ? wait_queue : queue;
+         VkQueue consumer = iter & 1 ? queue : wait_queue;
+         CK(vkQueueSubmit(producer, 1, &si_sig, VK_NULL_HANDLE),
+            "Submit(cross-queue signal)");
+         CK(vkQueueSubmit(consumer, 1, &si_wait, fence),
+            "Submit(cross-queue wait)");
+         CK(vkWaitForFences(dev, 1, &fence, VK_TRUE, 5000000000ULL),
+            "WaitFence(cross-queue)");
+      }
+      printf("SYNC: 20/20 bidirectional cross-queue semaphore chains OK\n");
+      VkSubmitInfo empty_wait = si_wait;
+      empty_wait.commandBufferCount = 0;
+      empty_wait.pCommandBuffers = NULL;
+      for (int iter = 0; iter < 20; iter++) {
+         CK(vkResetFences(dev, 1, &fence), "ResetFence(empty cross-queue)");
+         VkQueue producer = iter & 1 ? wait_queue : queue;
+         VkQueue consumer = iter & 1 ? queue : wait_queue;
+         CK(vkQueueSubmit(producer, 1, &si_sig, VK_NULL_HANDLE),
+            "Submit(empty cross-queue signal)");
+         CK(vkQueueSubmit(consumer, 1, &empty_wait, fence),
+            "Submit(empty cross-queue wait)");
+         CK(vkWaitForFences(dev, 1, &fence, VK_TRUE, 5000000000ULL),
+            "WaitFence(empty cross-queue)");
+      }
+      printf("SYNC: 20/20 empty cross-queue waits completed\n");
+   }
 
    /* 3. Multi-submission loop (20 iterations) */
    for (int iter = 0; iter < 20; iter++) {
@@ -251,6 +290,8 @@ int main(int argc, char **argv)
 
    /* 4. Queue and Device WaitIdle */
    CK(vkQueueWaitIdle(queue), "QueueWaitIdle");
+   if (cross_queue)
+      CK(vkQueueWaitIdle(wait_queue), "QueueWaitIdle(second)");
    CK(vkDeviceWaitIdle(dev), "DeviceWaitIdle");
    printf("SYNC: QueueWaitIdle and DeviceWaitIdle OK\n");
 

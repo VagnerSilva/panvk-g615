@@ -26,6 +26,11 @@ Directories:
   The G52 lesson: enabling Android WSI must not select the HAL-only symbol
   scheme and hide the ICD entry points.
 - `wsi/` — swapchain/acquire/present/resize, acquire-present sync.
+- `experimental-kbase-sync/` — opt-in Mesa 27 G615 sync updates. Use
+  `scripts/apply-patches.sh --profile g615-v11-csf --with-kbase-sync`
+  on a fresh pinned Mesa tree to append exactly 002 then 003. Historical
+  001 is excluded. Defaults are unchanged; see the family README for
+  validation results and the unresolved shutdown limitation.
 
 Rules:
 

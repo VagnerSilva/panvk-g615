@@ -1,0 +1,131 @@
+diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_kmod.c
+--- a/src/panfrost/lib/kmod/kbase_kmod.c
++++ b/src/panfrost/lib/kmod/kbase_kmod.c
+@@ -54,6 +54,7 @@
+ #include "util/list.h"
+ #include "util/u_debug.h"
++#include "util/stack_array.h"
+ 
+ #include "drm-uapi/mali_kbase_ioctl.h"
+ /* Only used as the interchange format for CSF interface information; no
+  * panthor functionality is required. */
+@@ -2585,35 +2586,96 @@ kbase_kmod_cs_event_signal(struct pan_kmod_dev *dev)
+    return 0;
+ }
+ 
++static int
++kbase_deferred_bo_sync_cmp(const void *a, const void *b)
++{
++   const struct pan_kmod_deferred_bo_sync *sa = a;
++   const struct pan_kmod_deferred_bo_sync *sb = b;
++
++   if (sa->bo != sb->bo)
++      return (uintptr_t)sa->bo < (uintptr_t)sb->bo ? -1 : 1;
++   if (sa->start != sb->start)
++      return sa->start < sb->start ? -1 : 1;
++   return 0;
++}
++
++static int
++kbase_kmod_emit_mem_sync(struct pan_kmod_dev *dev,
++                         const struct pan_kmod_deferred_bo_sync *sync)
++{
++   struct kbase_kmod_bo *kbase_bo =
++      container_of(sync->bo, struct kbase_kmod_bo, base);
++
++   /* System-coherent regions (dma-heap imports on DDKs that report
++    * BASE_MEM_COHERENT_SYSTEM) need no MEM_SYNC; the ioctl rejects
++    * them with EINVAL. */
++   if (kbase_bo->cpu_gpu_coherent)
++      return 0;
++
++   const bool flush = sync->type == PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH;
++
++   struct kbase_ioctl_mem_sync req = {
++      .handle = kbase_bo->gpu_va,
++      .user_addr = (uintptr_t)kbase_bo->cpu_ptr + sync->start,
++      .size = sync->size,
++      .type = flush ? BASE_SYNCSET_OP_MSYNC : BASE_SYNCSET_OP_CSYNC,
++   };
++
++   int ret = pan_kmod_ioctl(dev->fd, KBASE_IOCTL_MEM_SYNC, &req);
++   if (ret) {
++      mesa_loge("kbase: KBASE_IOCTL_MEM_SYNC failed: %s", strerror(errno));
++      return -1;
++   }
++
++   return 0;
++}
++
+ static int
+ kbase_kmod_flush_bo_map_syncs(struct pan_kmod_dev *dev)
+ {
+-   util_dynarray_foreach(&dev->pending_bo_syncs.array,
+-                         struct pan_kmod_deferred_bo_sync, sync) {
+-      struct kbase_kmod_bo *kbase_bo =
+-         container_of(sync->bo, struct kbase_kmod_bo, base);
+-
+-      const bool flush = sync->type == PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH;
+-
+-      /* System-coherent regions (dma-heap imports on DDKs that report
+-       * BASE_MEM_COHERENT_SYSTEM) need no MEM_SYNC; the ioctl rejects
+-       * them with EINVAL. */
+-      if (kbase_bo->cpu_gpu_coherent)
++   uint32_t count = util_dynarray_num_elements(&dev->pending_bo_syncs.array,
++                                               struct pan_kmod_deferred_bo_sync);
++   if (!count)
++      return 0;
++
++   if (count == 1) {
++      const struct pan_kmod_deferred_bo_sync *sync =
++         util_dynarray_element(&dev->pending_bo_syncs.array,
++                               struct pan_kmod_deferred_bo_sync, 0);
++      return kbase_kmod_emit_mem_sync(dev, sync);
++   }
++
++   STACK_ARRAY(struct pan_kmod_deferred_bo_sync, ops, count);
++   if (!ops) {
++      mesa_loge("kbase: failed to allocate deferred MEM_SYNC operations");
++      return -1;
++   }
++   memcpy(ops, dev->pending_bo_syncs.array.data, count * sizeof(*ops));
++   qsort(ops, count, sizeof(*ops), kbase_deferred_bo_sync_cmp);
++
++   int ret = 0;
++   struct pan_kmod_deferred_bo_sync cur = ops[0];
++   for (uint32_t i = 1; i < count; i++) {
++      const struct pan_kmod_deferred_bo_sync *next = &ops[i];
++      uint64_t cur_end = cur.start + cur.size;
++      uint64_t next_end = next->start + next->size;
++
++      if (next->bo == cur.bo && next->type == cur.type &&
++          next->start <= cur_end) {
++         if (next_end > cur_end)
++            cur.size = next_end - cur.start;
+          continue;
++      }
+ 
+-      struct kbase_ioctl_mem_sync req = {
+-         .handle = kbase_bo->gpu_va,
+-         .user_addr = (uintptr_t)kbase_bo->cpu_ptr + sync->start,
+-         .size = sync->size,
+-         .type = flush ? BASE_SYNCSET_OP_MSYNC : BASE_SYNCSET_OP_CSYNC,
+-      };
+-
+-      int ret = pan_kmod_ioctl(dev->fd, KBASE_IOCTL_MEM_SYNC, &req);
+-      if (ret) {
+-         mesa_loge("kbase: KBASE_IOCTL_MEM_SYNC failed: %s", strerror(errno));
++      ret = kbase_kmod_emit_mem_sync(dev, &cur);
++      if (ret) {
++         STACK_ARRAY_FINISH(ops);
+          return -1;
+-      }
++      }
++      cur = *next;
+    }
+ 
+-   return 0;
++   ret = kbase_kmod_emit_mem_sync(dev, &cur);
++   STACK_ARRAY_FINISH(ops);
++   return ret;
+ }

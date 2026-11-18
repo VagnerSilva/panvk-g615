@@ -149,6 +149,34 @@ int main(void)
             main = replay("apply-patches.sh", "--profile", "g615-v11-csf")
             self.assertEqual(sum(f"apply {PATCH}" in line for line in main), 1)
             self.assertFalse(any(f"apply {LEGACY_PATCH}" in line for line in main))
+            experimental = ROOT / "patches/experimental-kbase-sync"
+            self.assertFalse(any(str(experimental) in line for line in main))
+
+            opted_in = replay("apply-patches.sh", "--profile", "g615-v11-csf",
+                              "--with-kbase-sync")
+            sync_patches = [
+                experimental / "002-android-release-queue-mesa27.patch",
+                experimental / "003-kbase-coalesce-mem-sync.patch",
+            ]
+            applied = [line for line in opted_in if line.startswith("-C ") and
+                       f" apply {experimental}/" in line]
+            self.assertEqual(len(applied), 2)
+            for line, patch in zip(applied, sync_patches):
+                self.assertIn(f"apply {patch}", line)
+            self.assertGreater(
+                opted_in.index(applied[0]),
+                max(i for i, line in enumerate(opted_in)
+                    if " apply " in line and "/patches/jm-v7/" in line),
+            )
+
+            rejected = subprocess.run(
+                ["sh", str(ROOT / "scripts/apply-patches.sh"),
+                 "--profile", "g610-v10-csf", "--with-kbase-sync",
+                 "--mesa", str(tmp / "mesa")],
+                env=env, capture_output=True, text=True,
+            )
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("requires --profile g615-v11-csf", rejected.stderr)
 
             legacy = replay("prepare-rc5-tree.sh")
             self.assertFalse(any(str(PATCH) in line for line in legacy))

@@ -1,15 +1,20 @@
 #!/bin/sh
 # apply-patches.sh — apply qualified patch series for a profile, fail hard on drift
-# Usage: ./scripts/apply-patches.sh --profile g615-v11-csf [--mesa work/mesa]
+# Usage: ./scripts/apply-patches.sh --profile g615-v11-csf [--mesa work/mesa] [--with-kbase-sync]
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PROFILE=""; MESA="$ROOT/work/mesa"
+PROFILE=""; MESA="$ROOT/work/mesa"; WITH_KBASE_SYNC=false
 while [ $# -gt 0 ]; do case "$1" in
   --profile) PROFILE="$2"; shift 2;;
   --mesa) MESA="$2"; shift 2;;
+  --with-kbase-sync) WITH_KBASE_SYNC=true; shift;;
   *) echo "unknown arg $1" >&2; exit 2;;
 esac; done
 [ -n "$PROFILE" ] || { echo "--profile required" >&2; exit 2; }
+if [ "$WITH_KBASE_SYNC" = true ] && [ "$PROFILE" != "g615-v11-csf" ]; then
+  echo "--with-kbase-sync requires --profile g615-v11-csf (Mesa 27)" >&2
+  exit 2
+fi
 ARCH="$(python3 -c "import json;print(json.load(open('$ROOT/profiles/$PROFILE.json'))['panArch'])")"
 FRONTEND="$(python3 -c "import json;print(json.load(open('$ROOT/profiles/$PROFILE.json'))['frontend'])")"
 SERIES="common android kbase-common app-loader wsi"
@@ -17,12 +22,19 @@ if [ "$FRONTEND" = "CSF" ]; then SERIES="$SERIES csf csf-v$ARCH"; else SERIES="$
 # Universal ICD: jm-v9 sits on top of the csf-v11 series (v9 JM + v10-v14 CSF),
 # jm-v7 (Bifrost v6/v7 kbase unblock) on top of jm-v9.
 if [ "$PROFILE" = "g615-v11-csf" ]; then SERIES="$SERIES jm-v9 jm-v7"; fi
+if [ "$WITH_KBASE_SYNC" = true ]; then SERIES="$SERIES experimental-kbase-sync"; fi
 echo "profile=$PROFILE arch=$ARCH frontend=$FRONTEND series: $SERIES"
 git -C "$MESA" status --porcelain | head -n 5
 APPLIED=0
 for fam in $SERIES; do
   for p in "$ROOT"/patches/"$fam"/*.patch; do
     [ -e "$p" ] || continue
+    if [ "$fam" = "experimental-kbase-sync" ]; then
+      case "$(basename "$p")" in
+        002-android-release-queue-mesa27.patch|003-kbase-coalesce-mem-sync.patch) ;;
+        *) continue;;
+      esac
+    fi
     echo "APPLY [$fam] $(basename "$p")"
     RECOUNT=""
     if ! git -C "$MESA" apply --check "$p" 2>/dev/null; then
