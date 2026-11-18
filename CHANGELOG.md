@@ -31,6 +31,11 @@
 
 ### Fixed
 
+- **Android native-buffer import:** the main Android patch series now includes
+  the Mesa 27 port of `jm-v7-wip/0178`. It searches the native handle for a
+  usable dma-buf instead of assuming the first fd. On moto g86 5G, an imported
+  Eden test driver passed the prior `VK_ERROR_INVALID_EXTERNAL_HANDLE`
+  swapchain failure. Full game and cross-device validation remain separate.
 - **Instance-rate vertex attributes on the gpu_prerast path** (`patches/jm-v7-wip` 0176): a vertex shader
   with stores runs as a compute dispatch with one workgroup per vertex and instance. When a compute task
   covered several instances, every invocation of the task read the attribute of the task's first instance.

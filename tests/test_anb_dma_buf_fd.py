@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Execute the ANB dma-buf fd finder exported by patch 0178."""
+"""Test the ANB dma-buf fd finder in the main and historical series."""
 
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PATCH = ROOT / "patches/jm-v7-wip/0178-vulkan-android-find-dma-buf-among-anb-handle-fds.patch"
+PATCH = ROOT / "patches/android/018-vulkan-android-find-dma-buf-among-anb-handle-fds.patch"
+LEGACY_PATCH = ROOT / "patches/jm-v7-wip/0178-vulkan-android-find-dma-buf-among-anb-handle-fds.patch"
 NAME = "vk_android_find_anb_dma_buf_fd"
 
 
@@ -112,6 +114,49 @@ int main(void)
         text = PATCH.read_text()
         self.assertIn("-   int dma_buf_fd = anb->handle->data[0];", text)
         self.assertIn("+      vk_android_find_anb_dma_buf_fd(device, anb->handle, &fd_props);", text)
+
+    def test_main_patch_matches_historical_code_changes(self):
+        def changes(path):
+            return [line for line in path.read_text().splitlines()
+                    if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))]
+
+        self.assertEqual(changes(PATCH), changes(LEGACY_PATCH))
+
+    def test_patch_series_selects_correct_port(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            git = tmp / "git"
+            git.write_text(
+                '#!/bin/sh\n'
+                'printf "%s\\n" "$*" >> "$TEST_GIT_LOG"\n'
+                'case " $* " in *" rev-parse "*) echo 5a07217f;; esac\n'
+            )
+            git.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{tmp}{os.pathsep}{env['PATH']}"
+            env["TEST_GIT_LOG"] = str(tmp / "git.log")
+
+            def replay(script, *args):
+                mesa = tmp / "mesa"
+                mesa.mkdir(exist_ok=True)
+                (tmp / "git.log").write_text("")
+                subprocess.run(
+                    ["sh", str(ROOT / "scripts" / script), "--mesa", str(mesa), *args],
+                    env=env, check=True, stdout=subprocess.DEVNULL,
+                )
+                return (tmp / "git.log").read_text().splitlines()
+
+            main = replay("apply-patches.sh", "--profile", "g615-v11-csf")
+            self.assertEqual(sum(f"apply {PATCH}" in line for line in main), 1)
+            self.assertFalse(any(f"apply {LEGACY_PATCH}" in line for line in main))
+
+            legacy = replay("prepare-rc5-tree.sh")
+            self.assertFalse(any(str(PATCH) in line for line in legacy))
+            self.assertEqual(sum(f"am -q {LEGACY_PATCH}" in line for line in legacy), 1)
+
+            earlier = replay("prepare-rc5-tree.sh", "--wip-max", "0177")
+            self.assertFalse(any(str(PATCH) in line or str(LEGACY_PATCH) in line
+                                 for line in earlier))
 
 
 if __name__ == "__main__":

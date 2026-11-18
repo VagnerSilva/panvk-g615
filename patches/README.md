@@ -36,6 +36,9 @@ Rules:
 
 Mesa 27 migration (in progress):
 
+- Android patch 018 ports the native-buffer dma-buf fd search from historical
+  `jm-v7-wip/0178` to the main series. The Mesa 26 preparation script retains
+  the original WIP patch in its historical position and skips the Mesa 27 port.
 - CSF v11 backports 026-031 and 033-037 are already implemented in the pinned
   Mesa 27 base and are no longer part of the active series. This includes the
   indirect-draw FAU flush, v11 architecture cases, presentation extensions,

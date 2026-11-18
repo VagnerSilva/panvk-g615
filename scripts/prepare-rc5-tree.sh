@@ -45,6 +45,8 @@ for fam in common android kbase-common app-loader wsi csf csf-v11 jm-v9 jm-v7; d
   for p in "$ROOT"/patches/"$fam"/*.patch; do
     [ -e "$p" ] || continue
     b="$(basename "$p")"
+    # Mesa 26 retains the original 0178 at its historical WIP position.
+    if [ "$fam" = android ] && [ "$b" = 018-vulkan-android-find-dma-buf-among-anb-handle-fds.patch ]; then continue; fi
     if [ "$fam" = csf-v11 ] && [ "${b%%-*}" -gt "$CSF_MAX" ]; then continue; fi
     RC="$(strict_check "$p")"
     git -C "$MESA" apply $RC "$p"

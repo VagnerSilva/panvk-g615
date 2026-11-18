@@ -1,0 +1,94 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: VagnerSilva <vagner23silva@gmail.com>
+Date: Sat, 14 Nov 2026 05:00:26 -0300
+Subject: [PATCH] vulkan/android: find the dma-buf among the ANB handle fds
+
+Port jm-v7-wip/0178 to the Mesa 27 profile. MediaTek gralloc handles can
+put an unseekable gralloc_extra fd before the dma-buf. Scan the native
+buffer fds instead of assuming data[0] is the dma-buf.
+
+On moto g86 5G, the imported Eden driver proceeds past the prior
+VK_ERROR_INVALID_EXTERNAL_HANDLE during swapchain creation.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+---
+ src/vulkan/runtime/vk_android.c | 46 ++++++++++++++++++++++++++-------
+ 1 file changed, 37 insertions(+), 9 deletions(-)
+
+diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
+--- a/src/vulkan/runtime/vk_android.c
++++ b/src/vulkan/runtime/vk_android.c
+@@ -212,6 +212,37 @@ vk_gralloc_to_drm_explicit_layout(
+    return VK_SUCCESS;
+ }
+ 
++/* The dma-buf is not always data[0]: MediaTek gralloc handles put
++ * gralloc_extra first and the dma-buf after it.  Take the first fd that is
++ * seekable with a non-zero size and that the driver accepts as a dma-buf,
++ * as android/008 does for AHB imports.
++ */
++static int
++vk_android_find_anb_dma_buf_fd(struct vk_device *device,
++                               const native_handle_t *handle,
++                               VkMemoryFdPropertiesKHR *fd_props)
++{
++   for (int i = 0; i < handle->numFds; i++) {
++      int fd = handle->data[i];
++      if (fd < 0)
++         continue;
++
++      struct stat st;
++      if (fstat(fd, &st) < 0)
++         continue;
++
++      if (lseek(fd, 0, SEEK_END) <= 0)
++         continue;
++
++      if (device->dispatch_table.GetMemoryFdPropertiesKHR(
++             (VkDevice)device, VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
++             fd, fd_props) == VK_SUCCESS)
++         return fd;
++   }
++
++   return -1;
++}
++
+ VkResult
+ vk_android_import_anb_memory(struct vk_device *device,
+                              struct vk_image *image,
+@@ -220,8 +251,6 @@ vk_android_import_anb_memory(struct vk_device *device,
+ {
+    assert(anb && anb->handle && anb->handle->numFds > 0);
+ 
+-   int dma_buf_fd = anb->handle->data[0];
+-
+    /* Query image memory requirements for size and supported memory types */
+    VkMemoryRequirements mem_reqs;
+    device->dispatch_table.GetImageMemoryRequirements(
+@@ -230,12 +259,11 @@ vk_android_import_anb_memory(struct vk_device *device,
+    VkMemoryFdPropertiesKHR fd_props = {
+       .sType = VK_STRUCTURE_TYPE_MEMORY_FD_PROPERTIES_KHR,
+    };
+-   VkResult result = device->dispatch_table.GetMemoryFdPropertiesKHR(
+-      (VkDevice)device, VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
+-      dma_buf_fd, &fd_props);
+-   if (result != VK_SUCCESS) {
+-      mesa_loge("GetMemoryFdPropertiesKHR failed");
+-      return result;
++   int dma_buf_fd =
++      vk_android_find_anb_dma_buf_fd(device, anb->handle, &fd_props);
++   if (dma_buf_fd < 0) {
++      mesa_loge("No dma-buf among the %d ANB handle fds", anb->handle->numFds);
++      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+    }
+ 
+    uint32_t compatible_types = mem_reqs.memoryTypeBits & fd_props.memoryTypeBits;
+@@ -270,7 +298,7 @@ vk_android_import_anb_memory(struct vk_device *device,
+       .allocationSize = mem_reqs.size,
+       .memoryTypeIndex = ffs(compatible_types) - 1,
+    };
+-   result = device->dispatch_table.AllocateMemory(
++   VkResult result = device->dispatch_table.AllocateMemory(
+       (VkDevice)device, &alloc_info, alloc, &image->anb_memory);
+    if (result != VK_SUCCESS) {
+       close(dup_fd);
