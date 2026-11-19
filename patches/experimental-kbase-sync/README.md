@@ -3,7 +3,7 @@
 ## Consolidated opt-in build
 
 The G615 Mesa 27 preparation flow can apply the main series followed by
-002 and 003 in a fixed order. The default profile and release workflows
+002, 003, and 004 in a fixed order. The default profile and release workflows
 remain unchanged. Use a fresh checkout at the pinned Mesa commit:
 
 ```sh
@@ -40,9 +40,11 @@ external sync-file/non-CSF payloads during peek, skips already-retired
 producer seqnos, and stages per-subqueue wait updates transactionally. Patch
 003 coalesces up to 64 deferred `MEM_SYNC` operations on the stack and falls
 back to direct uncoalesced emission if heap allocation for larger batches
-fails. Neither patch requires the historical Kraid overlay.
+fails. Patch 004 closes `sync_file` waiter lifetime gaps when pending payloads
+resolve, fail, reset, or are replaced. None of these patches require the
+historical Kraid overlay.
 
-Both patches are opt-in and are not included in the default patch series.
+All three patches are opt-in and are not included in the default patch series.
 For the Mesa 27 G615 profile, verify the base, then check and apply:
 
 ```sh
@@ -290,3 +292,21 @@ previous 002-r2-safe ADPKG was selected again through Eden. Launch verified
 the restored library hash `6798588336613f108c2e2893059a3b84a23da9ceaddedeef3242a29f5d91b858`.
 The 003 sources/build and candidate package remain available for diagnosis,
 but 003 is not active in Eden and is not in the default patch series.
+
+## Manual validation: consolidated 002-004 (2026-11-19)
+
+After consolidating patches 002, 003, and 004, the user reported two manual
+tests across two different emulators. Neither test reproduced the prior
+display freeze with audio continuing, and open file descriptors remained
+stable instead of growing toward the previously observed 8,000. The reported
+average was about 300 process fds, with zero `sync_file` fds observed.
+
+The user also reported recovering the prior 1X performance baseline of about
+15 FPS and reaching approximately 30 FPS at 0.5X. These are user-observed
+results; per-run logs, exact emulator identities, measurement intervals, and
+FPS sampling details were not attached. Treat the results as promising manual
+evidence, not a controlled benchmark or broad stability certification.
+This report supersedes the earlier statement that 003 was not active for
+device validation; the consolidated 002-004 candidate was manually tested.
+The experimental patches remain opt-in and are not included in the default
+release series.

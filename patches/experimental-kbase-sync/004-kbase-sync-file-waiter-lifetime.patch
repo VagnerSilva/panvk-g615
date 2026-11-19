@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: VagnerSilva <vagner23silva@gmail.com>
+Date: Thu, 19 Nov 2026 16:23:00 -0300
+Subject: [PATCH] panvk/kbase: free sync_file waiter on sync completion and reset
+
+The Kbase sync_file import duplicates the incoming fd and stores it in
+an allocated waiter. Releasing or replacing a pending payload without
+freeing that waiter leaks both the allocation and the fd.
+
+Free the waiter when a wait succeeds or fails and before pending state
+is reset, signaled, replaced, or overwritten by a move. A timed-out
+wait retains the waiter for the next wait. GPU-owned pending data is
+not freed by the sync_file-specific helper.
+
+This patch relies on the existing external synchronization contract for
+mutations while a wait is in progress. Assertions alone do not enforce
+that contract in release builds.
+
+Mesa base: 13baeb70c066a9f82d2bcfb29f06e4865212affa plus the G615 profile
+and experimental-kbase-sync/002 and 003.
+Validation: user-reported manual testing after consolidating patches 002-004:
+two tests across two emulators, stable average near 300 process fds, and no
+sync_file fds observed. Exact device logs and per-run measurements were not
+provided; concurrent-lifetime stress remains unverified.
+---
+ src/panfrost/vulkan/panvk_physical_device.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -753,6 +753,7 @@ kbase_cpu_sync_signal(UNUSED struct vk_device *device, struct vk_sync *sync,
+ {
+    struct kbase_cpu_sync *ks = container_of(sync, struct kbase_cpu_sync, sync);
+    mtx_lock(&ks->mutex);
++   kbase_sync_file_waiter_free(ks);
+    ks->state = KBASE_CPU_SYNC_SIGNALED;
+    ks->result = VK_SUCCESS;
+    ks->pending_data = NULL;
+@@ -768,6 +769,7 @@ kbase_cpu_sync_reset(UNUSED struct vk_device *device, struct vk_sync *sync)
+    struct kbase_cpu_sync *ks = container_of(sync, struct kbase_cpu_sync, sync);
+    mtx_lock(&ks->mutex);
+    assert(ks->state != KBASE_CPU_SYNC_WAITING);
++   kbase_sync_file_waiter_free(ks);
+    ks->state = KBASE_CPU_SYNC_RESET;
+    ks->result = VK_SUCCESS;
+    ks->pending_data = NULL;
+@@ -799,6 +801,7 @@ panvk_kbase_sync_set_pending(
+     * (e.g. a reused WSI semaphore that was CPU-waited) is legal.  Only an
+     * in-progress wait on the old payload would be a genuine bug. */
+    assert(ks->state != KBASE_CPU_SYNC_WAITING);
++   kbase_sync_file_waiter_free(ks);
+    ks->pending_data = data;
+    ks->pending_wait = wait;
+    memcpy(ks->targets, targets, sizeof(ks->targets));
+@@ -956,11 +959,13 @@ kbase_cpu_sync_wait_one(struct vk_device *device, struct kbase_cpu_sync *ks,
+          mtx_lock(&ks->mutex);
+          if (result == VK_SUCCESS) {
++            kbase_sync_file_waiter_free(ks);
+             ks->state = KBASE_CPU_SYNC_SIGNALED;
+             ks->pending_data = NULL;
+             ks->pending_wait = NULL;
+          } else if (result == VK_TIMEOUT) {
+             ks->state = KBASE_CPU_SYNC_PENDING;
+          } else {
++            kbase_sync_file_waiter_free(ks);
+             ks->state = KBASE_CPU_SYNC_FAILED;
+             ks->result = result;
+          }
+@@ -1052,1 +1057,2 @@ kbase_cpu_sync_move(UNUSED struct vk_device *device, struct vk_sync *dst,
++   kbase_sync_file_waiter_free(ks_dst);
+    ks_dst->state = ks_src->state;

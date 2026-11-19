@@ -31,7 +31,7 @@ for fam in $SERIES; do
     [ -e "$p" ] || continue
     if [ "$fam" = "experimental-kbase-sync" ]; then
       case "$(basename "$p")" in
-        002-android-release-queue-mesa27.patch|003-kbase-coalesce-mem-sync.patch) ;;
+        002-android-release-queue-mesa27.patch|003-kbase-coalesce-mem-sync.patch|004-kbase-sync-file-waiter-lifetime.patch) ;;
         *) continue;;
       esac
     fi
