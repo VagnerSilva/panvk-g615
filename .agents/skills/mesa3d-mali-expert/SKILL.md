@@ -47,6 +47,10 @@ Strictly enforce these engineering guardrails on every response to prevent guess
 4. **Community-Validated Baselines:**
    - Anchor all recommendations in established Mesa 3D, Khronos Vulkan CTS (`deqp-vk`), Linux DRM (`panthor`), and Arm Valhall/CSF specifications. Prefer upstream Mesa idioms (`vk_common_*`, `nir_builder`, `util/bitset`, `deqp-runner`, `shader-db`) over ad-hoc workarounds.
 
+5. **Immutable `work/` Directory & Patch-Only Enforcement:**
+   - **Never** modify, edit, create, or overwrite files inside the `work/` directory directly (e.g., `work/mesa/`, `work/libdrm/`, `work/android-deps/`). Author every source change exclusively via patch files (`patches/<family>/*.patch`).
+   - Apply the patch cleanly, compare the resulting files (`diff` / `git diff`) to confirm exact changes, and pass lint/syntax verification before declaring any change valid (follow **Section 11**).
+
 ## 3. Indexed Resolution Memory (`MEM-MALI` Knowledge Base)
 
 Maintain and consult a compact, structured resolution index during multi-turn sessions. When a problem is solved or a root cause is confirmed, emit a **Resolution Memory Entry** using the schema below so future turns retrieve the fix in $O(1)$ lookup without re-investigating.
@@ -332,7 +336,34 @@ Mali GPUs use a two-phase **TBDR (Tile-Based Deferred Rendering)** pipeline: **G
 
 3. Follow Mesa's `.clang-format`, use proper prefixes (`panvk_`, `kraid_`, `pan_`), and document tested hardware in commit messages (`Tested-by:` / e.g., Mali-G615).
 
-## 11. Standard Response Format
+## 11. Patch-Only Modification & Validation Protocol for `work/` (MANDATORY)
+
+Treat the `work/` directory (including `work/mesa/`, `work/libdrm/`, `work/android-deps/`, and any extracted source tree) as strictly **read-only for direct edits**. Follow this mandatory workflow for every code modification targeting `work/`:
+
+1. **Never Alter `work/` Files Directly:**
+   - Never use file-editing tools (`edit`, `create`), inline scripts (`sed -i`, `python`, shell redirection), or manual edits to modify files inside `work/`.
+
+   - Author and maintain all changes exclusively as unified diff patches in `patches/<family>/*.patch` (including the required patch metadata header).
+
+2. **Apply the Patch Cleanly (Zero Offset / Zero Fuzz):**
+   - Reset or verify a clean target state in `work/` before applying patches.
+
+   - Pre-check and apply the patch strictly (`git -C work/mesa apply --check -v <patch>` followed by `git -C work/mesa apply <patch>`, or `./scripts/apply-patches.sh --profile <profile>`), failing immediately on any patch drift, hunk offset, or fuzz.
+
+3. **Validate Applied Changes via File Comparison:**
+   - Inspect and compare the patched file(s) in `work/` against the expected diff (`git -C work/mesa diff -- <target_files>` or `diff -u <original> <patched>`).
+
+   - Confirm that every hunk landed in the exact target function/context, with no unintended mutations, truncated lines, or corrupted surroundings.
+
+4. **Run Lint and Syntax Verification:**
+   - Verify patch and formatting hygiene (`git -C work/mesa apply --check --whitespace=error <patch>` and `.clang-format` checks such as `clang-format --dry-run --Werror` where applicable).
+
+   - Run language-appropriate lint/syntax checks on the resulting file(s) — IDE diagnostics (`problems`), compiler syntax/build verification (`-fsyntax-only` or targeted `ninja -C build/android-bionic <target>`), `python3 -m py_compile`, or `sh -n` / `shellcheck` — to mitigate syntax errors.
+
+5. **Validity Gate (Definition of Done):**
+   - Declare a modification **valid** if and only if all prior steps succeed: (a) `work/` was never edited directly, (b) the patch applied cleanly, (c) file comparison confirmed accurate changes without errors, and (d) lint/syntax verification passed with zero errors.
+
+## 12. Standard Response Format
 
 Structure every technical response as follows:
 
