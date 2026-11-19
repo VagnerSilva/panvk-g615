@@ -53,7 +53,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
     ks->pending_data = data;
     ks->pending_wait = wait;
     memcpy(ks->targets, targets, sizeof(ks->targets));
-@@ -956,11 +959,13 @@ kbase_cpu_sync_wait_one(struct vk_device *device, struct kbase_cpu_sync *ks,
+@@ -957,11 +960,13 @@ kbase_cpu_sync_wait_one(struct vk_device *device, struct kbase_cpu_sync *ks,
           mtx_lock(&ks->mutex);
           if (result == VK_SUCCESS) {
 +            kbase_sync_file_waiter_free(ks);
