@@ -70,6 +70,9 @@ struct array { void *data; unsigned count; };
 struct pan_kmod_dev { int fd; struct { struct array array; } pending_bo_syncs; };
 #define util_dynarray_num_elements(a, type) ((a)->count)
 #define util_dynarray_element(a, type, idx) (&((type *)(a)->data)[idx])
+#define util_dynarray_foreach(a, type, elem) \
+   for (type *elem = (type *)(a)->data; \
+        elem < (type *)(a)->data + (a)->count; elem++)
 struct kbase_ioctl_mem_sync { uint64_t handle, user_addr, size; unsigned type; };
 static struct kbase_ioctl_mem_sync emitted[4096];
 static int pan_kmod_ioctl(int fd, int request, void *arg) {
@@ -117,20 +120,26 @@ int main(void) {
    ops[1] = OP(1, 128, 128, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
    assert(run(ops, 2) == 0 && calls == 2);
    assert(emitted[0].handle != emitted[1].handle);
+   for (unsigned i = 0; i < 64; i++)
+      ops[i] = OP(0, (63 - i) * 64, 64, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
+   assert(run(ops, 64) == 0 && calls == 1 && allocated == 0);
+   assert(emitted[0].size == 64 * 64);
    for (unsigned i = 0; i < 4096; i++)
       ops[i] = OP(0, (4095 - i) * 64, 64,
                   PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH_AND_INVALIDATE);
    assert(run(ops, 4096) == 0 && calls == 1);
-   assert(emitted[0].size == 4096 * 64 && allocated == released);
+   assert(emitted[0].size == 4096 * 64 && allocated == 1 && released == 1);
    fail_alloc = true;
-   assert(run(ops, 4096) == -1 && calls == 0 && logged == 1);
+   assert(run(ops, 100) == 0 && calls == 100 && allocated == 0 && logged == 0);
+   fail_call = 2;
+   assert(run(ops, 100) == -1 && calls == 2 && allocated == 0 && logged == 1);
    fail_alloc = false;
    fail_call = 1;
    assert(run(ops, 4096) == -1 && calls == 1 && logged == 1);
    assert(allocated == released);
-   for (unsigned i = 0; i < 10; i++)
+   for (unsigned i = 0; i < 100; i++)
       ops[i] = OP(0, i * 128, 64, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
-   assert(run(ops, 10) == -1 && calls == 1 && allocated == released);
+   assert(run(ops, 100) == -1 && calls == 1 && allocated == released);
    fail_call = 0;
    return 0;
 }

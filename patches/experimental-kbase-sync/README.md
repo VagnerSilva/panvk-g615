@@ -35,8 +35,12 @@ For the Mesa 27 profile at `13baeb70c0`, apply
 `002-android-release-queue-mesa27.patch` after the profile patches, including
 Android 018 (the port of historical 0178). Patch 002 is an alternative to
 001; do not apply both. Its updated revision retains backend-specific
-callback selection and adds address-based cross-queue GPU waits. It does
-not require the historical Kraid overlay.
+callback selection, adds address-based cross-queue GPU waits, rejects
+external sync-file/non-CSF payloads during peek, skips already-retired
+producer seqnos, and stages per-subqueue wait updates transactionally. Patch
+003 coalesces up to 64 deferred `MEM_SYNC` operations on the stack and falls
+back to direct uncoalesced emission if heap allocation for larger batches
+fails. Neither patch requires the historical Kraid overlay.
 
 Both patches are opt-in and are not included in the default patch series.
 For the Mesa 27 G615 profile, verify the base, then check and apply:

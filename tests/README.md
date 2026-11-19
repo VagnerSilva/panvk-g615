@@ -168,9 +168,10 @@ sequence used by the runtime's fallback, but does **not** call
 Mesa source. After applying 003, run
 `python3 -m unittest discover -s tests -p test_kbase_coalesce_mem_sync.py -v`.
 It checks range coalescing, preservation of operation types and gaps,
-coherent BO bypass, input preservation, allocation/ioctl failures, and
-temporary storage cleanup. It does not measure device ioctl counts or
-validate actual cache coherency on hardware.
+coherent BO bypass, input preservation, stack-buffered coalescing up to 64
+operations, uncoalesced emission fallback on heap allocation failure, ioctl
+failure propagation, and temporary storage cleanup. It does not measure
+device ioctl counts or validate actual cache coherency on hardware.
 
 `sync/sync_test.c` accepts an optional `--cross-queue` argument. It requires
 two compute queues in one family and tests binary semaphore chains in both

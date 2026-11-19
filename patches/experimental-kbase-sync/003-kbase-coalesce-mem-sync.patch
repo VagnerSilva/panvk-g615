@@ -1,15 +1,7 @@
 diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_kmod.c
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -54,6 +54,7 @@
- #include "util/list.h"
- #include "util/u_debug.h"
-+#include "util/stack_array.h"
- 
- #include "drm-uapi/mali_kbase_ioctl.h"
- /* Only used as the interchange format for CSF interface information; no
-  * panthor functionality is required. */
-@@ -2585,35 +2586,96 @@ kbase_kmod_cs_event_signal(struct pan_kmod_dev *dev)
+@@ -2585,35 +2585,108 @@ kbase_kmod_cs_event_signal(struct pan_kmod_dev *dev)
     return 0;
  }
  
@@ -71,6 +63,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 -       * BASE_MEM_COHERENT_SYSTEM) need no MEM_SYNC; the ioctl rejects
 -       * them with EINVAL. */
 -      if (kbase_bo->cpu_gpu_coherent)
++#define KBASE_MEM_SYNC_STACK_CAP 64
 +   uint32_t count = util_dynarray_num_elements(&dev->pending_bo_syncs.array,
 +                                               struct pan_kmod_deferred_bo_sync);
 +   if (!count)
@@ -83,11 +76,20 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 +      return kbase_kmod_emit_mem_sync(dev, sync);
 +   }
 +
-+   STACK_ARRAY(struct pan_kmod_deferred_bo_sync, ops, count);
-+   if (!ops) {
-+      mesa_loge("kbase: failed to allocate deferred MEM_SYNC operations");
-+      return -1;
++   struct pan_kmod_deferred_bo_sync stack_ops[KBASE_MEM_SYNC_STACK_CAP];
++   struct pan_kmod_deferred_bo_sync *ops = stack_ops;
++   if (count > KBASE_MEM_SYNC_STACK_CAP) {
++      ops = malloc(count * sizeof(*ops));
++      if (!ops) {
++         util_dynarray_foreach(&dev->pending_bo_syncs.array,
++                               struct pan_kmod_deferred_bo_sync, sync) {
++            if (kbase_kmod_emit_mem_sync(dev, sync))
++               return -1;
++         }
++         return 0;
++      }
 +   }
++
 +   memcpy(ops, dev->pending_bo_syncs.array.data, count * sizeof(*ops));
 +   qsort(ops, count, sizeof(*ops), kbase_deferred_bo_sync_cmp);
 +
@@ -117,7 +119,8 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 -         mesa_loge("kbase: KBASE_IOCTL_MEM_SYNC failed: %s", strerror(errno));
 +      ret = kbase_kmod_emit_mem_sync(dev, &cur);
 +      if (ret) {
-+         STACK_ARRAY_FINISH(ops);
++         if (ops != stack_ops)
++            free(ops);
           return -1;
 -      }
 +      }
@@ -126,6 +129,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
  
 -   return 0;
 +   ret = kbase_kmod_emit_mem_sync(dev, &cur);
-+   STACK_ARRAY_FINISH(ops);
++   if (ops != stack_ops)
++      free(ops);
 +   return ret;
  }
