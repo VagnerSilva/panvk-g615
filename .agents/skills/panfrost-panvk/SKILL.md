@@ -43,6 +43,13 @@ current workspace. Do not invent their contents or assume they can be loaded:
 check for the skill first. If it is unavailable, state the boundary and follow
 the repository's documented workflow without claiming specialist procedures.
 
+Before routing to any specialization, verify that its `SKILL.md` exists in the
+active workspace and read its current instructions. A link in this document or
+the central routing table is not proof that the target skill is installed.
+Keep the handoff within that skill's stated scope; if it is unavailable, retain
+the investigation locally using verified guidance and explicitly state the
+missing specialization.
+
 For cross-domain issues, identify the PanVK boundary and pass a concise handoff:
 reproduction conditions, exact source revision and configuration, relevant
 paths/symbols/interfaces, evidence, hypotheses tested, validation, and open
@@ -118,16 +125,42 @@ For a feature or API operation, trace:
 5. The kernel/backend mechanism, only when the path actually reaches it.
 6. Tests that cover the exact operation, conditions, and target generation.
 
+Treat the evidence sources as distinct:
+
+| Source | Establishes | Does not establish by itself |
+|---|---|---|
+| Vulkan specification | Required API contract for the applicable version/extensions | That PanVK implements or satisfies the requirement |
+| PanVK/Mesa source | The code path and conditions present in the inspected revision | Successful execution or correctness on hardware |
+| Tests | Behavior exercised by the named test and configuration | Complete feature coverage or behavior outside that test's scope |
+| Hardware run | Observed behavior on the recorded device and environment | Behavior on other generations, kernels, firmware, or workloads |
+
+Use the trace `Vulkan requirement -> PanVK implementation -> test coverage ->
+hardware execution` when applicable. Collect evidence for each link
+independently, mark missing links as gaps, and scope every result to its
+revision, configuration, API version/extensions, and test or device conditions.
+The specification defines the contract; it is never evidence that PanVK meets
+it.
+
 Keep the following distinct: **enumerated**, **reported**, **enabled**,
 **implemented**, **exercised by a test**, and **validated on hardware**. A
 positive feature bit or extension string proves only the corresponding
 reporting path. Confirm all conditions and the actual execution path before
 claiming support.
 
-In capability matrices, classify support as `SUPPORTED`, `PARTIAL`,
-`UNSUPPORTED`, or `NOT VERIFIED`, and record API reporting, test coverage, and
-hardware execution separately. Use these labels only for the precise revision,
-configuration, and conditions supported by the evidence.
+Capability matrices must keep support status and evidence quality as separate
+dimensions:
+
+- **Support status:** `SUPPORTED`, `PARTIAL`, `UNSUPPORTED`, or `NOT VERIFIED`.
+  This describes the implementation only for the recorded API scope,
+  configuration, and target.
+- **Evidence quality:** `Confirmed`, `Observed`, `Hypothesis`, or `Unknown`.
+  This describes how well the stated claim is established, not how much of the
+  feature is implemented.
+
+Record API reporting, test coverage, and hardware execution independently.
+A hypothesis cannot establish support; one passing test establishes behavior
+only for its covered case. State the evaluated API version/extensions,
+architecture, backend, and relevant conditions.
 
 ### Object and device state
 
@@ -144,6 +177,9 @@ shader stages; vertex input and input assembly; tessellation and geometry;
 rasterization; multisampling; depth/stencil; color blending; dynamic state;
 render passes, subpasses, and framebuffers; and dynamic rendering. Verify each
 stage and option independently for the target revision and architecture.
+Include multiview and feedback-loop behavior when within the API scope of the
+investigation; do not infer their support from render-pass or dynamic-rendering
+support.
 
 Trace pipeline creation through shader preparation and state emission to draw
 recording and submission. Separate Vulkan validation, pipeline compilation,
@@ -163,7 +199,8 @@ shader or synchronization pattern.
 For descriptor set layouts, pools, sets, updates, binding, dynamic offsets,
 push descriptors, descriptor indexing, buffer/image views, and samplers,
 follow the full path from Vulkan validation to the state consumed by commands
-and shaders. Verify optional and extension-defined behavior individually.
+and shaders. Verify optional and extension-defined behavior individually,
+including sampler YCbCr conversion when relevant.
 
 For queries, occlusion, timestamps, events, conditional rendering, and other
 auxiliary APIs, confirm the applicable API version/extension, implementation
@@ -203,6 +240,22 @@ relevant to the issue. For each resource, follow:
 |---|---|---|---|---|---|---|---|
 | Concrete Vulkan resource | Entry point and state | Allocator/path | Binding contract | Consumer | Actual mechanism and conditions | Lifetime path | Exact test or gap |
 
+Include these resource and feature families in the inventory when applicable;
+their presence here does not imply PanVK support:
+
+| Area | Check |
+|---|---|
+| Memory | Sparse resources, external memory, and protected memory |
+| Synchronization | External semaphores and external fences |
+| Image and sampler | Sampler YCbCr conversion |
+| Rendering | Multiview and feedback loops |
+| Robustness | Robustness features and related API/extension behavior |
+
+For each relevant item, establish whether it is in scope for the API version,
+whether PanVK implements it, its extension/property and shared-infrastructure
+dependencies, available tests, hardware validation, and known limitations.
+Mark out-of-scope items not applicable rather than implying support.
+
 Keep Vulkan memory requirements and semantics separate from userspace
 allocation, Panfrost resource helpers, kernel-managed memory, and platform
 interop. For external resources, verify handle type, ownership, metadata,
@@ -225,6 +278,24 @@ visibility, and completion. Do not conflate JM with CSF or assume their
 submission semantics are interchangeable. Route kernel/UAPI semantics to a
 verified kernel specialist; keep the PanVK-to-kernel contract and its evidence
 in this investigation.
+
+Reconstruct the actual execution path for the target rather than mapping a
+submission model to a GPU generation by assumption:
+
+```text
+Vulkan command recording
+  -> PanVK command construction
+  -> submission preparation
+  -> userspace/kernel interface and matching UAPI
+  -> verified CSF or JM queues/jobs and dependencies
+  -> GPU execution
+  -> completion, signaling, and error handling
+```
+
+Confirm the structures, queue mechanisms, interface, firmware dependencies,
+and completion/error path in sources applicable to the target revision and
+platform. Record which steps are not applicable or remain unknown; hand off
+kernel protocol details only to a verified specialist.
 
 ## WSI and presentation
 
@@ -252,14 +323,34 @@ availability, execution model (including JM versus CSF), formats and layouts,
 synchronization, kernel/UAPI, firmware, and platform constraints separately.
 Record whether a result is revision-bound or verified across named revisions.
 
-| GPU/model | Pan architecture | Frontend/backend | Feature or path | Conditions | Kernel/UAPI | Test and evidence | Status |
-|---|---|---|---|---|---|---|---|
-| Exact target | Verified value | Verified configuration | Specific operation | Gating conditions | Matching interface/version | Source and test | Confirmed, partial, unsupported, or unknown |
+| GPU/model | Pan architecture | Frontend/backend | Feature or path | Conditions | Kernel/UAPI | Test and evidence | Support status | Evidence quality |
+|---|---|---|---|---|---|---|---|---|
+| Exact target | Verified value | Verified configuration | Specific operation | Gating conditions | Matching interface/version | Source and test | Supported, partial, unsupported, or not verified | Confirmed, observed, hypothesis, or unknown |
 
 Do not infer cross-generation compatibility from a shared `panvk_vX` helper,
 common API structure, successful build, or feature enumeration.
 
 ## Investigation and validation workflow
+
+### Failure classification
+
+Classify the first observable failure at its actual stage; do not collapse
+multiple stages into a generic `Vulkan failure`.
+
+| Category | Stage |
+|---|---|
+| Vulkan validation error | API validation or object/parameter checks |
+| Shader compilation failure | SPIR-V/NIR processing or backend compilation |
+| Command construction failure | PanVK command recording or command generation |
+| Submission failure | Queue submission or userspace/kernel handoff |
+| GPU execution error | Execution after successful submission |
+| Synchronization failure | Dependency, visibility, wait, signal, or completion behavior |
+| Presentation failure | Surface, swapchain, acquire, or present path |
+
+For each diagnosis, record the error/message, reproducible conditions and
+environment, involved components, the last stage confirmed successful, and
+the first stage with an observed failure. Keep the suspected root cause as a
+separate hypothesis until evidence confirms it.
 
 1. **Scope.** Identify the failing/desired Vulkan behavior, platform,
    architecture, and primary layer. Record observed behavior separately from
@@ -306,9 +397,9 @@ fields as unknown or not applicable rather than filling them by assumption.
 
 ### Vulkan feature traceability
 
-| Vulkan feature | API entry point | PanVK file/symbol | Conditions | Hardware dependency | Generation | Test | Classification | Evidence |
-|---|---|---|---|---|---|---|---|---|
-| Exact feature | Query/enable/use paths | Verified implementation | Version, extension, config | Verified dependency or none known | Exact model/range | Test name or gap | Supported, partial, unsupported, or not verified | Revision, source, result |
+| Vulkan feature | API entry point | PanVK file/symbol | Conditions and scope | Hardware dependency | Generation/backend | Support status | Evidence quality | API report | Test coverage | Hardware result | Source and result |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Exact feature | Query/enable/use paths | Verified implementation | Version, extension, configuration | Verified dependency or unknown | Exact model and JM/CSF path | Supported, partial, unsupported, or not verified | Confirmed, observed, hypothesis, or unknown | Reported/not reported/not checked | Exact case or gap | Exact device/result or not run | Revision, file/symbol, command/result |
 
 ### API-to-hardware traceability
 
