@@ -26,7 +26,7 @@ git -C "$SRC" apply "$RT/d3d11-desc1-forced-sample-count.patch"
 
 VSRC=$WORK/vkd3d-proton-src
 if [ ! -d "$VSRC/.git" ]; then
-    git clone https://github.com/HansKristian-Work/vkd3d-proton.git "$VSRC"
+    git clone --depth 1 https://github.com/HansKristian-Work/vkd3d-proton.git "$VSRC"
 fi
 git -C "$VSRC" checkout -q "$VKD3D_COMMIT"
 git -C "$VSRC" submodule update --init --recursive
