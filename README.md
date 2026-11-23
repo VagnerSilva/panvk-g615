@@ -1,7 +1,7 @@
 <h1 align="center">Mesa PanVK for Android (mali_kbase)</h1>
 
 <p align="center">
-  Open Mesa <b>PanVK</b> Vulkan driver for Android Mali GPUs (Bifrost, Valhall and 5th Gen, arch v6 to v14), talking directly to the vendor <code>mali_kbase</code> kernel driver.
+  Open Mesa <b>PanVK</b> Vulkan driver for Mali-G615 CSF v11, talking directly to the vendor <code>mali_kbase</code> kernel driver.
 </p>
 
 <p align="center">
@@ -13,10 +13,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Vulkan-1.4-AC162C?logo=vulkan&logoColor=white" alt="Vulkan 1.4">
-  <img src="https://img.shields.io/badge/Mali-v6%20to%20v14-0091BD?logo=arm&logoColor=white" alt="Mali arch v6 to v14">
+  <img src="https://img.shields.io/badge/Mali-G615%20CSF%20v11-0091BD?logo=arm&logoColor=white" alt="Mali G615 CSF v11">
   <img src="https://img.shields.io/badge/DXVK-D3D9%20%7C%2010%20%7C%2011-555" alt="DXVK D3D9, D3D10, D3D11">
   <img src="https://img.shields.io/badge/vkd3d--proton-D3D12%20FL%2011__x-555" alt="vkd3d-proton D3D12 FL 11_x">
-  <img src="https://img.shields.io/badge/Mesa-26.3--devel-6E4C9A" alt="Mesa 26.3-devel">
+  <img src="https://img.shields.io/badge/Mesa-27.0--devel-6E4C9A" alt="Mesa 27.0-devel">
 </p>
 
 <!-- Release rule: every release embeds the PanProbe (apps/panvk-test) and PanPlay (apps/panvk-launcher) 3D screenshots here, at the top. -->
@@ -27,7 +27,7 @@
 </p>
 
 > [!IMPORTANT]
-> **Latest release: [Mesa PanVK v26.3.1](https://github.com/zenithblue-oss/panvk-kbase-android/releases/tag/panvk-kbase-v26.3.1), universal v6 to v14** (build 122i), with **[PanPlay 1.3.1](https://github.com/zenithblue-oss/panplay/releases/tag/panplay-v1.3.1)** and **[PanProbe 1.3.2](https://github.com/zenithblue-oss/panprobe/releases/tag/panprobe-v1.3.2)**. It replaces the 0.1.0 RC4 driver and the 1.2.7 apps. `driverInfo` reads `Mesa 26.3.0-devel (git-795ca7ff3e, p0175, 2026-10-31)`. Checksums are in the release notes.
+> **Latest published release: [Mesa PanVK v26.3.1](https://github.com/zenithblue-oss/panvk-kbase-android/releases/tag/panvk-kbase-v26.3.1)** is the historical universal v6 to v14 build 122i. The Mesa 27 G615-only migration described here is separate from that release.
 
 > [!NOTE]
 > **Testers wanted.**
@@ -37,22 +37,17 @@
 
 ## About
 
-A patch and build layer around pinned upstream Mesa. It produces one **universal** Mesa PanVK driver for Android Mali GPUs, which talks to Android's proprietary `mali_kbase` kernel interface (`/dev/mali0`). One patch stack serves every supported GPU; per-arch profiles select the right code paths. It is not tied to any single device or launcher.
+A patch and build layer around pinned upstream Mesa 27. The supported target is Mali-G615 CSF v11 using the `mali_kbase` kernel interface (`/dev/mali0`). The Android/Bionic and Linux/glibc builds use the `g615-v11-csf` profile; other profiles remain historical data and are rejected by the build and patch entry points.
 
-**Driver identity.** `driverName` is `panvk`. `driverInfo` is `Mesa 26.3.0-devel (git-<sha>, p<patch>, <date>)`, and `deviceName` is the upstream name (for example `Mali-G1-Ultra` or `Mali-G72 MP18`). The apps show it as **Mesa PanVK 26.3.0-devel**.
+**Driver identity.** The Mesa 27 G615 candidate reports `driverName` as `panvk` and identifies the Mesa revision in `driverInfo`. The exact string and binary hash depend on the build.
 
 ## Supported GPUs
 
-| Arch | Family | Examples seen in testing |
-|---|---|---|
-| v6, v7 | Bifrost | Mali-G72, Mali-G52 |
-| v9 | Valhall, 1st gen (JM frontend) | Mali-G57, Mali-G78 |
-| v10 | Valhall, 3rd gen (CSF) | Mali-G710 |
-| v11 | Valhall, 4th gen | Mali-G715, Mali-G615 |
-| v12, v13 | 5th Gen | Immortalis-G720, Immortalis-G925 |
-| v14 | 5th Gen | Mali-G1-Ultra |
+| GPU | Architecture | Frontend | Kernel interface |
+|---|---|---|---|
+| Mali-G615 | v11 | CSF | `mali_kbase` |
 
-v15 is not fully supported. Details per GPU: [`docs/MALI-GPU-ARCHITECTURES.md`](docs/MALI-GPU-ARCHITECTURES.md), [`docs/KBASE-PROFILES.md`](docs/KBASE-PROFILES.md). Untested here: Mali-G610, G510, G620, G625 and the other models not in the table below. They share an arch with tested GPUs but have not been run.
+Other GPUs listed in historical release notes and test results are not targets of the Mesa 27 migration.
 
 ## Apps
 
@@ -83,9 +78,9 @@ PanPlay also offers: Render API per game (Auto, DXVK, VKD3D, WineD3D, OpenGL (Zi
 - **PanPlay:** add a Windows game or `.exe`, pick a Render API (Auto is fine), and launch. The Controls page and Settings > Graphics hold the HUD and MangoHud options. After a run, use the session logs screen to share logs.
 - **PanProbe:** open it and run all tests. Scenario runs for automation are described in `apps/panvk-test`. Results show the `driverInfo` string so you can confirm which build ran.
 
-## Tested devices
+## Historical tested devices
 
-Builds 115 to 122i, 2026-10-29 to 2026-10-31. Raw data: the device-run folders under `worklogs/` (each has a `results.md`) and [`docs/PERF-PROGRESS.md`](docs/PERF-PROGRESS.md). "Baseline" is build 116. Each run was done on the build named in its row; most figures are single runs, so treat small percentages as noise.
+Historical Mesa 26 builds 115 to 122i, 2026-10-29 to 2026-10-31; these are not evidence of Mesa 27 support for other GPUs. Raw data: the device-run folders under `worklogs/` (each has a `results.md`) and [`docs/PERF-PROGRESS.md`](docs/PERF-PROGRESS.md). "Baseline" is build 116. Each run was done on the build named in its row; most figures are single runs, so treat small percentages as noise.
 
 | Arch | GPU | Device | How tested | PanProbe | PanPlay | Result vs build 116 |
 |---|---|---|---|---|---|---|
@@ -105,7 +100,7 @@ Notes:
 - On v11 the first BC decode with a cold shader cache took about 5 s on build 116; build 122g brings it down to about 0.5 s.
 - No fps comparison against the older RC4 release is claimed here.
 
-## Known issues
+## Historical known issues
 
 - Fallout 4 on the DXVK path shows a black face.
 - D3D11 1 % low fps on v11 is below RC4 (an X server stall at high fps).
@@ -115,12 +110,14 @@ Notes:
 
 ## Building
 
+Run the following only in a disposable workspace: `fetch-mesa.sh` can reset its Mesa checkout.
+
 ```sh
 ./scripts/fetch-mesa.sh
-./scripts/apply-patches.sh --profile <profile>
-./scripts/build-android.sh --profile <profile>
-./scripts/validate-binary.sh --abi android dist/android-<profile>/libvulkan_panfrost.so
-./scripts/package-android-adpkg.sh --profile <profile>
+./scripts/apply-patches.sh --profile g615-v11-csf
+./scripts/build-android.sh --profile g615-v11-csf
+./scripts/validate-binary.sh --abi android dist/android-g615-v11-csf/libvulkan_panfrost.so
+./scripts/package-android-adpkg.sh --profile g615-v11-csf
 ```
 
 The Android build enables Mesa's experimental Kraid compiler with
@@ -132,7 +129,7 @@ selects the Android Rust target; Meson uses the NDK C compiler as its linker.
 If an existing build directory was configured before the cross-file change,
 use a new `BDIR` so Meson reads the updated cross file.
 
-On Android builds, Kraid is selected by default on supported v9+ GPUs. Set
+On Android G615 builds, Kraid is selected by default. Set
 `PAN_USE_KRAID=0` in the environment of the process loading the driver to opt
 out; `PAN_USE_KRAID=1` (or `all`) explicitly selects Kraid for all shader
 stages. The existing stage selectors (`cs`, `fs`, `vs`, `internal`) remain
@@ -153,7 +150,7 @@ import, without claiming release or device-validation evidence:
 This lightweight import package is not the release `.adpkg.zip` produced by
 `scripts/package-android-adpkg.sh`; it does not contain release provenance or
 device gate evidence. The package does not set runtime environment variables;
-Android builds select Kraid by default on supported v9+ GPUs, with
+Android G615 builds select Kraid by default, with
 `PAN_USE_KRAID=0` available to opt out.
 The ZIP places `meta.json` before any other JSON entry for importers that
 interpret the first JSON file as driver metadata.
@@ -162,13 +159,13 @@ sets the name in `meta.json` when used with `--only adpkg`. Choose a name not
 already used by the target app; driver import and replacement behavior
 depends on the app.
 
-The release driver is one universal `.so` for v6 to v14, built from the tree that `scripts/prepare-rc5-tree.sh` prepares (all patch families applied in strict mode). The per-arch profiles in `profiles/` (`g52-v7-jm`, `g57-v9-jm`, `g610-v10-csf`, `g615-v11-csf`, `g720-v12-csf`) are for single-arch development builds. See [`docs/RELEASE.md`](docs/RELEASE.md) for the release process and tags (`panvk-kbase-v<version>` for the driver, `panplay-v<version>` and `panprobe-v<version>` for the apps). The exact Mesa commit is pinned in `sources.lock`.
+The Mesa 27 target is the G615 profile, not a universal v6-v14 release. The historical universal preparation script requires patch inputs no longer present in this checkout and fails explicitly. See [`docs/RELEASE.md`](docs/RELEASE.md) for the release process. The exact Mesa commit is pinned in `sources.lock`.
 
 ## Layout
 
 ```text
 sources.lock          exact Mesa commit + reference repos (no moving branches)
-profiles/             per-GPU Kbase profiles (arch/gpu-id/frontend/uapi)
+profiles/             G615 Kbase profile and historical profile data
 patches/              qualified patch families
 meson/                cross files (android-aarch64, linux-aarch64-native)
 scripts/              fetch / patch / build / package / validate / release

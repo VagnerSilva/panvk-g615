@@ -29,7 +29,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
     if (!device->memory.budget)
        return VK_ERROR_OUT_OF_HOST_MEMORY;
  
-@@ -1407,7 +1419,9 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+@@ -1413,7 +1425,9 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
        return result;
  
     device->model = pan_get_model(device->kmod.dev->props.gpu_id,
@@ -40,7 +40,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
  
     unsigned arch = pan_arch(device->kmod.dev->props.gpu_id);
  
-@@ -1543,6 +1557,9 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+@@ -1556,6 +1570,9 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
  fail_kbase:
     free_disk_cache(device);
  

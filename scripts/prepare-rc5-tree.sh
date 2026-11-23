@@ -22,6 +22,9 @@ while [ $# -gt 0 ]; do case "$1" in
   *) echo "unknown arg $1" >&2; exit 2;;
 esac; done
 [ -n "$MESA" ] || { echo "--mesa required" >&2; exit 2; }
+[ -f "$ROOT/patches/jm-v7-wip/0006-jm-v7-006-Bifrost-draw-prerequisites-no-IDVS-MDI-pos.patch" ] || {
+  echo "historical jm-v7-wip series is unavailable; universal tree preparation is disabled" >&2; exit 1;
+}
 [ "$(git -C "$MESA" rev-parse HEAD)" = "$(git -C "$MESA" rev-parse 5a07217f)" ] || {
   echo "$MESA must be at Mesa 5a07217f" >&2; exit 1; }
 [ -z "$(git -C "$MESA" status --porcelain)" ] || { echo "$MESA is not clean" >&2; exit 1; }

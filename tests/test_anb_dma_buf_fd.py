@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test the ANB dma-buf fd finder in the main and historical series."""
+"""Test the ANB dma-buf fd finder in the G615 profile series."""
 
 from pathlib import Path
 import os
@@ -10,7 +10,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH = ROOT / "patches/android/018-vulkan-android-find-dma-buf-among-anb-handle-fds.patch"
-LEGACY_PATCH = ROOT / "patches/jm-v7-wip/0178-vulkan-android-find-dma-buf-among-anb-handle-fds.patch"
 NAME = "vk_android_find_anb_dma_buf_fd"
 
 
@@ -22,6 +21,18 @@ def patch_function():
 
 
 class AnbDmaBufFdTests(unittest.TestCase):
+    def test_removed_universal_series_fails_before_touching_mesa(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            mesa = Path(tmp) / "mesa"
+            mesa.mkdir()
+            result = subprocess.run(
+                ["sh", str(ROOT / "scripts/prepare-rc5-tree.sh"), "--mesa", str(mesa)],
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("historical jm-v7-wip series is unavailable", result.stderr)
+            self.assertEqual(list(mesa.iterdir()), [])
+
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
@@ -115,13 +126,6 @@ int main(void)
         self.assertIn("-   int dma_buf_fd = anb->handle->data[0];", text)
         self.assertIn("+      vk_android_find_anb_dma_buf_fd(device, anb->handle, &fd_props);", text)
 
-    def test_main_patch_matches_historical_code_changes(self):
-        def changes(path):
-            return [line for line in path.read_text().splitlines()
-                    if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))]
-
-        self.assertEqual(changes(PATCH), changes(LEGACY_PATCH))
-
     def test_patch_series_selects_correct_port(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
@@ -148,7 +152,7 @@ int main(void)
 
             main = replay("apply-patches.sh", "--profile", "g615-v11-csf")
             self.assertEqual(sum(f"apply {PATCH}" in line for line in main), 1)
-            self.assertFalse(any(f"apply {LEGACY_PATCH}" in line for line in main))
+            self.assertFalse(any("/patches/jm-v7-wip/" in line for line in main))
             experimental = ROOT / "patches/experimental-kbase-sync"
             self.assertFalse(any(str(experimental) in line for line in main))
 
@@ -178,15 +182,6 @@ int main(void)
             )
             self.assertEqual(rejected.returncode, 2)
             self.assertIn("requires --profile g615-v11-csf", rejected.stderr)
-
-            legacy = replay("prepare-rc5-tree.sh")
-            self.assertFalse(any(str(PATCH) in line for line in legacy))
-            self.assertEqual(sum(f"am -q {LEGACY_PATCH}" in line for line in legacy), 1)
-
-            earlier = replay("prepare-rc5-tree.sh", "--wip-max", "0177")
-            self.assertFalse(any(str(PATCH) in line or str(LEGACY_PATCH) in line
-                                 for line in earlier))
-
 
 if __name__ == "__main__":
     unittest.main()

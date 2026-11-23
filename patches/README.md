@@ -28,9 +28,20 @@ Directories:
 - `wsi/` — swapchain/acquire/present/resize, acquire-present sync.
 - `experimental-kbase-sync/` — opt-in Mesa 27 G615 sync updates. Use
   `scripts/apply-patches.sh --profile g615-v11-csf --with-kbase-sync`
-  on a fresh pinned Mesa tree to append exactly 002 then 003. Historical
+  on a fresh pinned Mesa tree to append exactly 002, 003 and 004. Historical
   001 is excluded. Defaults are unchanged; see the family README for
   validation results and the unresolved shutdown limitation.
+
+The historical `jm-v7-wip` patch files are not part of the selected Mesa 27
+G615 series and have been removed from this tree. Its README and worklogs
+remain historical records. The old universal tree cannot be reconstructed
+from this checkout; its preparation script fails explicitly.
+
+`kbase-common/018` supersedes the unconditional physical backend build in
+`kbase-common/002`: `panfrost-kmds` now controls both compilation and
+registration. The Panfrost source remains available when virtio is enabled.
+Changing this series changes its provenance; validate each affected target
+independently.
 
 Rules:
 
@@ -42,8 +53,7 @@ Rules:
 Mesa 27 migration (in progress):
 
 - Android patch 018 ports the native-buffer dma-buf fd search from historical
-  `jm-v7-wip/0178` to the main series. The Mesa 26 preparation script retains
-  the original WIP patch in its historical position and skips the Mesa 27 port.
+  `jm-v7-wip/0178` to the main series.
 - CSF v11 backports 026-031 and 033-037 are already implemented in the pinned
   Mesa 27 base and are no longer part of the active series. This includes the
   indirect-draw FAU flush, v11 architecture cases, presentation extensions,
@@ -52,11 +62,12 @@ Mesa 27 migration (in progress):
   its upstream modifier-query implementation is already in Mesa 27.
 - Patch 187 retains only downstream Vulkan naming; Mesa 27's distinct
   G725/G925 model rows and feature-based selection are preserved.
-- The complete `g615-v11-csf` series (218 patches, including JM v9/v7) passed
-  `scripts/apply-patches.sh` without offsets or fuzz in a new detached worktree
-  at `13baeb70c066a9f82d2bcfb29f06e4865212affa`. Existing source and build
-  directories were not reused. This verifies patch applicability, not API
-  compatibility or runtime correctness.
+- Before adding the G615-only filter, the `g615-v11-csf` series (218 patches,
+  including JM v9/v7) passed `scripts/apply-patches.sh` without offsets or fuzz
+  in a new detached worktree at `13baeb70c066a9f82d2bcfb29f06e4865212affa`.
+  The G615-only filter is `csf-v11/234`, immediately after 233 and before JM.
+  The updated series strictly replays as 224 patches, or 227 with opt-in
+  Kbase sync 002-004. These checks prove applicability, not build or runtime.
 - Ports preserve upstream poly heap state, Android external-format-resolve
   preprocessing, X11 event connections, named BO allocations, and TLS size
   copies. Fork handlers also acquire Mesa 27's queue `finish_lock` before the

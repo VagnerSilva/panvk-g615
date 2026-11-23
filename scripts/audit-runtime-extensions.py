@@ -334,7 +334,14 @@ def audit_extensions(
     mesa_version = upstream_data.get("mesaVersion", "unknown")
 
     upstream_rows = upstream_data.get("rows", [])
-    panvk_rows = [r for r in upstream_rows if r.get("drivers") and "panvk" in r["drivers"]]
+    panvk_rows = [
+        r for r in upstream_rows
+        if r.get("status") == "DONE"
+        and any(
+            driver.strip().split("/", 1)[0] == "panvk"
+            for driver in r.get("drivers", "").strip("()").split(",")
+        )
+    ]
     panvk_done_names = set(r["name"] for r in panvk_rows)
     all_upstream_names = set(r["name"] for r in upstream_rows)
 
@@ -342,6 +349,11 @@ def audit_extensions(
     if not runtime_json_path.exists():
         raise FileNotFoundError(f"Runtime feature matrix not found: {runtime_json_path}")
     runtime_data = json.loads(runtime_json_path.read_text())
+    runtime_commit = runtime_data.get("mesaCommit")
+    if mesa_commit != "unknown" and runtime_commit and runtime_commit != mesa_commit:
+        raise ValueError(
+            f"Mesa revision mismatch: upstream {mesa_commit}, runtime {runtime_commit}"
+        )
 
     runtime_inst_list = [
         e if isinstance(e, str) else e["extensionName"]
@@ -482,7 +494,7 @@ def audit_extensions(
         c_info = mesa_c_entries.get(ext_name, {})
         is_matrix = ext_name in panvk_done_names
         is_inst = ext_name in runtime_inst
-        reason = "Exposed and operational at runtime on target device."
+        reason = "Enumerated at runtime on the target device; execution is not established by this audit."
         if ext_name == "VK_KHR_android_surface":
             reason = "Android WSI platform extension exposed and tested at runtime."
         extensions_dict[ext_name] = {
@@ -523,8 +535,8 @@ def audit_extensions(
         "panArch": arch,
         "mesaCommit": mesa_commit,
         "mesaVersion": mesa_version,
-        "deviceName": runtime_data.get("deviceName", "Mali-G615 MC6"),
-        "apiVersion": runtime_data.get("apiVersion", "1.4.363"),
+        "deviceName": runtime_data.get("deviceName", "unknown"),
+        "apiVersion": runtime_data.get("apiVersion", "unknown"),
         "totalTracked": len(panvk_done_names | runtime_all),
         "upstreamPanvkDone": len(panvk_done_names),
         "runtimeExposed": len(runtime_all),
@@ -583,15 +595,15 @@ def generate_markdown(result: dict) -> str:
         "|---|---:|---|",
         f"| Upstream PanVK Matrix DONE | {s['upstreamPanvkDone']} | Implemented upstream in Mesa `docs/features.txt` |",
         f"| Runtime Exposed (Total) | {s['runtimeExposed']} | Verified on-device ({s['runtimeInstance']} instance, {s['runtimeDevice']} device) |",
-        f"| Runtime Overlap with Matrix | {s['runtimeOverlap']} | Upstream DONE extensions verified at runtime |",
-        f"| Runtime Extra (Android) | {s['runtimeExtra']} | `VK_KHR_android_surface` |",
-        f"| Missing at Runtime (Total Gap) | {s['missingCount']} | Absent from on-device beta.2 baseline |",
+        f"| Runtime Overlap with Matrix | {s['runtimeOverlap']} | Upstream DONE extensions enumerated at runtime |",
+        f"| Runtime Extra | {s['runtimeExtra']} | Enumerated extensions outside the upstream PanVK DONE set |",
+        f"| Missing at Runtime (Total Gap) | {s['missingCount']} | Absent from the supplied runtime enumeration |",
         f"| Platform-Inapplicable Excludes | {s['platformInapplicable']} | Desktop/direct-DRM display extensions (WORKER.md 4.1) |",
         f"| Android Audit Candidates | {s['auditCandidatesCount']} | Android-relevant candidate pool (WORKER.md 4.2) |",
         "",
         "## 2. Audit Candidates Breakdown",
         "",
-        f"- **High-Confidence Candidates ({len(candidates['highConfidence'])})**: Upstream source contains verified predicates for v11/Android.",
+        f"- **High-Confidence Candidates ({len(candidates['highConfidence'])})**: Historical heuristic candidates; verify against the current source.",
         f"- **Investigate Candidates ({len(candidates['investigate'])})**: Matrix documentation alone insufficient; requires source proof & implementation check (WORKER.md Section 6).",
         f"- **Workload Tests Required ({len(candidates['requiresTests'])})**: Explicit workload test specifications in WORKER.md Section 25 before exposure.",
         "",
@@ -634,7 +646,7 @@ def generate_markdown(result: dict) -> str:
         "",
         "## 3. Platform-Inapplicable Desktop Excludes (Section 4.1)",
         "",
-        "These 10 extensions are desktop/display-only and must NOT be chased on Android:",
+        "Extensions classified as desktop/display-only for the selected platform:",
         "",
         "| Extension | Source Guard | Reason |",
         "|---|---|---|",
@@ -647,7 +659,7 @@ def generate_markdown(result: dict) -> str:
 
     lines.extend([
         "",
-        "## 4. Complete Missing Extensions Gap Details (30 Extensions)",
+        f"## 4. Complete Missing Extensions Gap Details ({s['missingCount']} Extensions)",
         "",
         "| Extension | Classification | Group | Arch Req | Reason |",
         "|---|---|---|---|---|",
@@ -667,7 +679,7 @@ def generate_markdown(result: dict) -> str:
     ])
 
     schema_desc = {
-        "runtime": "Exposed and operational at runtime on target device",
+        "runtime": "Enumerated at runtime; execution is not established by this audit",
         "platform-inapplicable": "Platform does not support feature (e.g. Wayland/X11/DRM on Android)",
         "source-supported-not-exposed": "Pan arch / platform supports it in source, but not enabled at runtime",
         "source-not-present": "Not implemented in Mesa PanVK driver source",
@@ -698,7 +710,7 @@ def main():
     parser.add_argument(
         "--upstream",
         type=pathlib.Path,
-        default=ROOT / "snapshots" / "matrix-2026-09-18-5a07217" / "upstream-feature-matrix.json",
+        default=ROOT / "snapshots" / "matrix-2026-11-23-13baeb70" / "upstream-feature-matrix.json",
         help="Path to upstream feature matrix JSON",
     )
     parser.add_argument(
@@ -769,7 +781,7 @@ def main():
     print(f"Upstream PanVK DONE:   {s['upstreamPanvkDone']}")
     print(f"Runtime Exposed:       {s['runtimeExposed']} ({s['runtimeInstance']} instance, {s['runtimeDevice']} device)")
     print(f"Runtime Overlap:       {s['runtimeOverlap']}")
-    print(f"Runtime Extra:         {s['runtimeExtra']} (VK_KHR_android_surface)")
+    print(f"Runtime Extra:         {s['runtimeExtra']}")
     print(f"Missing from Runtime:  {s['missingCount']}")
     print(f"Platform Inapplicable: {s['platformInapplicable']} (desktop/display-only excludes)")
     print(f"Audit Candidates:      {s['auditCandidatesCount']}")

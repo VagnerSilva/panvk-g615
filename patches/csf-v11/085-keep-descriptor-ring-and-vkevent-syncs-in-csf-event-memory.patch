@@ -51,7 +51,7 @@ diff --git a/src/panfrost/lib/kmod/pan_kmod.c b/src/panfrost/lib/kmod/pan_kmod.c
 index 1e6ca23c833..277df8cf637 100644
 --- a/src/panfrost/lib/kmod/pan_kmod.c
 +++ b/src/panfrost/lib/kmod/pan_kmod.c
-@@ -221,6 +221,15 @@ pan_kmod_flush_bo_map_syncs_locked(struct pan_kmod_dev *dev)
+@@ -229,6 +229,15 @@ pan_kmod_flush_bo_map_syncs_locked(struct pan_kmod_dev *dev)
     util_dynarray_clear(&dev->pending_bo_syncs.array);
  }
  

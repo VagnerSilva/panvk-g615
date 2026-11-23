@@ -44,6 +44,28 @@ GPU ID, UAPI, all gate results. CI builds `dev` only; beta/rc/stable require
 Poco (or declared device) hardware validation evidence. CI success is never a
 substitute for `/dev/mali0` runtime testing.
 
+Package validation compares the profile-specific computed patch inventory with
+the identifiers in `meta.json`, `MANIFEST.json` and any `SOURCE.json`. For
+`g615-v11-csf` it also requires the inventory to match `sources.lock`. A
+`not-reproducible` prebuilt cannot pass this reproducible-package gate. These
+metadata checks do not prove which inputs built the binary: preserve and verify
+its ordered applied-input manifest and build evidence separately.
+
+Validation logs must identify the tested ICD by SHA-256, using a driver hash
+marker or a `sha256sum` line for `libvulkan_panfrost.so`. The collector accepts
+a passing gate only when its log identifies the staged binary and contains no
+conflicting ICD hash. Missing or mismatched identities remain untested; a
+current binary hash must never be attributed to an older log. Keep each log
+scoped to the execution it identifies; a hash marker alone is not proof of
+which binary ran.
+
+The default upstream extension audit uses the Mesa 27 G615 snapshot. Generate
+new snapshots from the pinned Mesa checkout with `scripts/capture-matrix.py`;
+the script records the checkout revision and `VERSION` and fails if the
+source matrix is missing. Runtime enumeration and upstream implementation are
+separate evidence, and an audit rejects conflicting recorded Mesa revisions.
+Enumeration alone does not establish that an extension has been exercised.
+
 Fault safety: hard timeouts, small allocations, tiny images, single queue,
 bounded frames, one change per run. Never spam CSF kicks after fault, fake
 DRM nodes/features, guess Kbase structs across DDKs, or mix JM/CSF ioctls.
@@ -61,7 +83,6 @@ After severe fault: save logs + kernel evidence, stop, reboot if needed.
   images as release assets.
 - Build assets from a clean worktree of the release commit, not the dirty
   working tree; confirm the patch series applies on the pinned Mesa base.
-  The universal driver's tree is `scripts/prepare-rc5-tree.sh --mesa <fresh
-  5a07217f worktree>` (strict; its defaults, csf-v11 <= 233 and jm-v7-wip
-  <= 0139, are build 115c), built with `MESA=<that tree>
-  scripts/build-android.sh --profile g615-v11-csf --api 29`.
+  This checkout retains the Mesa 27 G615 profile series but not the historical
+  `jm-v7-wip` inputs. Consequently `scripts/prepare-rc5-tree.sh` cannot prepare
+  a universal release tree here. Do not label a profile build universal.

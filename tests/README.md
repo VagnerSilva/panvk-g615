@@ -31,6 +31,22 @@
 - `dxvk/` — DXVK-only profile, Vulkan semantic, and DXVK Native validation.
   Kept separate from historical combined `dxvk-vkd3d/` evidence.
 
+## G615-only device filter (host)
+
+Run against a Mesa 27 source tree containing the Kbase physical-device path.
+Set `PANVK_MESA_SOURCE` to that tree; the test applies patch 234 only to a
+temporary copy when the helper is not already present:
+
+```sh
+PANVK_MESA_SOURCE=/path/to/mesa-27 \
+  python3 -m unittest discover -s tests -p test_g615_device_filter.py -v
+```
+
+The test compiles the helper from the patch against Mesa's real model table
+and resolver, including two raw G615 IDs with distinct revision bits. It also
+checks the Kbase-only build selection and DRM enumeration guards. This is a
+host policy test, not a build or hardware-runtime gate.
+
 ## Mesa 27 Kbase sync provider (host)
 
 Run against the actual pinned Mesa 27 headers, using an isolated checkout:
@@ -180,6 +196,37 @@ It also checks fence completion, queue/device idle, and compute readback.
 Compile with the NDK using `-O2 -I"$MESA/include" -ldl`, then run with the
 driver path followed by `--cross-queue`. This does not validate unsignaled
 external sync-file imports or visible presentation.
+
+### Standard glibc hardware gate: imported `sync_file` lifetime
+
+For the G615 glibc build with `--with-kbase-sync`, run `sync/sync_file_test.c`
+after the single- and cross-queue tests. It requires `/dev/mali0` with CSF UAPI
+1.21 and 4 KiB pages in the chroot. An independent Kbase KCPU queue produces
+the pending `sync_file`; no `sw_sync`, WSI, or change to the system ICD is needed.
+
+Build on the host with an AArch64 glibc compiler and Vulkan headers:
+
+```sh
+aarch64-linux-gnu-gcc -std=c11 -O2 -Wall -Wextra -Werror \
+  -Ipatches/kbase-common/files/include tests/sync/sync_file_test.c \
+  -ldl -o sync-file-test
+```
+
+Transfer the test binary and candidate ICD into an isolated directory in the
+chroot. Run from that directory:
+
+```sh
+sha256sum ./libvulkan_panfrost.so
+timeout -k 3s 20s ./sync-file-test ./libvulkan_panfrost.so
+```
+
+Record the hash with the log. `SYNC-FILE-PASS 12 cycles` and exit 0 require a
+real, pending FD before and after the initial `VK_TIMEOUT`, correct completion
+after the signal, and no growth in `/proc/self/fd` after each iteration. Four
+iterations each exercise waiting again without reimport, resetting the
+imported fence, and destroying it without another Vulkan wait. Exit 77 means
+a prerequisite is unavailable (`BLOCKED`), not a pass. Other nonzero exits
+are failures. This gate does not exercise Android release callbacks or WSI.
 
 `ahb/anb_release.c` is a separate shell diagnostic for the private Android
 native-buffer driver entrypoints. It allocates an AHardwareBuffer, creates a

@@ -144,11 +144,20 @@ def evidence(
     tokens: tuple[str, ...],
     binary_sha: str | None,
 ) -> dict:
+    if not binary_sha or not re.fullmatch(r"[0-9a-fA-F]{64}", binary_sha):
+        return {"status": "untested", "reason": "candidate binary hash unavailable"}
+    identity_pattern = re.compile(
+        r"""(?im)(?:\b(?:DRIVER_SHA256|ICD_SHA256|binarySha256)["']?\s*[=:]\s*["']?([0-9a-f]{64})\b|^\s*([0-9a-f]{64})\s+\*?(?:\S*/)?libvulkan_panfrost\.so(?:\s|$))"""
+    )
     for path in glob_logs(vdir, patterns):
         text = path.read_text(errors="replace")
         if gate == "ahb" and UINT64_MAX in text:
             continue
-        if file_has(text, tokens):
+        identities = {
+            (named or checksum).lower()
+            for named, checksum in identity_pattern.findall(text)
+        }
+        if identities == {binary_sha.lower()} and file_has(text, tokens):
             try:
                 rel = path.relative_to(ROOT).as_posix()
             except ValueError:
@@ -159,7 +168,7 @@ def evidence(
                 "timestamp": iso_from(path, text),
                 "binarySha256": binary_sha,
             }
-    return {"status": "untested"}
+    return {"status": "untested", "reason": "no passing evidence with matching binary identity"}
 
 
 def find_matrix(profile: str) -> pathlib.Path | None:

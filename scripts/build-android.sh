@@ -9,6 +9,10 @@ PROFILE=""; API="${ANDROID_API:-29}"; NDK="${ANDROID_NDK_ROOT:-${ANDROID_HOME:-/
 while [ $# -gt 0 ]; do case "$1" in
   --profile) PROFILE="$2"; shift 2;; --api) API="$2"; shift 2;; --ndk) NDK="$2"; shift 2;; *) echo "unknown $1" >&2; exit 2;; esac; done
 [ -n "$PROFILE" ] || { echo "--profile required" >&2; exit 2; }
+[ "$PROFILE" = "g615-v11-csf" ] || {
+  echo "unsupported profile: $PROFILE; only g615-v11-csf is supported" >&2
+  exit 2
+}
 NDK_BIN="$(ls -d "$NDK"/*/toolchains/llvm/prebuilt/linux-$(uname -m)/bin 2>/dev/null | sort -V | tail -n1)"
 if [ -z "$NDK_BIN" ]; then NDK_BIN="$(ls -d "$NDK"/toolchains/llvm/prebuilt/linux-$(uname -m)/bin 2>/dev/null | head -n1)"; fi
 # Community aarch64 NDKs (e.g. HomuHomu833 r30) name the host dir linux-arm64 instead of linux-aarch64.

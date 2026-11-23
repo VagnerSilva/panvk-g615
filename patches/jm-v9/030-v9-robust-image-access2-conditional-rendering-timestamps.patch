@@ -555,7 +555,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
 index 5cee274..6369027 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -1615,7 +1615,7 @@ panvk_GetPhysicalDeviceQueueFamilyProperties2(
+@@ -1628,7 +1628,7 @@ panvk_GetPhysicalDeviceQueueFamilyProperties2(
              some CTS tests */
           .queueCount = arch >= 10 ? 2 : 1,
           .timestampValidBits =

@@ -1,0 +1,73 @@
+From: PanVK Migration <panvk-migration@localhost>
+Subject: [PATCH kbase-common 018] kmod: honor selected kernel backends
+
+Purpose: Restrict the compiled and registered physical KMD backends to those
+ selected by panfrost-kmds. Keep panfrost_kmod.c available for virtual backends
+ when panfrost-virtio is enabled, independently of the physical selection.
+Source/Reference: Repository panfrost-kmds option and libpankmod backend table.
+Tested GPU: none for this patch.
+Tested Kbase UAPI: not tested.
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: kbase-common 001, 002, 003.
+Validation test: strict series replay; Kbase-only cross-build and static symbol
+ check; build the default DRM backend selection and virtual backend objects.
+
+diff --git a/src/panfrost/lib/kmod/meson.build b/src/panfrost/lib/kmod/meson.build
+index 5a9f31bfd5e2eebb76c8aa445a4f01b77bbf35e0..391f8a52f4fc3cf7c8e5b6e1b90ad1cac09c0314 100644
+--- a/src/panfrost/lib/kmod/meson.build
++++ b/src/panfrost/lib/kmod/meson.build
+@@ -6,10 +6,14 @@ libpankmod_lib_link_with = []
+ libpankmod_lib_inc = []
+ libpankmod_lib_code = [
+   'pan_kmod.c',
+-  'panfrost_kmod.c',
+-  'panthor_kmod.c',
+ ]
+-
++
++if panfrost_kmds.contains('panfrost') or with_panfrost_vdrm
++  libpankmod_lib_code += 'panfrost_kmod.c'
++endif
++if panfrost_kmds.contains('panthor')
++  libpankmod_lib_code += 'panthor_kmod.c'
++endif
+ if panfrost_kmds.contains('kbase')
+   libpankmod_lib_code += 'kbase_kmod.c'
+ endif
+diff --git a/src/panfrost/lib/kmod/pan_kmod.c b/src/panfrost/lib/kmod/pan_kmod.c
+index 25ed68fef78e292a0b59c36735d47d4f90e25eff..e82f05468243051d26006e0e2f6dc97d9d74dc8a 100644
+--- a/src/panfrost/lib/kmod/pan_kmod.c
++++ b/src/panfrost/lib/kmod/pan_kmod.c
+@@ -13,8 +13,12 @@
+ #include "pan_kmod.h"
+ #include "pan_kmod_backend.h"
+-
++
++#if defined(HAVE_PAN_KMOD_PANFROST)
+ extern const struct pan_kmod_ops panfrost_kmod_ops;
++#endif
++#if defined(HAVE_PAN_KMOD_PANTHOR)
+ extern const struct pan_kmod_ops panthor_kmod_ops;
++#endif
+ #if defined(HAVE_PAN_KMOD_KBASE)
+ extern const struct pan_kmod_ops kbase_kmod_ops;
+ #endif
+@@ -27,14 +31,18 @@ static const struct backend {
+    const char *name;
+    const struct pan_kmod_ops *ops;
+ } backends[] = {
++#if defined(HAVE_PAN_KMOD_PANFROST)
+    {
+       "panfrost",
+       &panfrost_kmod_ops,
+    },
++#endif
++#if defined(HAVE_PAN_KMOD_PANTHOR)
+    {
+       "panthor",
+       &panthor_kmod_ops,
+    },
++#endif
+ #if defined(HAVE_PAN_KMOD_KBASE)
+    {
+       "kbase",

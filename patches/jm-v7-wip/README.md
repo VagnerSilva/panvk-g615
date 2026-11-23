@@ -1,5 +1,9 @@
 # jm-v7 WIP (item 19, Bifrost DXVK feature port)
 
+Historical record: the patch files in this family are no longer included in
+this checkout. They were not inputs to the Mesa 27 G615 profile builds.
+Historical commands below require an archived revision containing the series.
+
 `scripts/apply-patches.sh` does not apply these. Apply them with `git am`, in order, on top of the full series (`apply-patches.sh --profile g615-v11-csf`, which already applies jm-v7 001-005). They are `git format-patch` files and depend on each other, so plain `git apply` of one alone fails.
 
 ## Renumbering (v7wip-order): file order = apply order

@@ -2250,7 +2250,7 @@ index 7465627..7aa9d6a 100644
  static VkResult
  kbase_cpu_sync_wait_one(struct vk_device *device, struct kbase_cpu_sync *ks,
                          enum vk_sync_wait_flags wait_flags,
-@@ -1415,6 +1446,7 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+@@ -1428,6 +1459,7 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
        }
        break;
  
