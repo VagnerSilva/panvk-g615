@@ -1,5 +1,37 @@
 # Technical baseline: Mali kernel platform
 
+## Current baseline reconciliation — 2026-11-23
+
+The original inventory below is preserved as a historical snapshot, not a
+description of the current checkout. The current project HEAD is
+`b64d2fb10e191a8f5666bb509a27b4422df6030f` on `feat-migration`.
+`work/mesa` is clean at the pinned commit
+`13baeb70c066a9f82d2bcfb29f06e4865212affa`, version `27.0.0-devel`,
+branch `repo-clean`. Porcelain status including all untracked files and both
+diffs were empty. No ignored Kbase files were found in `src/panfrost/lib/kmod`.
+
+The current `sources.lock` patch-series ID is
+`sha256:3e20d28a3753e671f6cbfe164372e71b55ecf407dec039f56c05232c53bf2060`;
+the profile-specific computation returned the same value. This establishes
+input identity, not patch application or runtime qualification.
+
+Kraid is present in the clean Mesa compiler tree and linked conditionally on
+`with_panfrost_rust`. The clean kmod source list contains Panfrost and Panthor,
+not the downstream Kbase implementation. Use the tracked patches to investigate
+Kbase; do not treat the historical modified snapshot as clean upstream.
+
+The physical reference for this skill is Moto G86 / Mali-G615 MC2, Android
+and Linux/glibc in a chroot on the Android handset. Poco MC6, JM and Panthor
+remain historical evidence or interface boundaries, not additional support
+targets. Keep the plan's G15 scope label distinct from G615 `PAN_ARCH=11`.
+
+See [TECHNICAL_CONSOLIDATION.md](TECHNICAL_CONSOLIDATION.md) for the targeted
+investigation, platform-specific evidence and remaining limitations. Existing
+F0-F5 definitions remain unavailable; domain coverage does not reconstruct
+their canonical numbering.
+
+## Historical snapshot — consolidation audited on 2026-11-21
+
 ## Purpose and evidence policy
 
 This document consolidates the kernel/platform evidence currently present in
@@ -71,13 +103,13 @@ and [E-004](EVIDENCE_REGISTER.md).
 For placed host mappings, worklog 091 reports a dma-heap-backed shared BO
 approach and historical device/CTS results. It also records failure when
 dma-heap is unavailable. These are historical results from the beta.10 tree,
-not a current-tree rerun. See E-007/E-013 in
+not a current-tree rerun. See E-006/E-013 in
 [EVIDENCE_REGISTER.md](EVIDENCE_REGISTER.md).
 
 Worklog 192 describes a CSF Kbase submission change and explicitly says it was
 not run on hardware. Its sync-wait and heap-termination measurements are
 historical reports, not a current performance or correctness claim. See
-E-008/E-013 in [EVIDENCE_REGISTER.md](EVIDENCE_REGISTER.md).
+E-007/E-013 in [EVIDENCE_REGISTER.md](EVIDENCE_REGISTER.md).
 
 ## F0-F5 consolidation status
 
@@ -90,8 +122,10 @@ F0-F5 report set or mapping. Therefore:
   provenance and limitations.
 - Evidence topics below must not be retroactively assigned to a particular
   F-phase without the missing phase definitions or original handoffs.
-- The empty pre-existing [`docs/engineering/EVIDENCE_REGISTER.md`](../EVIDENCE_REGISTER.md)
-  was preserved; this consolidation is in a new directory.
+- The original inventory reported an empty `docs/engineering/EVIDENCE_REGISTER.md`
+  as preserved. That ancestral file is absent in the 2026-11-23 inventory;
+  its contents are not reconstructed. This consolidation remains in its own
+  directory.
 
 The available material covers: Kbase sparse feasibility and a later
 unimplemented design proposal; CSF UAPI layout compatibility; placed

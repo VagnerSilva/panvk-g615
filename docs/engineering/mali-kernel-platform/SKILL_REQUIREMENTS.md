@@ -2,13 +2,51 @@
 
 This is a requirements document, not the definitive `SKILL.md`.
 
+## Operational development extension — second plan
+
+The [operational revision](OPERATIONAL_DEVELOPMENT.md) adds the development
+map, decision rules and correction/feature/refactor/optimization workflow.
+It reuses the consolidation rather than commissioning new domain analyses.
+Acceptance requires five representative development exercises, not merely
+the earlier diagnostic/navigation walkthroughs. The user authorized direct
+installation under Plan 2 on 2026-11-23; Mesa patch application and physical
+validation remain unauthorized.
+
+## Generated proposal — Stage 3, 2026-11-23
+
+The proposed [skill entry point](../../../.agents/skills/mali-kernel-platform/SKILL.md)
+now links ten technical references and five bounded workflows. Central Mesa/Mali
+and PanVK routing links point to it while retaining availability/scope checks.
+Generation does not imply installation, contract approval or hardware
+qualification. On 2026-11-23 the user explicitly approved the operational
+contract and its recorded limits, without authorizing application, installation
+or hardware tests. Stage 4's independent initial disposition is PARTIAL;
+findings, executor corrections and final approval boundaries are recorded in
+[audit/SKILL_AUDIT_CLOSURE.md](audit/SKILL_AUDIT_CLOSURE.md).
+Stage 2 implementation findings and deferred failures remain explicit.
+
 ## Scope and responsibility boundaries
 
-The skill must own investigation of Kbase UAPI, Panthor DRM interfaces,
-CSF/JM submission protocols, kernel-facing memory and synchronization,
-firmware dependencies, and Android/Linux platform interfaces. It must coordinate
-with PanVK and build/testing specializations without silently expanding their
-scope or claiming kernel behavior from userspace code alone.
+The proposed skill is limited to the plan's G15 scope, with Moto G86 /
+Mali-G615 MC2 as the physical reference, Android/Bionic and Linux/glibc in a
+chroot on that Android handset. G615 uses `PAN_ARCH=11`; do not interpret
+the G15 label as `PAN_ARCH=15`. Other GPUs, Linux native and Panthor runtime
+support are outside scope.
+
+The skill must own investigation of Kbase UAPI/ABI, applicable CSF submission,
+kernel-facing memory and synchronization, observable firmware dependencies and
+platform interfaces. Panthor and JM are boundaries or historical references,
+not interchangeable backends or additional validation targets. It must
+coordinate with PanVK and build/testing specializations without duplicating
+their procedures or claiming kernel behavior from userspace code alone.
+
+Treat Kraid migration as the plan's completed architectural decision, while
+separating clean Mesa source, downstream patches and tested binaries.
+Poco G615 MC6 evidence never establishes Moto G615 MC2 compatibility.
+Use [TECHNICAL_CONSOLIDATION.md](TECHNICAL_CONSOLIDATION.md) for the current
+baseline, evidence and deferred failures. The user explicitly approved these
+limited operational requirements on 2026-11-23. That acceptance does not
+authorize applying this patch or claim independent final homologation.
 
 It must explicitly distinguish:
 
@@ -32,9 +70,10 @@ It must explicitly distinguish:
 4. Locate exact source/header definitions and call sites in the matching
    revision. Treat external repositories and historical worklogs as leads,
    not proof of the current implementation.
-5. Trace the contract end to end: userspace request -> ioctl/ABI -> kernel
-   handling -> synchronization/completion/error behavior -> hardware result,
-   marking unknown links.
+5. Trace the observable contract: userspace request -> ioctl/ABI ->
+   synchronization/completion/error behavior -> recorded hardware result.
+   Inspect matching kernel handling only when an authoritative source exists;
+   otherwise mark that link unknown, without blocking skill generation.
 6. For every claim, provide a precise source locator, revision, tuple, evidence
    class, and limitations.
 7. Keep proposed designs and hypotheses separate from implemented behavior.
@@ -78,10 +117,13 @@ Each compatibility statement must be scoped by GPU model/PAN_ARCH, backend,
 CSF/JM, exact kernel/UAPI and firmware if known, platform, source revision,
 configuration, and test case. Unknown values stay unknown.
 
-Use the evidence categories from
-[EVIDENCE_REGISTER.md](EVIDENCE_REGISTER.md): static confirmation,
-reproduction, build validation, hardware validation, historical report,
-hypothesis, or unknown. A source-level observation is not a runtime result.
+Use `STATIC_CONFIRMED`, `REPRODUCED`, `BUILD_VALIDATED`,
+`AUTOMATED_TEST_VALIDATED`, `DEVICE_VALIDATED`, `HISTORICAL_REPORT`, `INFERRED`,
+`HYPOTHESIS` and `UNKNOWN`, as specified by the current plan. Preserve the older
+grades in [EVIDENCE_REGISTER.md](EVIDENCE_REGISTER.md) as historical labels.
+A source-level observation is not a runtime result. Tests described by earlier
+reports are historical until their original evidence is checked; they are not
+new executions against the current patch series.
 Store support status separately from evidence quality; never generalize a
 single device result to a generation.
 

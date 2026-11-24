@@ -3,6 +3,11 @@
 Technical impact and confidence are deliberately separate. Probability is
 left unknown unless the sources support an estimate.
 
+These risks retain their historical evidence and scope. RSK-006 records the
+previous modified snapshot; it is a provenance invariant, not a claim that the
+current checkout is dirty. The Moto-only follow-up is in
+[TECHNICAL_CONSOLIDATION.md](TECHNICAL_CONSOLIDATION.md).
+
 | ID | Risk | Impact | Probability | Scope | Evidence / confidence | Priority | Mitigation | State |
 |---|---|---|---|---|---|---|---|---|
 | RSK-001 | Panthor VM_BIND/syncobj assumptions are applied to custom Kbase. | High: incorrect sparse exposure, queue failure, or invalid memory operations. | Unknown | Any Kbase profile reusing Panthor VM logic | E-002/E-003/E-009; high confidence in code/document distinction | P1 | Keep backend-specific capability gates; trace ioctl and sync contracts per kernel interface. | Open |

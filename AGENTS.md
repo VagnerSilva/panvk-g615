@@ -84,7 +84,8 @@ The agent may autonomously:
 - Investigate compiler and driver behavior.
 - Identify architectural problems and potential regressions.
 - Design implementation strategies.
-- Prepare isolated and reviewable patches.
+- Prepare isolated and reviewable patches for Mesa driver changes.
+- Edit other project files directly within the requested scope, preserving existing changes.
 - Run non-destructive validation in disposable workspaces.
 - Produce technical reports and implementation plans.
 
@@ -98,7 +99,9 @@ Explicit user authorization is required before:
 - Running operations that can remove or overwrite project data.
 - Creating commits or publishing changes.
 
-Investigation and patch preparation do not imply authorization to apply changes.
+Investigation and Mesa patch preparation do not imply authorization to apply
+Mesa patches. Changes outside Mesa use direct edits, not a mandatory patch
+delivery/application step; other approval and workspace-safety rules still apply.
 
 ## Directory Map
 
@@ -121,11 +124,11 @@ Do not duplicate detailed technical documentation in this file. Keep project-wid
 1. Treat original files in `work/` as read-only. Never edit, overwrite, or remove them directly, including files in `work/mesa/`, `work/libdrm/`, and `work/android-deps/`.
 2. Never assume that a clean Git checkout contains all required inputs. Local changes and untracked files may be part of the intended build or investigation.
 3. Inspect `git status`, the current branch, the relevant revision, and existing diffs before preparing changes.
-4. Perform modifications only through reviewable `.patch` files.
-5. Generate patches with `git diff --binary --full-index` in a separate copy, or write a unified diff.
+4. Represent driver changes targeting `work/mesa/` through reviewable `.patch` files. Edit other project files directly; documentation, skills, scripts, tests and apps do not require generated patches.
+5. Generate Mesa patches with `git diff --binary --full-index` in a separate copy, or write a unified diff.
 6. Preserve original paths, directory structure, permissions, and data.
-7. Apply patches only to a disposable copy at the correct revision, never to the original source tree.
-8. Run `git apply --check --whitespace=error -v change.patch` before applying a patch.
+7. Apply Mesa patches only to a disposable copy at the correct revision, never to the original source tree.
+8. Run `git apply --check --whitespace=error -v change.patch` before applying a Mesa patch.
 9. Reject conflicts, offsets, or fuzz. Do not suppress patch failures.
 10. Apply the patch with `git apply change.patch` only after the check passes and explicit authorization has been granted.
 11. Compare the result with `git diff` or `diff`. Confirm that only intended paths, file modes, and contents changed.
@@ -134,7 +137,8 @@ Do not duplicate detailed technical documentation in this file. Keep project-wid
 
 ## Patch Engineering
 
-- Every source change must be represented by a reviewable patch.
+- Every Mesa driver change targeting `work/mesa/` must be represented by a reviewable patch.
+- Other project changes use direct edits and diff review; do not generate documentary or other non-Mesa delivery patches.
 - Keep patches small, isolated, and traceable.
 - Place each patch in the family that matches its profile and architectural purpose.
 - For Mesa changes, follow the required patch header in `patches/README.md`.
@@ -332,13 +336,13 @@ Use concise, scoped commit subjects when commits are explicitly authorized. Foll
 Before declaring a task complete:
 
 1. Confirm that the requested scope was addressed.
-2. Review the complete patch.
+2. Review the complete diff; for Mesa changes, also review the prepared patch.
 3. Check for unintended modifications.
 4. Run `git diff --check`.
 5. Execute the relevant build and test gates.
 6. Record all validation results.
 7. Identify anything not executed or still blocked.
 8. Confirm that no original source, user data, or unrelated changes were overwritten.
-9. Present the patch for review.
+9. Present the changes for review; include a patch only for Mesa driver changes.
 
-Do not apply the patch, create a commit, or publish a release without the required explicit authorization.
+Do not apply a Mesa patch, create a commit, or publish a release without the required explicit authorization.

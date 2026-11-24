@@ -96,12 +96,18 @@ Use the following specialization map:
 | ------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | NIR, Kraid IR, lowering, optimization, scheduling, liveness, register allocation, spilling, ISA and code generation | `kraid-compiler`         |
 | Panfrost, PanVK, Vulkan frontend, pipelines, resources, descriptors, synchronization and WSI                        | `panfrost-panvk`         |
-| Kbase, UAPI, CSF/JM, Panthor, firmware, GPU memory and kernel interfaces                                            | `mali-kernel-platform`   |
+| Kbase, UAPI, CSF/JM, Panthor, firmware, GPU memory and kernel interfaces                                            | [mali-kernel-platform](../mali-kernel-platform/SKILL.md) |
 | Global Kraid integration, Mesa migration, shared interfaces, legacy compatibility and upstream divergence           | `mesa-kraid-migration`   |
 | Android/Linux builds, NDK, Bionic, packaging, ICD, installation and build validation                                | `panvk-build-validation` |
 | CTS, regression testing, hardware validation, stability, profiling and benchmarks                                   | `gpu-testing-profiling`  |
 
 Load only the specialization relevant to the task.
+
+The kernel/platform skill's implemented operational scope is G15 / Moto G86
+Mali-G615 MC2 (PAN_ARCH 11), Android/Bionic and glibc chroot on the Android
+handset. JM, Panthor and other devices in that skill are historical references
+or interface boundaries, not runtime support claims. Respect its limits when
+handing off work; do not generalize its results or assume it is homologated.
 
 A task may require more than one specialization when its fault domain crosses
 subsystem boundaries. Identify those dependencies explicitly.
@@ -186,7 +192,10 @@ independent and have clear deliverables.
 
 ## 6. Changes and validation
 
-Follow `AGENTS.md` and the repository's patch-only workflow.
+Follow `AGENTS.md`. The mandatory patch workflow applies only to Mesa driver
+changes targeting `work/mesa/`: prepare them in a separate copy, not by editing
+protected originals. Edit documentation, skills, scripts, tests and apps
+directly; do not generate delivery patches for those changes.
 
 Before proposing a change:
 
@@ -194,7 +203,8 @@ Before proposing a change:
 2. Identify affected components and compatibility requirements.
 3. Trace the relevant interfaces and invariants.
 4. Define focused tests and validation criteria.
-5. Prepare a reviewable patch without overwriting existing work.
+5. Make scoped direct edits outside Mesa, or prepare a reviewable Mesa patch
+   in a separate copy, without overwriting existing work.
 6. Report affected files, risks and verification status.
 
 Never claim a change is validated unless the corresponding checks were

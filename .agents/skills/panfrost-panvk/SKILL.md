@@ -34,7 +34,7 @@ to another specialization:
 | Panfrost shared libraries, GPU descriptions, GenXML, command helpers, or Gallium differences needed to explain PanVK | This skill, limited to the relevant interface |
 | NIR translation internals, Kraid IR, lowering, optimization, scheduling, liveness, allocation, spilling, ISA, and code generation | [Kraid compiler skill](../kraid-compiler/SKILL.md) |
 | Android/Bionic or glibc build, packaging, ICD, and build gates | [PanVK build-validation skill](../panvk-build-validation/SKILL.md) |
-| Kbase/UAPI, CSF/JM kernel protocol, firmware, or kernel memory behavior | Use the matching kernel/platform skill only after confirming it is present and inspecting it |
+| Kbase/UAPI, CSF/JM kernel protocol, firmware, or kernel memory behavior | [Mali kernel/platform skill](../mali-kernel-platform/SKILL.md), after checking availability and its Moto G86/G615 MC2, Android/glibc scope; other backends/devices are boundaries, not qualified targets |
 | CTS, device test execution, stability, profiling, or benchmarks | Use a matching testing skill only after confirming it is present and inspecting it |
 | Cross-cutting Mesa migration, shared compiler architecture, or upstream divergence | Use the central skill and verify whether a dedicated migration skill exists |
 
@@ -68,7 +68,8 @@ Before analyzing behavior or changing code:
 3. Treat `work/mesa/` and other protected source trees as read-only. Make Mesa
    changes only through the repository's authorized patch workflow and the
    correct patch family. Do not apply a patch or commit without explicit
-   authorization.
+   authorization. Files outside Mesa, including skills, documentation,
+   scripts, tests and apps, use direct edits rather than generated patches.
 4. Confirm paths, symbols, generated files, build options, and test targets in
    the source revision under investigation. Candidate roots such as
    `src/panfrost/vulkan/`, `src/panfrost/lib/`,
@@ -425,5 +426,6 @@ An investigation or change is complete when:
 - Findings distinguish evidence from hypotheses and unknowns.
 - Cross-skill boundaries and handoffs are precise.
 - Required tests were run or clearly marked as blocked/not executed.
-- Changes follow repository authorization and patch-only rules.
+- Changes follow repository authorization; Mesa driver changes use patches,
+  while other project files use direct edits.
 - Remaining risks and a verifiable next step are reported.

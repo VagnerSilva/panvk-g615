@@ -1,5 +1,12 @@
 # Consolidation autocheck
 
+This is the historical executor check for the 2026-11-21 consolidation.
+It is not a current check or approval of the new skill. The 2026-11-23 inventory
+found the ancestral `docs/engineering/EVIDENCE_REGISTER.md` missing and
+identified evidence-ID mismatches; the proposed reconciliation preserves this
+report and records fresh checks in
+[TECHNICAL_CONSOLIDATION.md](TECHNICAL_CONSOLIDATION.md).
+
 This is the executor's structural/process check, not an independent technical
 approval. See the separate [`audit/CONSOLIDATION_AUDIT.md`](audit/CONSOLIDATION_AUDIT.md).
 

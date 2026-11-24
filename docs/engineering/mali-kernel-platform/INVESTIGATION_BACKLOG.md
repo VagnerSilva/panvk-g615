@@ -1,5 +1,24 @@
 # Investigation backlog: F6-F12
 
+## Current targeted backlog — 2026-11-23
+
+The packages below are retained as historical proposals, not the current
+execution order or canonical phase definitions. For the current G15 / Moto G86
+scope, do not investigate additional GPUs, Panthor or JM beyond interface
+boundaries. Linux/glibc means a chroot on the Android handset.
+
+Follow [TECHNICAL_CONSOLIDATION.md](TECHNICAL_CONSOLIDATION.md) for targeted
+gaps and reusable evidence. Missing F0-F5 definitions, internal kernel sources,
+firmware details and untested hardware cases do not prevent generating a skill
+with explicit limitations. App-UID external-AHB import remains a deferred
+failure on the documented ROM; do not reopen it as a prerequisite.
+
+The next deliverable is the proposed operational contract and skill, not a new
+multigeneration ABI or hardware campaign. Hardware tests, patch application,
+profile changes and commits still require explicit authorization.
+
+## Historical proposed packages
+
 The source plan says F6-F12 remain, but does not define their canonical
 titles or scopes. The entries below are **proposed work packages**, not an
 authoritative reconstruction of the original phase numbering. Confirm the
