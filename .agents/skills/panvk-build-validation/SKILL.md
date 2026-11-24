@@ -1,47 +1,47 @@
 ---
 name: panvk-build-validation
-description: "Use para preparar, compilar, inspecionar e diagnosticar PanVK Mesa 27 com Kraid integrado, em Android/Bionic e Linux/glibc. Escopo G15 do plano: Moto G86 Mali-G615 MC2, PAN_ARCH 11 e Kbase CSF. Separa proveniência, build, pacote e validação funcional."
+description: "Use to prepare, build, inspect and diagnose PanVK Mesa 27 with integrated Kraid on Android/Bionic and Linux/glibc. G15 scope: Moto G86 Mali-G615 MC2, PAN_ARCH 11 and Kbase CSF. Separates provenance, build, packaging and functional validation."
 ---
 
-# Diagnóstico e validação do build PanVK
+# PanVK build diagnosis and validation
 
-Use esta skill para o PanVK da revisão fixada em [sources.lock](../../../sources.lock), atualmente Mesa `27.0.0-devel`, em Android/Bionic e Linux/glibc. Kraid está integrado, mas sua seleção padrão é Android; glibc permanece opt-in.
+Use this skill for PanVK at the revision pinned in [sources.lock](../../../sources.lock), currently Mesa `27.0.0-devel`, on Android/Bionic and Linux/glibc. Kraid is integrated, but selected by default only on Android; glibc remains opt-in.
 
-O alvo documental é Moto G86 / Mali-G615 MC2. O rótulo G15 do plano não substitui `PAN_ARCH=11`. O único perfil aceito pelos scripts, [g615-v11-csf](../../../profiles/g615-v11-csf.json), ainda identifica o Poco X6 Pro MC6: não copie sua máscara de cores, kernel, permissões ou resultados para o Moto. Confirme a identidade atual antes de execução física; dados desconhecidos ficam `BLOQUEADO`, sem impedir a preparação documental.
+The documentary target is Moto G86 / Mali-G615 MC2. The G15 scope label does not replace `PAN_ARCH=11`. The only profile accepted by the scripts, [g615-v11-csf](../../../profiles/g615-v11-csf.json), still identifies the Poco X6 Pro MC6: do not copy its core mask, kernel, permissions or results to the Moto. Confirm current identity before hardware execution; unknown prerequisites remain `BLOCKED` without preventing documentary preparation.
 
-## Roteamento
+## Routing
 
-- [mesa3d-mali-expert](../mesa3d-mali-expert/SKILL.md): orientação geral e encaminhamento.
-- [kraid-compiler](../kraid-compiler/SKILL.md): tradução NIR, IR, legalização, scheduling, alocação e codegen.
-- [panfrost-panvk](../panfrost-panvk/SKILL.md): implementação e arquitetura PanVK/Panfrost.
-- [mali-kernel-platform](../mali-kernel-platform/SKILL.md): Kbase, UAPI/ABI, CSF, memória e plataforma.
-- Esta skill: preparação, compilação, empacotamento, inspeção, seleção dos testes e classificação das evidências.
+- [mesa3d-mali-expert](../mesa3d-mali-expert/SKILL.md): general guidance and routing.
+- [kraid-compiler](../kraid-compiler/SKILL.md): NIR translation, IR, legalization, scheduling, allocation and codegen.
+- [panfrost-panvk](../panfrost-panvk/SKILL.md): PanVK/Panfrost implementation and architecture.
+- [mali-kernel-platform](../mali-kernel-platform/SKILL.md): Kbase, UAPI/ABI, CSF, memory and platform.
+- This skill: preparation, building, packaging, inspection, test selection and evidence classification.
 
-## Método
+## Method
 
-1. **Delimite a falha.** Identifique ICD Bionic, ICD glibc ou aplicativo, host, fase e critério de aceite. Consulte scripts e logs locais antes de escolher o procedimento do [workflow](./references/workflow.md). Não presuma versões, flags, GPU, UAPI ou sucesso.
-2. **Preserve o contexto.** Confira mudanças locais, perfil, pin Mesa, `patchSeriesId` e variante aplicada. Prepare uma cópia descartável com os inputs pretendidos; exportar `HEAD` omite mudanças locais. Não edite a fonte original em `work/` nem execute nela scripts que limpam ou redefinem a árvore.
-3. **Isole uma causa por vez.** Cite o primeiro erro causal, arquivo ou comando e evidência. Altere uma variável e repita somente o gate afetado, com `BDIR` novo quando a configuração cross mudar. Se o teste não reduzir o domínio da falha, pare de alternar flags e reduza o caso.
-4. **Use os scripts do projeto.** Selecione perfil, NDK/toolchain e dependências do alvo explicitamente. Não instale pacotes avulsos nem edite o Mesa extraído. Prepare patches na família correta; aplicação exige autorização, árvore descartável e verificação sem offset/fuzz. `--with-kbase-sync` permanece opt-in, somente G615.
-5. **Valide o resultado exato.** Inspecione ELF, dependências, símbolos e identidade antes de empacotar. Selecione somente os testes afetados e registre evidências por gate. Não execute builds ou testes físicos apenas para atualizar documentação; reutilize registros com sua identidade e limitações originais. Testes físicos exigem autorização.
+1. **Bound the failure.** Identify Bionic ICD, glibc ICD or application, host, stage and acceptance criterion. Consult local scripts and logs before selecting the [workflow](./references/workflow.md) procedure. Do not presume versions, flags, GPU, UAPI or success.
+2. **Preserve context.** Check local changes, profile, Mesa pin, `patchSeriesId` and applied variant. Prepare a disposable copy with the intended inputs; exporting `HEAD` omits local changes. Do not edit original sources in `work/` or run scripts there that clean or reset the tree.
+3. **Isolate one cause at a time.** Cite the first causal error, file or command and evidence. Change one variable and repeat only the affected gate, using a fresh `BDIR` when cross configuration changes. If testing does not narrow the failure domain, stop toggling flags and reduce the case.
+4. **Use project scripts.** Explicitly select profile, NDK/toolchain and target dependencies. Do not install ad hoc packages or edit extracted Mesa. Prepare patches in the correct family; application requires authorization, a disposable tree and checks without offsets/fuzz. `--with-kbase-sync` remains opt-in, G615 only.
+5. **Validate the exact result.** Inspect ELF, dependencies, symbols and identity before packaging. Select only affected tests and record evidence per gate. Do not run builds or hardware tests just to update documentation; reuse records with their original identity and limits. Hardware tests require authorization.
 
 ## Gates
 
-Use `PASS`, `FAIL`, `BLOQUEADO` e `NÃO EXECUTADO` separadamente. Um gate aprovado não aprova o seguinte; compilação, símbolos, enumeração e ZIP íntegro não provam runtime.
+Use `PASS`, `FAIL`, `BLOCKED` and `NOT EXECUTED` separately. Passing one gate does not pass the next; compilation, symbols, enumeration and ZIP integrity do not prove runtime behavior.
 
-| Gate | Critério |
+| Gate | Criterion |
 |---|---|
-| Proveniência | Pin, perfil e hash de inputs coerentes; aplicação comprovada separadamente pelo manifesto da variante e log sem drift. |
-| Toolchain | Compiladores, sysroot, ferramentas host e dependências target identificados e separados. |
-| Build | Compilação/link concluídos e artefatos esperados produzidos no destino registrado. |
-| ELF | ELF64 AArch64, ABI, dependências, exports e notas pertinentes verificados; o script sozinho não cobre todos esses critérios. |
-| Pacote | Conteúdo e metadados corretos, ZIP íntegro e bytes/SHA-256 iguais aos do ICD inspecionado. |
-| Runtime | ICD exato carregado; resultados funcionais completos para o teste, ambiente e dispositivo declarados. |
-| Estabilidade | Sem crash, hang, device-lost ou corrupção nos ciclos e limites executados, sem extrapolar a cobertura. |
-| Desempenho | Comparação reproduzível da mesma carga/dispositivo/configuração; sem alegar ganho por build ou enumeração. |
+| Provenance | Consistent pin, profile and input hash; application proven separately by the variant manifest and drift-free log. |
+| Toolchain | Compilers, sysroot, host tools and target dependencies identified and separated. |
+| Build | Compilation/link complete and expected artifacts produced at the recorded destination. |
+| ELF | ELF64 AArch64, ABI, dependencies, exports and relevant notes verified; the script alone does not cover all criteria. |
+| Package | Correct content/metadata, ZIP integrity and bytes/SHA-256 matching the inspected ICD. |
+| Runtime | Exact ICD loaded; complete functional results for the declared test, environment and device. |
+| Stability | No crash, hang, device-lost or corruption within executed cycles/limits, without extrapolating coverage. |
+| Performance | Reproducible comparison on the same workload/device/configuration; no gain claimed from a build or enumeration. |
 
-O [roteiro operacional](./references/workflow.md) define pré-condições, comandos, evidências e ações por gate. O compute `0x12345678` em 10/10 continua disponível como smoke test; não é uma baseline Moto homologada pela evidência MC6.
+The [operational workflow](./references/workflow.md) defines prerequisites, commands, evidence and actions per gate. Compute `0x12345678` in 10/10 remains available as a smoke test; MC6 evidence does not homologate it as a Moto baseline.
 
-## Entrega
+## Delivery
 
-Reporte diagnóstico, ação, resultados por gate e próximo passo verificável. Registre perfil, revisão Mesa, `patchSeriesId`, variante/manifesto, host, toolchain, API, Build ID e SHA-256, além de dispositivo e ambiente quando houver runtime. Separe fatos atuais, relatos históricos, hipóteses e desconhecidos; declare o que não foi executado. Patches e aprovação antes da aplicação são exigidos para alterações no driver Mesa; nos demais arquivos, edite diretamente e revise o diff. Não crie commits ou publique sem autorização.
+Report diagnosis, action, per-gate results and the next verifiable step. Record profile, Mesa revision, `patchSeriesId`, variant/manifest, host, toolchain, API, Build ID and SHA-256, plus device/environment for runtime. Separate current facts, historical reports, hypotheses and unknowns; state what was not executed. Mesa driver changes require patches and approval before application; edit other files directly and review the diff. Do not commit or publish without authorization.

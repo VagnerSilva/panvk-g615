@@ -8,7 +8,7 @@ security policy. Follow [AGENTS.md](../../../../AGENTS.md).
 
 ## Evidence and invariants
 
-- [Historical Moto investigation](../../../../docs/superpowers/plans/2026-11-22-ahb-app-uid-investigation.md:97)
+- [Historical Moto context evidence](../../../../docs/engineering/mali-kernel-platform/TECHNICAL_CONSOLIDATION.md#android-versus-linuxglibc)
   distinguishes an untrusted app from a root/KSU control. The control's exact
   identity at its original run was not captured; never call it ordinary shell.
 - Unix mode, successful root open or profile MC6 access does not establish

@@ -20,7 +20,7 @@ toolchain/manifest/ELF/ABI, not only a script's success message.
 
 ## Runtime context and existing failure
 
-[E-017 investigation](../../../../docs/superpowers/plans/2026-11-22-ahb-app-uid-investigation.md:97)
+[E-017 historical evidence](../../../../docs/engineering/mali-kernel-platform/EVIDENCE_REGISTER.md)
 reports Moto MC2, MT6878, Android 16/API 36, vendor API 34 and Enforcing.
 Actual node permissions, page/GLB details and process context for a future run
 must be identified, not copied from Poco.

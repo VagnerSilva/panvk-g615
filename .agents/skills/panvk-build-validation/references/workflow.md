@@ -1,16 +1,16 @@
-# Roteiro operacional: PanVK Mesa 27 Android/Bionic e Linux/glibc
+# Operational workflow: PanVK Mesa 27 Android/Bionic and Linux/glibc
 
-Execute comandos de preparação/build somente na raiz de uma cópia descartável do repositório, com autorização para aplicar a série nessa cópia. Não use caminhos pessoais, artefatos de outra sessão ou a árvore Mesa original como inputs implícitos. Para manutenção documental, use scripts e evidências existentes: os blocos de build e runtime abaixo são instruções, não verificações obrigatórias da documentação.
+Run preparation/build commands only from the root of a disposable repository copy, with authorization to apply the series there. Do not use personal paths, artifacts from another session or the original Mesa tree as implicit inputs. For documentary maintenance, use existing scripts and evidence: the build/runtime blocks below are instructions, not mandatory documentation checks.
 
-Use Bash nos blocos shell e `set -euo pipefail` para propagar falhas, inclusive nas inspeções por pipeline. Defina as variáveis de cada procedimento antes de executá-lo.
+Use Bash for shell blocks and `set -euo pipefail` to propagate failures, including pipeline inspections. Define each procedure's variables before execution.
 
-O alvo documental é Moto G86 / Mali-G615 MC2, `PAN_ARCH=11`, Kbase CSF. Android 16 e CSF 1.21 constam no manifesto histórico Moto; a configuração atual deve ser confirmada antes de testes físicos. G15 é o rótulo do plano, não outro valor de `PAN_ARCH`.
+The documentary target is Moto G86 / Mali-G615 MC2, `PAN_ARCH=11`, Kbase CSF. Android 16 and CSF 1.21 appear in the historical Moto manifest; confirm the current configuration before hardware tests. G15 is a scope label, not another `PAN_ARCH` value.
 
-## 1. Proveniência e dependências
+## 1. Provenance and dependencies
 
-Leia [sources.lock](../../../../sources.lock), o [perfil G615](../../../../profiles/g615-v11-csf.json) e o [contrato dos patches](../../../../patches/README.md). O único perfil aceito pelos scripts é `g615-v11-csf`; seus metadados ainda descrevem Poco X6 Pro MC6/MT6897, não Moto MC2/MT6878. Não altere perfil, pin ou lock para esconder essa diferença; registre separadamente o dispositivo real.
+Read [sources.lock](../../../../sources.lock), the [G615 profile](../../../../profiles/g615-v11-csf.json) and the [patch contract](../../../../patches/README.md). The only profile accepted by the scripts is `g615-v11-csf`; its metadata still describes Poco X6 Pro MC6/MT6897, not Moto MC2/MT6878. Do not change the profile, pin or lock to hide this difference; record the actual device separately.
 
-Antes de preparar a cópia, registre:
+Before preparing the copy, record:
 
 ```sh
 git status --short --untracked-files=all
@@ -23,21 +23,21 @@ git -C work/mesa status --short --untracked-files=all
 python3 -B scripts/compute-patch-series-id.py --profile g615-v11-csf
 ```
 
-Compare Mesa e o hash calculado com o lock. Se a árvore Mesa não existir, registre isso como input ausente antes do fetch. Preserve mudanças locais e arquivos não rastreados necessários; exportar apenas `HEAD` não os inclui.
+Compare Mesa and the computed hash with the lock. If the Mesa tree does not exist, record it as a missing input before fetching. Preserve necessary local changes and untracked files; exporting only `HEAD` does not include them.
 
-O `patchSeriesId` inclui arquivos elegíveis de famílias não aplicadas. Não comprova aplicação. Registre a variante efetiva e obtenha `series-manifest.json` com `--series-manifest` do [aplicador](../../../../scripts/apply-patches.sh); esse manifesto lista os inputs ordenados aplicados. Seu SHA-256 é uma identidade adicional, não substitui o hash do ICD.
+The `patchSeriesId` includes eligible files from unapplied families. It does not prove application. Record the effective variant and obtain `series-manifest.json` using the [applier's](../../../../scripts/apply-patches.sh) `--series-manifest`; this manifest lists the ordered applied inputs. Its SHA-256 is an additional identity, not a replacement for the ICD hash.
 
-Verifique Git, Python 3/Mako/packaging, Meson, Ninja, `pkg-config`, C/C++ host, LLVM, Rust e bindgen. O [README](../../../../README.md#building) registra Meson 1.7+, Rust 1.85+, target Rust Android e restrições de bindgen. Consulte o Meson para Bison, Flex, `glslangValidator`, LLVM SPIR-V, SPIRV-Tools, libdrm e expat host; nem toda dependência detectada é obrigatória. Registre versões e origem; instale dependências apenas após uma falta confirmada.
+Check Git, Python 3/Mako/packaging, Meson, Ninja, `pkg-config`, host C/C++, LLVM, Rust and bindgen. The [README](../../../../README.md#building) records Meson 1.7+, Rust 1.85+, the Android Rust target and bindgen restrictions. Consult Meson for Bison, Flex, `glslangValidator`, LLVM SPIR-V, SPIRV-Tools, host libdrm and expat; not every detected dependency is mandatory. Record versions and origins; install dependencies only after a confirmed missing requirement.
 
-**Efeitos dos scripts:** [fetch-mesa.sh](../../../../scripts/fetch-mesa.sh) recebe um diretório de trabalho posicional e faz checkout/reset/clean. [prepare-x11-headers.sh](../../../../scripts/prepare-x11-headers.sh) substitui seu prefixo. O [build Android](../../../../scripts/build-android.sh) pode limpar `BDIR` ao mudar a release string e sobrescreve o ICD de destino. Nunca os execute sobre dados originais ou destinos que precisam ser preservados.
+**Script effects:** [fetch-mesa.sh](../../../../scripts/fetch-mesa.sh) takes a positional work directory and performs checkout/reset/clean. [prepare-x11-headers.sh](../../../../scripts/prepare-x11-headers.sh) replaces its prefix. The [Android build](../../../../scripts/build-android.sh) may clean `BDIR` when the release string changes and overwrites the destination ICD. Never run these scripts on original data or destinations that must be preserved.
 
 ## 2. Android/Bionic
 
-O [fetch-ndk.sh](../../../../scripts/fetch-ndk.sh) provisiona NDK r30 `30.0.16248370`, verifica SHA-1 e aceita `--work DIRECTORY`. Seu arquivo oficial exige host Linux x86_64. O build aceita `--ndk` explicitamente; r30 não é uma checagem rígida do script. Em host ARM64, selecione um toolchain compatível e confira também a descoberta de NDK pelo script de dependências; não execute o fetch oficial x86_64.
+[fetch-ndk.sh](../../../../scripts/fetch-ndk.sh) provisions NDK r30 `30.0.16248370`, verifies SHA-1 and accepts `--work DIRECTORY`. Its official archive requires a Linux x86_64 host. The build explicitly accepts `--ndk`; r30 is not a hard script check. On an ARM64 host, select a compatible toolchain and also check the dependency script's NDK discovery; do not run the official x86_64 fetch.
 
-O build chama [build-android-deps.sh](../../../../scripts/build-android-deps.sh) e o preparador X11 quando os prefixos faltam. Libdrm target e zlib do sysroot ficam separados do host. X11/XCB usam headers e `.pc` sem bibliotecas de link; `X11_INCLUDE` seleciona headers fora de `/usr/include`. Não reaproveite prefixos de outro NDK/API sem comprovar sua origem.
+The build calls [build-android-deps.sh](../../../../scripts/build-android-deps.sh) and the X11 preparer when prefixes are missing. Target libdrm and sysroot zlib remain separate from the host. X11/XCB use headers and `.pc` files without link libraries; `X11_INCLUDE` selects headers outside `/usr/include`. Do not reuse prefixes from another NDK/API without establishing their provenance.
 
-Fluxo Linux x86_64, em cópia descartável autorizada com destinos novos:
+Linux x86_64 workflow, in an authorized disposable copy with fresh destinations:
 
 ```sh
 set -euo pipefail
@@ -55,38 +55,38 @@ BDIR="$run/bionic" DDIR="$run/dist" HOST_TOOLS="$run/host-tools/bin" \
 sha256sum "$run/series-manifest.json" "$run/dist/libvulkan_panfrost.so"
 ```
 
-API 29 é o default do script, não comprovação de suporte runtime nessa API. O [cross file Android](../../../../meson/android-aarch64.ini) usa API 35 no template; o script gera a cópia correspondente a `--api`. Confira a cópia gerada, target/sysroot e `pkg_config_libdir` target antes de interpretar erros de configuração. O log acima fica em `$run/bionic.log`.
+API 29 is the script default, not proof of runtime support at that API. The [Android cross file](../../../../meson/android-aarch64.ini) uses API 35 in its template; the script generates the copy corresponding to `--api`. Check the generated copy, target/sysroot and target `pkg_config_libdir` before interpreting configuration errors. The log above is written to `$run/bionic.log`.
 
-[bootstrap-host-tools.sh](../../../../scripts/bootstrap-host-tools.sh) produz `mesa_clc`, `vtn_bindgen2` e `panfrost_compile` host. Reconstrua-os após mudanças da série: o cache opt-in usa somente o commit Mesa e pode conservar codegen antigo. O ICD é target AArch64; WSI `android,x11` não determina sua arquitetura.
+[bootstrap-host-tools.sh](../../../../scripts/bootstrap-host-tools.sh) produces host `mesa_clc`, `vtn_bindgen2` and `panfrost_compile`. Rebuild them after series changes: the opt-in cache uses only the Mesa commit and may retain old codegen. The ICD targets AArch64; WSI `android,x11` does not determine its architecture.
 
-O build habilita `-Dpanfrost-rust=true`. [Android 017](../../../../patches/android/017-default-to-kraid-on-android.patch) seleciona Kraid por padrão no Android e preserva `PAN_USE_KRAID=0`, `1`/`all` e seletores de estágio. Registre a seleção do processo de teste; não transforme o controle legado em aprovação de Kraid.
+The build enables `-Dpanfrost-rust=true`. [Android 017](../../../../patches/android/017-default-to-kraid-on-android.patch) selects Kraid by default on Android and preserves `PAN_USE_KRAID=0`, `1`/`all` and stage selectors. Record the test process's selection; do not turn a legacy control into Kraid approval.
 
 ## 3. Linux/glibc
 
-Use [build-glibc.sh](../../../../scripts/build-glibc.sh), não o ICD Bionic. O [guia glibc](../../../../docs/BUILD-POCO-X6-PRO.md#glibc-cross-build-on-wsl-or-linux) descreve dependências e seleção de host.
+Use [build-glibc.sh](../../../../scripts/build-glibc.sh), not the Bionic ICD. The [glibc guide](../../../../docs/BUILD-POCO-X6-PRO.md#glibc-cross-build-on-wsl-or-linux) describes dependencies and host selection.
 
-Em Linux/WSL x86_64, sem ADB:
+On Linux/WSL x86_64, without ADB:
 
 ```sh
 ./scripts/build-glibc.sh --profile g615-v11-csf --jobs 2 \
   --cross-file "$PWD/meson/linux-aarch64-debian-cross.ini"
 ```
 
-O [cross file Debian](../../../../meson/linux-aarch64-debian-cross.ini) requer GCC/G++/binutils AArch64, Rust `aarch64-unknown-linux-gnu`, bindgen, ferramentas host e dependências de desenvolvimento AArch64. Adapte uma cópia para outra distro/sysroot. `pkg_config_libdir` deve resolver dependências target, não bibliotecas host.
+The [Debian cross file](../../../../meson/linux-aarch64-debian-cross.ini) requires AArch64 GCC/G++/binutils, Rust `aarch64-unknown-linux-gnu`, bindgen, host tools and AArch64 development dependencies. Adapt a copy for another distribution/sysroot. `pkg_config_libdir` must resolve target dependencies, not host libraries.
 
-O default inclui X11 e Wayland; adicione `--headless` somente para compute/offscreen sem WSI. `--headless` exige `--cross-file`. Cross local não combina com `--serial`, `--device-root` ou `--chroot-wrapper`; `--jobs` aceita 1 ou 2 e também limita o bootstrap host.
+The default includes X11 and Wayland; add `--headless` only for compute/offscreen without WSI. `--headless` requires `--cross-file`. Local cross-building cannot combine with `--serial`, `--device-root` or `--chroot-wrapper`; `--jobs` accepts 1 or 2 and also limits host bootstrap.
 
-Sem cross file, host AArch64 usa [linux-aarch64-native.ini](../../../../meson/linux-aarch64-native.ini). Em outro host, o modo dispositivo exige `--serial` e confirmação do chroot; faz transferência e build remoto, portanto não é um exercício documental sem efeitos físicos.
+Without a cross file, an AArch64 host uses [linux-aarch64-native.ini](../../../../meson/linux-aarch64-native.ini). On another host, device mode requires `--serial` and chroot confirmation; it transfers files and builds remotely, so it is not a documentary exercise without hardware effects.
 
-Cada execução reconstrói o pin e aplica a série em `build/glibc-replay-<profile>-<pid>`. O destino default é `dist/glibc-g615-v11-csf`, com ICD, JSON e manifesto. O script recusa destino existente e retém workspace de falha. Não remova ou mova dados sem autorização. O manifesto identifica fontes; registre separadamente toolchain, Build ID e hash do ICD.
+Each execution reconstructs the pin and applies the series in `build/glibc-replay-<profile>-<pid>`. The default destination is `dist/glibc-g615-v11-csf`, containing ICD, JSON and manifest. The script rejects existing destinations and retains failed workspaces. Do not remove or move data without authorization. The manifest identifies sources; record toolchain, Build ID and ICD hash separately.
 
-Kraid não é selecionado por padrão em glibc. Confira sua inclusão na configuração Meson e use `PAN_USE_KRAID=all` no processo alvo quando a validação exigir Kraid; não presuma equivalência com Android.
+Kraid is not selected by default on glibc. Check its inclusion in the Meson configuration and use `PAN_USE_KRAID=all` in the target process when validation requires Kraid; do not presume equivalence with Android.
 
-Nos dois ambientes, `--with-kbase-sync` é opt-in do aplicador; glibc também o aceita no build. Aplica somente 002-004 após a série principal. Leia as [limitações](../../../../patches/experimental-kbase-sync/README.md); não promova a variante a default ou release. No Android, registre a opção na aplicação e mantenha build/pacote separados; o build Android não aceita essa flag.
+In both environments, `--with-kbase-sync` is opt-in in the applier; glibc also accepts it in the build. It applies only 002-004 after the main series. Read the [limitations](../../../../patches/experimental-kbase-sync/README.md); do not promote the variant to default or release. On Android, record the option during application and keep build/package separate; the Android build does not accept this flag.
 
-## 4. Inspeção ELF e pacote
+## 4. ELF and package inspection
 
-Selecione `so` do destino produzido e `abi=android` ou `abi=glibc`, sem usar um artefato implícito:
+Select `so` from the produced destination and `abi=android` or `abi=glibc`, without using an implicit artifact:
 
 ```sh
 file "$so"
@@ -97,11 +97,11 @@ readelf --version-info "$so"
 sha256sum "$so"
 ```
 
-Exija ELF64, little-endian e Machine AArch64. Registre GNU Build ID; no Android, inspecione `.note.android.ident` para API/NDK quando presente e confronte com toolchain/log, sem inferir a versão apenas pelo nome do pacote. Glibc deve apresentar `libc.so.6` e requisitos `GLIBC_*` compatíveis com o ambiente alvo; Bionic não pode depender de glibc ou bibliotecas host X11. Inspecione todos os `DT_NEEDED` para disponibilidade no alvo.
+Require ELF64, little-endian and Machine AArch64. Record GNU Build ID; on Android, inspect `.note.android.ident` for API/NDK when present and compare against toolchain/log, without inferring the version from the package name alone. Glibc must show `libc.so.6` and `GLIBC_*` requirements compatible with the target environment; Bionic must not depend on glibc or host X11 libraries. Inspect every `DT_NEEDED` for target availability.
 
-[validate-binary.sh](../../../../scripts/validate-binary.sh) verifica alguns exports/dependências, mas não impõe ELF64/AArch64 ou notas. Confirme esses campos explicitamente. Exija os exports dinâmicos definidos `vk_icdGetInstanceProcAddr` e `vk_icdNegotiateLoaderICDInterfaceVersion` com `llvm-nm -D --defined-only "$so"` (ou `nm`); símbolo indefinido não satisfaz o gate.
+[validate-binary.sh](../../../../scripts/validate-binary.sh) checks some exports/dependencies but does not enforce ELF64/AArch64 or notes. Confirm these fields explicitly. Require defined dynamic exports `vk_icdGetInstanceProcAddr` and `vk_icdNegotiateLoaderICDInterfaceVersion` using `llvm-nm -D --defined-only "$so"` (or `nm`); an undefined symbol does not satisfy the gate.
 
-Use [package-launcher-zips.sh](../../../../scripts/package-launcher-zips.sh) somente para ICD Bionic/ADPKG dev, com versão `-dev` e saída nova. Pré-condição: `dist/` existente na cópia, `abi=android` e ICD inspecionado; esse empacotador não verifica a ABI.
+Use [package-launcher-zips.sh](../../../../scripts/package-launcher-zips.sh) only for Bionic ICD/dev ADPKG, with a `-dev` version and fresh output. Prerequisites: existing `dist/` in the copy, `abi=android` and an inspected ICD; this packager does not check ABI.
 
 ```sh
 out="$(mktemp -d "$PWD/dist/adpkg-dev.XXXXXXXX")"
@@ -110,7 +110,7 @@ out="$(mktemp -d "$PWD/dist/adpkg-dev.XXXXXXXX")"
   --dev-name PanVK-G615-dev --outdir "$out"
 ```
 
-Defina `zip` como o caminho exato informado pelo script e valide sem extrair sobre arquivos existentes:
+Set `zip` to the exact path reported by the script and validate without extracting over existing files:
 
 ```sh
 unzip -t "$zip"
@@ -121,24 +121,24 @@ unzip -p "$zip" libvulkan_panfrost.so | sha256sum
 cmp "$so" <(unzip -p "$zip" libvulkan_panfrost.so)
 ```
 
-O último comando exige Bash. Compare também o hash com `SHA256SUMS.txt`, `libraryName`, perfil, `driverVersion` e `minApi: 35`. API 29 do build não prova API 29 do pacote. `VALIDATION.json` dev não contém aprovação física.
+The last command requires Bash. Also compare the hash with `SHA256SUMS.txt`, `libraryName`, profile, `driverVersion` and `minApi: 35`. Build API 29 does not prove package API 29. Dev `VALIDATION.json` contains no hardware approval.
 
-Os [empacotadores Android](../../../../scripts/package-android-adpkg.sh) e [glibc](../../../../scripts/package-glibc.sh) seguem outro contrato. Use [RELEASE.md](../../../../docs/RELEASE.md) e [validate-package.sh](../../../../scripts/validate-package.sh) no pacote canônico, com fontes/manifestos/evidências coerentes. O checkout atual é G615-only; o fluxo universal foi retirado.
+The [Android](../../../../scripts/package-android-adpkg.sh) and [glibc](../../../../scripts/package-glibc.sh) packagers follow a different contract. Use [RELEASE.md](../../../../docs/RELEASE.md) and [validate-package.sh](../../../../scripts/validate-package.sh) for canonical packages, with consistent sources/manifests/evidence. The current checkout is G615-only; the universal workflow was removed.
 
-## 5. Diagnóstico dirigido
+## 5. Targeted diagnosis
 
-| Sintoma / responsável | Evidência e ação | Verificação após correção |
+| Symptom / owner | Evidence and action | Verification after correction |
 |---|---|---|
-| Bindgen inclui `mmintrin.h` x86 no cross AArch64 | Confira primeiro comando bindgen, target e sysroot no log Meson/Ninja. A assinatura foi relatada no fluxo antigo r27d; não aplique workaround preventivamente ao r30. | Um retry com `BDIR` novo, target/sysroot explícitos, seguido de inspeção ELF. |
-| Headers X11/XCB ausentes | Confira `xcb/xcb.h`, `X11/Xlib-xcb.h`, `X11/xshmfence.h` em `X11_INCLUDE` antes de chamar o preparador em prefixo descartável. | Meson resolve `.pc` header-only, sem link host X11 no Bionic. |
-| Codegen antigo após mudar patches | Compare árvore usada pelos três geradores host; cache só por pin não prova atualização. Reconstrua geradores da série aplicada, sem cache compartilhado. | Regeneração/build do alvo afetado; registre novo artefato. |
-| Glibc cross falha no Meson | Confira ferramentas AArch64, target Rust e `.pc` target; `--headless` só resolve dependências WSI se WSI não fizer parte do aceite. | Nova execução isolada; nenhum artefato publicado após falha. |
-| Patch drift ou hash divergente | Confira pin, ordem, perfil e inputs; prepare correção reviewable, nunca ignore offset/fuzz ou atualize lock para mascarar drift. | Check estrito e log da aplicação autorizada na cópia. |
-| Importador rejeita ADPKG | Confira identidade extraída do ICD, `meta.json`, nome dev distinto, hash e API mínima. | Integridade e comparação de bytes; importação física é outro gate. |
-| Gradle exige licença ou SDK ausente | Use erro do aplicativo, não log do ICD; não aceite licenças ou instale SDK implicitamente. | Gate app `BLOQUEADO` até pré-condição resolvida. |
-| Enumera, mas compute/render falha | Preserve primeiro resultado incorreto/crash, hash, modo e seletor Kraid; encaminhe ao especialista responsável. | Mesmo caso limitado, mesma identidade e controle relevante; enumeração não é sucesso. |
+| Bindgen includes x86 `mmintrin.h` in AArch64 cross-build | Check the first bindgen command, target and sysroot in the Meson/Ninja log. The signature was reported in the old r27d workflow; do not apply a preventive workaround to r30. | One retry with fresh `BDIR`, explicit target/sysroot, followed by ELF inspection. |
+| Missing X11/XCB headers | Check `xcb/xcb.h`, `X11/Xlib-xcb.h`, `X11/xshmfence.h` in `X11_INCLUDE` before invoking the preparer in a disposable prefix. | Meson resolves header-only `.pc` files without host X11 linkage in Bionic. |
+| Old codegen after patch changes | Compare the tree used by all three host generators; pin-only caching does not prove freshness. Rebuild generators from the applied series without shared cache. | Regeneration/build of the affected target; record the new artifact. |
+| Glibc cross-build fails in Meson | Check AArch64 tools, Rust target and target `.pc` files; `--headless` addresses WSI dependencies only when WSI is not an acceptance criterion. | New isolated execution; no artifact published after failure. |
+| Patch drift or hash mismatch | Check pin, order, profile and inputs; prepare a reviewable correction, never ignore offsets/fuzz or update the lock to mask drift. | Strict check and log of authorized application in the copy. |
+| Importer rejects ADPKG | Check identity extracted from the ICD, `meta.json`, distinct dev name, hash and minimum API. | Integrity and byte comparison; hardware import is another gate. |
+| Gradle requires a license or missing SDK | Use the application error, not the ICD log; do not implicitly accept licenses or install the SDK. | Application gate `BLOCKED` until the prerequisite is resolved. |
+| Enumeration succeeds, but compute/render fails | Preserve the first incorrect result/crash, hash, mode and Kraid selector; route to the responsible specialist. | Same bounded case, identity and relevant control; enumeration is not success. |
 
-Se o bindgen reproduzir exatamente a assinatura, o retry Android usa, junto das mesmas opções explícitas de host/destino/NDK:
+If bindgen reproduces the exact signature, the Android retry uses the same explicit host/destination/NDK options with:
 
 ```sh
 BDIR="$run/bionic-bindgen-check" DDIR="$run/dist-bindgen-check" \
@@ -147,11 +147,11 @@ BINDGEN_EXTRA_CLANG_ARGS="--target=aarch64-linux-android29 --sysroot=$ndk/toolch
   ./scripts/build-android.sh --profile g615-v11-csf --api 29 --ndk "$ndk"
 ```
 
-## 6. Testes e evidências
+## 6. Tests and evidence
 
-### Host e aplicativos
+### Host and applications
 
-Não rode suítes para aprovar somente texto. Quando o comportamento correspondente mudar, selecione a suíte existente:
+Do not run suites to approve text alone. When corresponding behavior changes, select the existing suite:
 
 ```sh
 python3 -m unittest discover -s tests -p 'test_build_glibc_cross.py'
@@ -160,49 +160,49 @@ python3 -m unittest discover -s tests -p 'test_package_launcher_zips.py'
 python3 tests/validate-package-selfcheck.py
 ```
 
-As suítes [DXVK/profile](../../../../tests/dxvk/profile), [runtime-features](../../../../tests/runtime-features) e [consumer-compat](../../../../tests/consumer-compat) usam `python3 -m unittest discover -s <diretório> -p 'test_*.py'`; consumer-compat exige o `vk.xml` do Mesa preparado. Não equivalem a execução Vulkan no Moto.
+The [DXVK/profile](../../../../tests/dxvk/profile), [runtime-features](../../../../tests/runtime-features) and [consumer-compat](../../../../tests/consumer-compat) suites use `python3 -m unittest discover -s <directory> -p 'test_*.py'`; consumer-compat requires `vk.xml` from prepared Mesa. They are not equivalent to Vulkan execution on the Moto.
 
-PanPlay e PanProbe têm toolchains próprios: consulte [Gradle PanPlay](../../../../apps/panvk-launcher/app/build.gradle.kts) e [Gradle PanProbe](../../../../apps/panvk-test/app/build.gradle.kts). Para alterações pertinentes, rode `./gradlew :app:lintDebug :app:assembleDebug` na pasta do app. Não execute Gradle apenas para atualizar esta skill.
+PanPlay and PanProbe have their own toolchains: consult [PanPlay Gradle](../../../../apps/panvk-launcher/app/build.gradle.kts) and [PanProbe Gradle](../../../../apps/panvk-test/app/build.gradle.kts). For relevant changes, run `./gradlew :app:lintDebug :app:assembleDebug` from the app directory. Do not run Gradle just to update this skill.
 
-### Funcionamento e identidade física
+### Functionality and device identity
 
-Antes de qualquer teste físico autorizado: selecione o serial via `adb devices -l`; registre modelo/SoC, GPU/cores, Android/ROM, kernel, Kbase/UAPI, acesso `/dev/mali0`, ABI e identidade do ICD realmente carregado. Não substitua driver do sistema. Use pacote/caminho isolado, timeout, cargas pequenas e uma mudança por execução.
+Before any authorized hardware test: select the serial using `adb devices -l`; record model/SoC, GPU/cores, Android/ROM, kernel, Kbase/UAPI, `/dev/mali0` access, ABI and the identity of the ICD actually loaded. Do not replace the system driver. Use an isolated package/path, timeout, small workloads and one change per run.
 
-Os procedimentos e resultados esperados estão no [guia de testes](../../../../tests/README.md); esta tabela seleciona o gate, não reimplementa seus harnesses:
+Procedures and expected results are in the [test guide](../../../../tests/README.md); this table selects the gate without reimplementing its harnesses:
 
-| Componente | Teste / aprovação | Limite da evidência |
+| Component | Test / acceptance | Evidence limit |
 |---|---|---|
-| Inicialização, dispositivo e memória GPU | Gates D/E do guia: ICD correto, `vkCreateInstance`, `vkCreateDevice`, fila, buffer mapeado, bind e destruição. | Identifique PanVK, não lavapipe/vendor incidental; alocação não prova dispatch. |
-| Compute | [compute](../../../../tests/compute): modo magic exige `0x12345678` em 10/10; diagnósticos `compute_N` usam critérios próprios. | O [10/10 histórico](../../../../validation/g615-v11-csf/gateDE-compute-2026-09-19.txt) identifica MC6; não homologa Moto/série atual. |
-| Renderização | [offscreen](../../../../tests/offscreen), Gate F: readback da triangulação, sem falso positivo de clear/blit. | Separe controles de estágio Kraid e apresentação. |
-| DMA-BUF / AHardwareBuffer | [ahb](../../../../tests/ahb), Gate G: alocar, propriedades, importar/bind, escrever GPU, verificar CPU e liberar. | External AHB app-UID, buffer próprio WSI e shell privilegiado são caminhos distintos. |
-| Sincronização / CSF | [sync](../../../../tests/sync): fences, semáforos, idle, cadeias cross-queue e importação `sync_file`. | Acesso Kbase/CSF confirmado; teste de lifetime glibc exige opt-in, CSF 1.21 e páginas 4 KiB conforme guia. Não valida toda UAPI. |
-| WSI Android | [loader app](../../../../tests/android-loader-app), Gate H e modos `wsi_draw`/`wsi_recreate`: acquire/draw/present/readback conforme guia. | ANB release privado não prova loader do sistema; clear-only não prova draw. |
-| Linux/glibc | ICD e JSON isolados, dependências compatíveis, acesso Kbase, compute/sync e WSI selecionado. | Bionic e Poco MC6 não certificam Moto glibc; headless não oferece X11/Wayland. |
+| Initialization, device and GPU memory | Guide gates D/E: correct ICD, `vkCreateInstance`, `vkCreateDevice`, queue, mapped buffer, binding and destruction. | Identify PanVK, not incidental lavapipe/vendor; allocation does not prove dispatch. |
+| Compute | [compute](../../../../tests/compute): magic mode requires `0x12345678` in 10/10; `compute_N` diagnostics have their own criteria. | Historical [10/10](../../../../validation/g615-v11-csf/gateDE-compute-2026-09-19.txt) identifies MC6; it does not homologate Moto/current series. |
+| Rendering | [offscreen](../../../../tests/offscreen), Gate F: triangle readback without clear/blit false positives. | Separate Kraid stage controls and presentation. |
+| DMA-BUF / AHardwareBuffer | [ahb](../../../../tests/ahb), Gate G: allocate, query properties, import/bind, write on GPU, verify on CPU and release. | External AHB app-UID, driver-owned WSI buffers and privileged shell are distinct paths. |
+| Synchronization / CSF | [sync](../../../../tests/sync): fences, semaphores, idle, cross-queue chains and `sync_file` import. | Confirmed Kbase/CSF access; glibc lifetime test requires opt-in, CSF 1.21 and 4 KiB pages per guide. Does not validate the entire UAPI. |
+| Android WSI | [loader app](../../../../tests/android-loader-app), Gate H and `wsi_draw`/`wsi_recreate`: acquire/draw/present/readback per guide. | Private ANB release does not prove the system loader; clear-only does not prove draw. |
+| Linux/glibc | Isolated ICD/JSON, compatible dependencies, Kbase access, compute/sync and selected WSI. | Bionic and Poco MC6 do not certify Moto glibc; headless does not provide X11/Wayland. |
 
-Timeout, crash, ausência de resultado, device-lost e corrupção nunca são `PASS`. Estabilidade exige número de ciclos, duração e limites registrados. Desempenho exige baseline da mesma carga/dispositivo/configuração, hashes dos dois ICDs e metodologia; não extrapole um smoke test.
+Timeout, crash, missing results, device-lost and corruption are never `PASS`. Stability requires recorded cycle count, duration and limits. Performance requires a baseline using the same workload/device/configuration, both ICD hashes and methodology; do not extrapolate from a smoke test.
 
-### Registros reutilizáveis
+### Reusable records
 
-- [Manifesto Moto initializer](../../../../validation/mesa27-large-draw-initializer-fix.json): Mesa no pin, Android 16, G615 MC2, CSF 1.21, binário `c4532ef9…`, série `7d02a194…`; testes direcionados Large_Draw/tessellation/XFB. Exclui CTS completo, apresentação Android e AHB. Não corresponde à série atual só por compartilhar o pin.
-- [Matriz da plataforma](../../../../docs/engineering/mali-kernel-platform/COMPATIBILITY_MATRIX.md): relatos Moto separados por WSI próprio, AHB externo app-UID, sync e glibc. Preserve falhas e desconhecidos; não transforme relato histórico em execução atual.
-- [Série sync experimental](../../../../patches/experimental-kbase-sync/README.md): evidências por candidato e limitações de shutdown; disponibilidade opt-in não significa homologação.
+- [Moto initializer manifest](../../../../validation/mesa27-large-draw-initializer-fix.json): pinned Mesa, Android 16, G615 MC2, CSF 1.21, binary `c4532ef9…`, series `7d02a194…`; targeted Large_Draw/tessellation/XFB tests. Excludes full CTS, Android presentation and AHB. Sharing the pin does not make it the current series.
+- [Platform matrix](../../../../docs/engineering/mali-kernel-platform/COMPATIBILITY_MATRIX.md): Moto reports separated by driver-owned WSI, external-AHB app-UID, sync and glibc. Preserve failures/unknowns; do not turn historical reports into current execution.
+- [Experimental sync series](../../../../patches/experimental-kbase-sync/README.md): candidate-specific evidence and shutdown limits; opt-in availability does not imply homologation.
 
-Registre cada gate com estado, comando, resultado, log e identidade: revisão do projeto/Mesa, perfil, `patchSeriesId`, variante, SHA do manifesto, host/toolchain/API, Build ID e SHA-256 do ICD, dispositivo e seletor Kraid. Evidência sem vínculo suficiente ao binário permanece histórica ou `BLOQUEADO`, nunca atribuída ao pacote atual.
+Record each gate's status, command, result, log and identity: project/Mesa revision, profile, `patchSeriesId`, variant, manifest SHA, host/toolchain/API, ICD Build ID/SHA-256, device and Kraid selector. Evidence without sufficient binary association remains historical or `BLOCKED`, never attributed to the current package.
 
-## 7. Gates e auditoria documental
+## 7. Gates and documentary audit
 
-| Gate / pré-condição | Procedimento e evidência | Aprovação / ação em falha |
+| Gate / prerequisite | Procedure and evidence | Acceptance / action on failure |
 |---|---|---|
-| Proveniência / inputs disponíveis | Seção 1, lock/perfil, hash calculado; manifesto e log de aplicação quando executada. | Identidades coincidem, aplicação sem drift comprovada separadamente; investigar inputs, não reescrever histórico. |
-| Toolchain / alvo selecionado | Seções 2/3, versões, cross gerado, sysroot e resolução `.pc`. | Host/target separados e dependências corretas; falta confirmada bloqueia o build. |
-| Build / preparação concluída | Script escolhido, exit status e log Meson/Ninja; ICD e JSON glibc. | Exit 0 e todos os artefatos presentes; preservar primeiro erro causal. |
-| ELF / artefato disponível | Seção 4, headers/notas, `DT_NEEDED`, exports definidos, Build ID/hash. | ELF64 AArch64 e ABI correta; não aceitar somente o PASS do script. |
-| Pacote / ICD inspecionado | Seção 4, teste ZIP, metadados e comparação bytes/hashes; validador canônico se aplicável. | Conteúdo/identidade coerentes; mismatch é FAIL, não execução comprovada. |
-| Runtime / dispositivo autorizado e identificado | Seção 6 e guia, logs do ICD exato e saída completa do modo. | Critério funcional do teste cumprido; falha ou ausência de pré-condição não aprova o próximo gate. |
-| Estabilidade / carga e limites definidos | Logs dos ciclos, duração, erros, conclusão e identidade. | Sem falhas nos limites executados; nunca certificação geral. |
-| Desempenho / baseline comparável | Mesma carga/ambiente, dois hashes e método reproduzível. | Resultados comparáveis; sem medição permanece NÃO EXECUTADO. |
+| Provenance / inputs available | Section 1, lock/profile, computed hash; application manifest/log when executed. | Matching identities, drift-free application proven separately; investigate inputs without rewriting history. |
+| Toolchain / target selected | Sections 2/3, versions, generated cross file, sysroot and `.pc` resolution. | Host/target separation and correct dependencies; confirmed missing requirements block the build. |
+| Build / preparation complete | Selected script, exit status and Meson/Ninja log; glibc ICD/JSON. | Exit 0 and all artifacts present; preserve the first causal error. |
+| ELF / artifact available | Section 4, headers/notes, `DT_NEEDED`, defined exports, Build ID/hash. | ELF64 AArch64 and correct ABI; do not accept the script's PASS alone. |
+| Package / ICD inspected | Section 4, ZIP test, metadata and byte/hash comparison; canonical validator when applicable. | Consistent content/identity; mismatch is FAIL, not proven execution. |
+| Runtime / device authorized and identified | Section 6 and guide, exact ICD logs and complete mode output. | Functional test criterion met; failure or missing prerequisites does not pass the next gate. |
+| Stability / workload and limits defined | Cycle logs, duration, errors, completion and identity. | No failures within executed limits; never general certification. |
+| Performance / comparable baseline | Same workload/environment, two hashes and reproducible method. | Comparable results; without measurements, remains NOT EXECUTED. |
 
-Para auditar a skill sem builds/hardware, percorra sete exercícios: preparar Android; preparar glibc; diagnosticar compilação; inspecionar ELF; validar pacote; planejar teste funcional; analisar regressão. Use scripts, logs e artefatos já identificados. Confira flags/caminhos, pré-condições, primeiro erro, identidade e limitações. Sem artefato, valide somente as instruções e deixe o gate de execução `NÃO EXECUTADO` ou `BLOQUEADO`.
+To audit the skill without builds/hardware, walk through seven exercises: prepare Android; prepare glibc; diagnose compilation; inspect ELF; validate packages; design a functional test; analyze a regression. Use identified scripts, logs and artifacts. Check flags/paths, prerequisites, first error, identity and limits. Without an artifact, validate instructions only and leave execution `NOT EXECUTED` or `BLOCKED`.
 
-Na homologação documental, confira links locais, sintaxe dos blocos Bash, `git diff --check` e diff completo limitado aos dois documentos. Edite documentação diretamente; patches e check estrito de aplicação são exigidos somente para alterações no driver Mesa. Solicite aprovação final; essa auditoria não homologa o driver ou o hardware.
+For documentary homologation, check local links, Bash block syntax, `git diff --check` and the complete diff limited to these two documents. Edit documentation directly; patches and strict applicability checks are required only for Mesa driver changes. Request final approval; this audit does not homologate the driver or hardware.

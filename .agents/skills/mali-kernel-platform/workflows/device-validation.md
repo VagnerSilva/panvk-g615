@@ -22,7 +22,7 @@ reference. Confirm that tests/skills exist; do not invent a runner.
    workload and a total timeout that terminates the actual isolated target.
    No automatic install, copy, mount or root wrapper; approve those separately.
 3. For Android sync_fd or sync_wait_signal, follow the
-   [documented test modes](../../../../docs/superpowers/plans/2026-11-22-ahb-app-uid-investigation.md:168)
+   [documented test modes](../../../../tests/README.md:168)
    in an approved isolated app. Require successful queue submits, valid
    sync-file info, bounded poll and fence completion. These gates do not test
    rendered content, AHB, WSI, interprocess stress or every lifetime path.

@@ -5,8 +5,8 @@ description: "Use when correcting, implementing, refactoring, optimizing or vali
 
 # Mali kernel/platform — Moto G86
 
-Status: operational development revision authorized for installation under
-the second plan on 2026-11-23.
+Status: operational development revision authorized for installation on
+2026-11-23.
 The earlier limited contract was approved on 2026-11-23; its diagnostic audit
 and correction history remain in the
 [audit closure](../../../docs/engineering/mali-kernel-platform/audit/SKILL_AUDIT_CLOSURE.md).
@@ -18,7 +18,7 @@ Loading grants no application, hardware or publication permissions.
 ## Scope and authority
 
 Read [AGENTS.md](../../../AGENTS.md) and respect its approval and patch rules.
-Scope is the plan's G15 label, Moto G86 / Mali-G615 MC2, **PAN_ARCH 11**,
+Scope uses the G15 label: Moto G86 / Mali-G615 MC2, **PAN_ARCH 11**,
 Android/Bionic and Linux/glibc in a chroot on the same Android handset.
 G15 does not mean PAN_ARCH 15. No Linux-native, Panthor, JM or other-GPU
 runtime support is established here. Keep such evidence only as a boundary
@@ -26,7 +26,7 @@ or explicitly identified history.
 
 Use [sources.lock](../../../sources.lock) and the selected profile, not a moving
 Mesa branch. The reference is clean Mesa `27.0.0-devel` at `13baeb70...`.
-Kraid migration is the plan's completed architectural decision; distinguish
+Kraid migration is a completed architectural decision; distinguish
 clean upstream sources, downstream Kbase patches and tested binaries.
 Verify current inputs before reusing the dated
 [technical consolidation](../../../docs/engineering/mali-kernel-platform/TECHNICAL_CONSOLIDATION.md).

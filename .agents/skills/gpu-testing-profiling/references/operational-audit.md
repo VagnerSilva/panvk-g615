@@ -2,7 +2,7 @@
 
 ## Identity and limits
 
-Plan: [plan.md](../plan.md), phases 0..8 grouped into the four authorized
+Generation scope: phases 0..8 grouped into the four authorized delivery
 blocks. Project baseline during generation:
 `4f70daa6c2ffde2d509c5a9961219871f57084d5`, branch `feat-migration`.
 Mesa pin: `13baeb70c066a9f82d2bcfb29f06e4865212affa`, `27.0.0-devel`.
@@ -11,7 +11,7 @@ These values identify the generation, not a tested binary.
 
 Scope: Moto G86 / Mali-G615 MC2 / MT6878 / Android16 pending confirmation,
 with complementary glibc in an Android chroot. The original generation added
-only new documents; the plan, Mesa sources, profiles, neighboring skills,
+only new documents; the original planning inputs, Mesa sources, profiles, neighboring skills,
 and historical evidence were preserved. No build, installation, profiler,
 adb access, or physical benchmark was performed.
 
@@ -141,11 +141,11 @@ Corrections incorporated during construction:
 
 Language correction: the eight generated documents were translated into
 English at the user's request. Commands, references, criteria, and historical
-results were retained; the supplied plan remains unchanged. The independent
+results were retained; the supplied planning input was unchanged at that time. The independent
 review above applies to the original generation, not a new review of the
 translation.
 
-## Coverage of plan criteria
+## Coverage of acceptance criteria
 
 | Criterion | Procedure/evidence |
 |---|---|
