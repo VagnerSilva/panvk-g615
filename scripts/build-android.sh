@@ -5,7 +5,7 @@
 # exports them only from API 30), so the ICD loads on Android 10.
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PROFILE=""; API="${ANDROID_API:-29}"; NDK="${ANDROID_NDK_ROOT:-${ANDROID_HOME:-/opt/android-sdk}/ndk}"
+PROFILE=""; API="${ANDROID_API:-29}"; NDK="${ANDROID_NDK_ROOT:-$ROOT/work/ndk/30.0.16248370}"
 while [ $# -gt 0 ]; do case "$1" in
   --profile) PROFILE="$2"; shift 2;; --api) API="$2"; shift 2;; --ndk) NDK="$2"; shift 2;; *) echo "unknown $1" >&2; exit 2;; esac; done
 [ -n "$PROFILE" ] || { echo "--profile required" >&2; exit 2; }

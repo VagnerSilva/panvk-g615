@@ -1,5 +1,123 @@
 # Kbase Android release synchronization
 
+## Inactive fence-import draft (006, transactional PanVK integration)
+
+`006-kbase-kcpu-gpu-fence-wait.patch` prepares the SET UAPI and an isolated
+Kmod queue for three FIFO commands: FENCE_WAIT, SET payload/error, SET done.
+It also provides `panvk_kbase_sync_dup_sync_file_fd`, which identifies the
+device-local Kbase sync type by its wait callback and duplicates an eligible
+PENDING sync-file FD with `F_DUPFD_CLOEXEC` while holding the payload mutex.
+The original FD, payload and state are unchanged. The caller owns a returned
+duplicate; the import bridge consumes it even on rejection. Success with
+FD `-1` means no duplicate was produced and preserves the existing CPU wait
+path; it is not proof that the dependency completed. RESET and WAITING are
+not eligible, FAILED propagates its stored error, and malformed payloads
+or duplication errors return a diagnostic VkResult.
+It is an unqualified draft, not part of the default or legacy series.
+It now includes PanVK submission, guarded CALL and completion error checks.
+`PANVK_KBASE_GPU_FENCE_WAITS` defaults to false. There is still no build flag
+or provenance variant selecting 006.
+Do not apply or promote it as a working GPU fence-wait implementation.
+
+Host regression tests compile its actual added code with mocked KCPU
+ioctls. They cover partial acceptance, owned-FD closure, causal errors,
+retryable DELETE, independent queues, the UINT32_MAX domain and 85-triple
+capacity including a final done SET not yet retired. Snapshot tests cover
+copied device-local sync types, states, error classification and errno
+preservation across unlock. A host pipe checks actual FD_CLOEXEC and
+duplicate lifetime after the original FD closes; this is not a sync-file
+or GPU execution test:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_kbase_*wait*.py' -v
+```
+
+On 2026-11-24, the snapshot's 15 cases (10 test methods) went RED to GREEN;
+the combined bridge/snapshot/WAIT_ANY suite passed 29 tests. The five-file
+draft passed `git apply --check --whitespace=error -v` against an isolated
+copy of its exact prepared input blobs without application or offsets.
+
+Both cells must remain alive until DELETE succeeds. Before allowing DELETE
+to drain dependencies, future PanVK integration must confirm termination of
+all CSF consumers. A CPU error store before DELETE is not a substitute:
+the drained SET can overwrite it. GPU cross-cell visibility/order,
+error-before-completion handling, full-series replay, Android/glibc builds
+and device execution remain separate, unexecuted acceptance gates.
+
+The checked-teardown revision additionally changes the real Kmod queue/group
+termination APIs to return status, preserving errno across diagnostics.
+Queue TERM precedes USER_IO unmap; failure retains the mapping and ring BO.
+PanVK checks all consumer groups before tiler cleanup, import-queue DELETE and
+event-BO release. `cleanup_queue` no longer releases `kbase_seqnos.bo`.
+Partial group initialization uses the same checked caller cleanup.
+Ordinary GPU-visible queue allocations are also freed only after successful
+CSF termination. On Kbase, `init_queue` delegates failure cleanup to its
+caller, which tracks whether initialization started. Panthor keeps its
+existing cleanup order.
+
+CSF teardown failure retains all remaining GPU-visible queue allocations;
+import DELETE failure retains the import queue and event BO. Both failures
+retain the driver queue allocation. The Vulkan queue is marked lost and
+finished/detached so device-init cleanup cannot destroy it a second time.
+The original initialization error is still returned. Retention on this fatal
+path intentionally sacrifices resource reclamation; it does not permit retry
+through the finished Vulkan queue.
+
+`CheckedFenceTeardownTests` extracts the actual Kmod and PanVK functions from
+a selected prepared tree. It covers queue/group TERM, USER_IO unmap and DELETE
+failures, partial initialization, errno preservation, no-import cleanup and
+the event BO lifetime. The eight test methods and the three existing symbolic
+teardown cases passed; bridge/snapshot/WAIT_ANY regressions bring the focused
+suite to 40 passing tests. At that teardown-only revision, the full 20-case
+Task 3 integration suite still had 12 RED cases for absent integration.
+The lifetime regression exercised actual `init_queue` failures and failed
+completion waits followed by TERM/unmap failures: nine scenarios failed
+before deferring ordinary cleanup, and the focused suite then passed.
+The revised seven-file draft passed strict application checks against its
+post-default-series input. These host checks do not prove kernel/firmware
+termination or CPU/GPU ordering; full Mesa builds and device tests of this
+revision remain NOT EXECUTED. The 006 safety gate stays BLOCKED.
+
+### Authorized inactive integration preparation
+
+The user separately authorized submission call sites and host tests in this
+inactive draft, without closing gate 1.3. The twelve original RED cases now
+pass. Submission stages all waits locally before committing, lazily creates
+the dedicated KCPU queue, distinguishes rejection from fatal partial
+acceptance, and never resets or wraps the UINT32_MAX import counter.
+Capacity/exhaustion/rejection use diagnosed CPU fallback without publishing
+partial staging; failures after accepted imports lose the queue and retain
+the event BO.
+
+Each guarded entry waits on reserved done cell 4, invalidates GPU caches,
+then loads the error from payload cell 3 before conditionally executing CALL.
+Both cells occupy distinct 64-byte slots after the three completion cells
+in the existing CSF_EVENT BO. Later entries retain this guard even without
+new explicit waits. CPU prevalidation and output callbacks refresh done and
+payload before accepting completion. Semaphores owned by a queue that used
+imports stay on their CPU callback: a plain foreign seqno wait cannot carry
+the import error. No ERROR_BARRIER is emitted on guarded entries.
+Import-bearing output signals also omit raw GPU export addresses: their
+`sync_file` export waits for the error-checking CPU callback, including
+zero-target signals. This export may block; ordinary non-import exports keep
+the asynchronous CQS path. A fresh review exposed the bypass, and three
+new export regressions failed before the fix (the non-import control passed).
+
+The expanded integration suite has 38 methods, including two using the real
+v11 packer/builder, with six foreign waits plus the import guard. Normal
+entries measure at most 384 bytes, diagnostic entries 432 bytes, below the
+unchanged 512-byte limit. Guarded diagnostics omit optional pre/post-CALL
+breadcrumbs but retain completion diagnostics; the first real-builder
+diagnostic test reproduced overflow before that adjustment. Builder
+temporary storage is finalized after recording the entry size.
+All 95 related host tests passed (integration, checked teardown, snapshot,
+bridge, WAIT_ANY and native-harness regressions).
+
+These are source-extracted host checks, not a full Mesa/ABI build or hardware
+execution. Cross-cell publication, real negative-fence GPU behavior and
+firmware termination remain unqualified; gate 1.3 stays BLOCKED. Nothing
+selects 006 in a build, and the active default series remains 002-005.
+
 ## Default release series (approved 2026-11-24)
 
 The user approved promotion of the complete 002-005 series after reporting

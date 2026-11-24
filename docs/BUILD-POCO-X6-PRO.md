@@ -16,7 +16,9 @@ provide an ARM64 host toolchain; use a compatible NDK on an ARM64 build host.
 Review the [Android SDK license](https://developer.android.com/studio/terms)
 before using the NDK. Downloading it does not install all build prerequisites.
 
-To select this NDK for an Android build, use:
+Both `build-android.sh` and `build-android-deps.sh` default to this local NDK.
+Set `ANDROID_NDK_ROOT` to select another installation, or use `--ndk` to
+override both the environment and the default:
 
 ```sh
 ./scripts/build-android.sh --profile g615-v11-csf --ndk "$PWD/work/ndk/30.0.16248370"

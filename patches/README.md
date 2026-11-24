@@ -30,6 +30,9 @@ Directories:
   any unlisted patches remain excluded. `--with-kbase-sync` is retained for
   compatibility, not required. See the family README for user approval,
   validation results and the unresolved shutdown limitation.
+  Draft 006 contains the inactive UAPI/Kmod import bridge and a
+  mutex-protected CLOEXEC sync-file snapshot helper. It is not selected
+  and does not provide a complete GPU wait path.
 
 The historical `jm-v7-wip` patch files are not part of the selected Mesa 27
 G615 series and have been removed from this tree. Its README and worklogs

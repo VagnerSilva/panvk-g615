@@ -11,6 +11,36 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class G615OnlyEntrypointTests(unittest.TestCase):
+    def test_android_ndk_default_and_explicit_overrides(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "scripts").mkdir()
+            env = dict(os.environ, ANDROID_HOME=str(root / "unused-sdk"))
+            env.pop("ANDROID_NDK_ROOT", None)
+            for name in ("build-android.sh", "build-android-deps.sh"):
+                shutil.copy2(ROOT / "scripts" / name, root / "scripts" / name)
+                args = ["sh", str(root / "scripts" / name)]
+                if name == "build-android.sh":
+                    args += ["--profile", "g615-v11-csf"]
+                for selection, extra_env, extra_args, expected in (
+                    ("default", {}, [], root / "work/ndk/30.0.16248370"),
+                    ("environment", {"ANDROID_NDK_ROOT": str(root / "env-ndk")},
+                     [], root / "env-ndk"),
+                    ("argument", {"ANDROID_NDK_ROOT": str(root / "env-ndk")},
+                     ["--ndk", str(root / "arg-ndk")], root / "arg-ndk"),
+                ):
+                    with self.subTest(script=name, selection=selection):
+                        result = subprocess.run(
+                            args + extra_args, text=True, capture_output=True,
+                            env={**env, **extra_env}, timeout=10,
+                        )
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn(
+                            f"NDK toolchain not found under {expected}", result.stderr
+                        )
+                        self.assertFalse((root / "build").exists())
+                        self.assertFalse((root / "work").exists())
+
     def test_only_g615_profile_and_no_legacy_build_entrypoints(self):
         self.assertEqual(
             sorted(path.stem for path in (ROOT / "profiles").glob("*.json")),
