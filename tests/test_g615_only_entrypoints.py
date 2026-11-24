@@ -11,6 +11,40 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class G615OnlyEntrypointTests(unittest.TestCase):
+    def test_only_g615_profile_and_no_legacy_build_entrypoints(self):
+        self.assertEqual(
+            sorted(path.stem for path in (ROOT / "profiles").glob("*.json")),
+            ["g615-v11-csf"],
+        )
+        for name in ("prepare-rc5-tree.sh", "build-v9-test-driver.sh"):
+            self.assertFalse((ROOT / "scripts" / name).exists(), name)
+
+    def test_other_profiles_fail_before_packaging_or_release_changes(self):
+        commands = (
+            ("sh", "scripts/release-local.sh"),
+            ("sh", "scripts/build-all.sh"),
+            ("sh", "scripts/package-android-adpkg.sh"),
+            ("sh", "scripts/package-glibc.sh"),
+            ("sh", "scripts/package-prebuilt.sh"),
+            ("python3", "scripts/generate-release-manifest.py"),
+            ("python3", "scripts/compute-patch-series-id.py"),
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "scripts").mkdir()
+            for interpreter, name in commands:
+                shutil.copy2(ROOT / name, root / name)
+                args = [interpreter, str(root / name), "--profile", "g52-v7-jm"]
+                if name.endswith("generate-release-manifest.py"):
+                    args += ["--abi", "android-aarch64-bionic", "--stage", str(root / "stage")]
+                with self.subTest(script=name):
+                    result = subprocess.run(args, text=True, capture_output=True)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("only g615-v11-csf is supported", result.stderr)
+                    self.assertFalse((root / "dist").exists())
+                    self.assertFalse((root / "stage").exists())
+                    self.assertFalse((root / "work").exists())
+
     def test_other_profiles_fail_before_mesa_or_build_changes(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

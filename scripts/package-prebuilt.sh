@@ -17,6 +17,10 @@ while [ $# -gt 0 ]; do case "$1" in
   --suffix) SUFFIX="$2"; shift 2;; --mesa8) MESA8="$2"; shift 2;; --profile) PROFILE="$2"; shift 2;;
   --outdir) OUTDIR="$2"; shift 2;; --minapi) MINAPI="$2"; shift 2;;
   *) echo "unknown $1" >&2; exit 2;; esac; done
+[ "$PROFILE" = "g615-v11-csf" ] || {
+  echo "unsupported profile: $PROFILE; only g615-v11-csf is supported" >&2
+  exit 2
+}
 [ -f "$SO" ] && [ -f "$ICD" ] && [ -n "$VER" ] || { echo "--so --icd --version required" >&2; exit 2; }
 mkdir -p "$OUTDIR"
 python3 - "$SO" "$ICD" "$VER" "$SUFFIX" "$MESA8" "$PROFILE" "$OUTDIR" "$MINAPI" "$ROOT" <<'EOF'
@@ -25,19 +29,19 @@ so, icd, ver, suffix, mesa8, profile, outdir, minapi, root = sys.argv[1:]
 so = pathlib.Path(so); outdir = pathlib.Path(outdir); root = pathlib.Path(root)
 data = so.read_bytes(); sha = hashlib.sha256(data).hexdigest()
 sys.path.insert(0, str(root / "scripts"))
-from driver_identity import identity
-ident = identity(data)
-upstream = bool(ident and ident["style"] == "upstream")
+from driver_identity import identity_for_pin
 lock = json.loads((root / "sources.lock").read_text())
+ident = identity_for_pin(data, lock)
+upstream = ident["style"] == "upstream"
 mesa = lock["mesaCommit"]; mesa8 = mesa8 or mesa[:8]
 prof = json.loads((root / "profiles" / f"{profile}.json").read_text())
 label = (ver.removeprefix("v").split("-",1)[1].upper() if "-" in ver else ver.removeprefix("v")) + (("-" + {"lowmem":"LM"}.get(suffix, suffix)) if suffix else "")
 metaname = ident["packageName"] if upstream else f"PanVK-kbase-{label}"
-drvver = ident["driverInfo"] if upstream else "Mesa 26.3.0-devel"
+drvver = ident["driverInfo"]
 drvname = f"{ident['displayName']} (git-{ident['gitSha']})" if upstream else "PanVK Kbase"
 pkgver = ver.removeprefix("v") + (f"-{suffix}" if suffix else "")
 tag = f"{ver}" + (f"-{suffix}" if suffix else "")
-note = ("Binary taken verbatim from the published release asset libvulkan_panfrost-android-aarch64.so "
+note = (f"Prebuilt binary supplied as {so.name} "
         f"(sha256 {sha}). The exact patch series used to build it is not reproducible from this repository, "
         "so patchSeriesId is not claimed. This is the Android (bionic) driver repackaged in the RC3 package layout.")
 def meta(abi, desc, with_minapi):

@@ -1,11 +1,22 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] EXPERIMENTAL: refresh 003-kbase-coalesce-mem-sync.patch against the G615-only dependency series
+
+Purpose: EXPERIMENTAL: refresh 003-kbase-coalesce-mem-sync.patch against the G615-only dependency series
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
 diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_kmod.c
+index 052eb9c0196f6085d18f1039c7919b2a986e7c27..b73215b311c750ff27aaae1ace2bc3debd83d93e 100644
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -2585,35 +2585,108 @@ kbase_kmod_cs_event_signal(struct pan_kmod_dev *dev)
-    return 0;
+@@ -2222,36 +2222,109 @@
  }
  
-+static int
+ static int
 +kbase_deferred_bo_sync_cmp(const void *a, const void *b)
 +{
 +   const struct pan_kmod_deferred_bo_sync *sa = a;
@@ -49,7 +60,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 +   return 0;
 +}
 +
- static int
++static int
  kbase_kmod_flush_bo_map_syncs(struct pan_kmod_dev *dev)
  {
 -   util_dynarray_foreach(&dev->pending_bo_syncs.array,
@@ -105,8 +116,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 +         if (next_end > cur_end)
 +            cur.size = next_end - cur.start;
           continue;
-+      }
- 
+-
 -      struct kbase_ioctl_mem_sync req = {
 -         .handle = kbase_bo->gpu_va,
 -         .user_addr = (uintptr_t)kbase_bo->cpu_ptr + sync->start,
@@ -115,21 +125,25 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 -      };
 -
 -      int ret = pan_kmod_ioctl(dev->fd, KBASE_IOCTL_MEM_SYNC, &req);
--      if (ret) {
--         mesa_loge("kbase: KBASE_IOCTL_MEM_SYNC failed: %s", strerror(errno));
++      }
++
 +      ret = kbase_kmod_emit_mem_sync(dev, &cur);
-+      if (ret) {
+       if (ret) {
+-         mesa_loge("kbase: KBASE_IOCTL_MEM_SYNC failed: %s", strerror(errno));
 +         if (ops != stack_ops)
 +            free(ops);
           return -1;
--      }
-+      }
-+      cur = *next;
-    }
- 
+       }
+-   }
+-
 -   return 0;
++      cur = *next;
++   }
++
 +   ret = kbase_kmod_emit_mem_sync(dev, &cur);
 +   if (ops != stack_ops)
 +      free(ops);
 +   return ret;
  }
+ 
+ /* Eviction hints — kbase does not expose a madvise ioctl in the userspace

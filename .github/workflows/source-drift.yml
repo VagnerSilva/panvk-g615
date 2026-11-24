@@ -15,4 +15,5 @@ jobs:
           echo "pinned=$PIN upstream=$HEAD"
           ./scripts/fetch-mesa.sh
           ./scripts/apply-patches.sh --profile g615-v11-csf
+          PANVK_MESA_SOURCE=work/mesa python3 -m unittest discover -s tests -p 'test_g615_*.py'
           echo "PATCHES-APPLY-CLEAN"

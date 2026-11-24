@@ -1,0 +1,39 @@
+family	patch	disposition	dependency	evidence
+jm-v9	001-kbase-jm-job-atom-submission.patch	drop-jm-only	-	JM atoms, warmup and host imports use !is_csf; CSF submission remains in csf-v11.
+jm-v9	002-panvk-v9-valhall-jm-backend.patch	drop-jm-only	csf-v11/238; experimental-kbase-sync/002	v9 build/dispatch and JM queue helpers removed; v11 frame-shader functions compare unchanged; unused GPU-wait helper is not retained for patch context.
+jm-v9	003-report-vulkan-1.3-on-v9.patch	drop-jm-only	-	Architecture-9 lowering/reporting; v11 features and shader functions preserved.
+jm-v9	004-init-exec-va-before-jit.patch	keep-shared	csf-v11/237	EXEC initialization and diagnostics precede JIT in the extracted Kbase implementation.
+jm-v9	005-size-exec-jit-zones-and-imports-in-kernel-pages.patch	split	csf-v11/237	EXEC 4 GiB and JIT 128 GiB are divided by kernel page size; JM-only host imports are dropped.
+jm-v9	006-add-the-mali-g77-model-row.patch	drop-jm-only	-	Legacy model addition; upstream G615 product and revision lookup remain unchanged in the real model harness.
+jm-v9	007-v9-reset-malloc-vertex-array-on-resubmit.patch	drop-jm-only	-	Changes only the JM command-buffer implementation.
+jm-v9	008-jm-apply-cmd-set-event-on-gpu-completion.patch	drop-jm-only	-	Changes only JM queue/event completion.
+jm-v9	009-v9-multi-draw-indirect-and-draw-indirect-count.patch	drop-jm-only	-	v9 indirect helpers; >=9 versus >=10 feature thresholds both evaluate true for v11.
+jm-v9	010-v9-robustness2-robust-buffer-access2-null-descriptor.patch	drop-jm-only	-	v9 sysvals and robustness exposure; v11 feature and shader functions preserved.
+jm-v9	011-v9-transform-feedback-via-gpu-prerast.patch	split	csf-v11/236	The two viewport varying-layout calls retain inputs.arch; v9 prerast code and include routing are not carried over.
+jm-v9	012-v9-geometry-shaders-and-streams-via-gpu-prerast.patch	drop-jm-only	-	v9 geometry implementation; v11 feature values unchanged and the three removed property fallbacks are unreachable at PAN_ARCH=11.
+jm-v9	013-v9-clip-cull-distance-and-vertex-stores.patch	drop-jm-only	-	v9 stores and thresholds; v11 shader/prerast functions compare unchanged after architecture-constant evaluation.
+jm-v9	014-v9-tessellation-via-gpu-prerast.patch	drop-jm-only	-	v9 tessellation helpers and structures; existing CSF tessellation/precomp paths compile independently.
+jm-v9	015-v9-multi-viewport-and-viewport-index.patch	drop-jm-only	-	v9 viewport path; v11 feature values and shader functions preserved.
+jm-v9	016-v9-pipeline-statistics-and-xfb-queries.patch	drop-jm-only	-	v9 query helpers; v11 query-pool and CSF command-query functions compare unchanged.
+jm-v9	017-v9-split-large-indirect-gpu-prerast-draws.patch	split	csf-v11/240	Shared max_insts field and chunk limit are required by existing v11 fan_chunks.cl; preserve them without the v9 chunk loop.
+jm-v9	018-v9-depth-bounds-per-sample-shading-vmr.patch	drop-jm-only	-	v9 paths and >=9 thresholds; v11 feature values and shader/prerast functions preserved.
+jm-v9	019-v9-fill-mode-non-solid.patch	drop-jm-only	-	v9 rasterization path; v11 fill-mode feature remains true.
+jm-v9	020-v9-warn-on-indirect-chunk-truncation.patch	drop-jm-only	-	JM-only truncation diagnostic.
+jm-v9	021-add-the-mali-g78-g78ae-model-rows.patch	drop-jm-only	-	Legacy model additions; upstream model table and G615 revision acceptance preserved.
+jm-v9	022-kbase-jm-atom-layout-fault-propagation-teardown.patch	drop-jm-only	-	JM atom-stride, queue fault and teardown paths; no CSF queue consumer.
+jm-v9	023-v9-tiler-heap-incremental-commit.patch	drop-jm-only	-	Second heap allocation is PAN_ARCH==9; matching unused generic member/unrefs removed with that dependency.
+jm-v9	024-v9-clean-non-coherent-dmabuf-imports.patch	drop-jm-only	-	Import cleaning requires !is_csf and arch==9; matching unused mutex/list bookkeeping is dropped.
+jm-v9	025-v9-rt128-bisect-knob.patch	drop-jm-only	-	Architecture-9 debug knob, not a G615 setting.
+jm-v9	026-v9-instance-attribs-add-first-instance-for-every-divisor.patch	drop-jm-only	-	v9 draw helpers; v11 command draw and prerast functions preserved.
+jm-v9	027-v9-count-compute-invocations-before-empty-shader-skip.patch	drop-jm-only	-	JM-only dispatch/query accounting.
+jm-v9	028-v9-chunk-direct-restart-strips-and-gpu-sized-tess-chunks.patch	drop-jm-only	csf-v11/240	v9 cut-tail and tessellation fields stay architecture-9-only; shared max_insts originates in 017 and is retained separately.
+jm-v9	029-v9-primitive-index-enable-and-override.patch	drop-jm-only	-	JM-only primitive index emission.
+jm-v9	030-v9-robust-image-access2-conditional-rendering-timestamps.patch	drop-jm-only	-	Added robustness lowering is arch 9/10, not 11; v11 query, shader and feature functions preserved.
+jm-v9	031-v9-jm-bc-emulation-decode-zero-initialized-images.patch	drop-jm-only	-	JM-only BC decode scheduling; existing CSF BC implementation remains.
+jm-v9	032-mesa27-physical-device-api.patch	keep-shared	csf-v11/235	Four-input model lookup, fstat character-node budget key, failed-init release and budget->heap_used retained; real budget harness covers invalid nodes and allocation failure.
+jm-v9	033-android-x11-event-connection-symbols.patch	keep-shared	csf-v11/239	Real dlopen loader resolves xcb_connect, xcb_connection_has_error, xcb_disconnect and xcb_get_file_descriptor; depends on the late v11 Android X11 loader patch.
+jm-v7	001-ignore-the-gpu-variant-on-bifrost.patch	drop-jm-only	-	Bifrost model fallback; G615 model lookup and upstream model infrastructure preserved.
+jm-v7	002-allow-bifrost-on-kbase-without-the-env-gate.patch	drop-jm-only	-	Legacy Bifrost enablement; G615 CSF discovery remains and now explicitly checks is_csf.
+jm-v7	003-skip-jit-init-and-grow-the-tiler-heap-on-bifrost.patch	drop-jm-only	-	Bifrost-only allocator/heap changes; G615 EXEC/JIT initialization retained in 237.
+jm-v7	004-bifrost-atom-stride-check-with-64-candidate.patch	drop-jm-only	-	Bifrost JM atom-layout probe; no CSF execution consumer.
+jm-v7	005-kbase-ion-fallback-for-placed-map-dma-buf.patch	keep-shared	csf-v11/237	Shared dma-heap-to-ION fallback is retained unchanged; no claim that its hardware path was exercised on G615.

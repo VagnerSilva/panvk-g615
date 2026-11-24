@@ -16,6 +16,10 @@ while [ $# -gt 0 ]; do case "$1" in
   --only) ONLY="$2"; shift 2;;
   --dev-name) [ "$#" -ge 2 ] && [ -n "$2" ] || { echo "--dev-name requires a name" >&2; exit 2; }; DEV_NAME="$2"; shift 2;;
   *) echo "unknown $1" >&2; exit 2;; esac; done
+[ "$TAG" = g615-v11-csf ] || {
+  echo "unsupported profile: $TAG; only g615-v11-csf is supported" >&2
+  exit 2
+}
 [ -f "$SO" ] || { echo "--so <file> required" >&2; exit 2; }
 [ -z "$ONLY" ] || [ "$ONLY" = adpkg ] || { echo "--only supports adpkg" >&2; exit 2; }
 [ -z "$DEV_NAME" ] || [ "$ONLY" = adpkg ] || { echo "--dev-name requires --only adpkg" >&2; exit 2; }
@@ -34,7 +38,7 @@ import sys, json, hashlib, zipfile, pathlib, re
 so, ver, label, tag, mesa8, outdir, reporoot, only, dev_name = sys.argv[1:]
 import os
 sys.path.insert(0, os.path.join(reporoot, "scripts"))
-from driver_identity import identity
+from driver_identity import identity_for_pin
 mesa10 = os.environ.get("MESA10") or mesa8
 so = pathlib.Path(so); outdir = pathlib.Path(outdir)
 data = so.read_bytes()
@@ -45,20 +49,19 @@ if only == "adpkg" and not is_dev:
     sys.exit("adpkg import packages require a -dev version; use the release packager for other tiers")
 if dev_name and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", dev_name):
     sys.exit("invalid --dev-name: use 1-128 ASCII letters, numbers, '.', '_' or '-'")
-ident = identity(data)
-upstream = bool(ident and ident["style"] == "upstream")
+ident = identity_for_pin(data, json.loads((pathlib.Path(reporoot) / "sources.lock").read_text()))
+upstream = ident["style"] == "upstream"
 if upstream:
     name = ident["packageName"]
     drvver = ident["driverInfo"]
     title = f"{ident['displayName']} (git-{ident['gitSha']})"
-    base = f"{title}: Vulkan driver for Mali GPUs on the mali_kbase kernel driver, package {pkgver}."
+    base = f"{title}: Mali-G615 CSF v11 Kbase Vulkan ICD, package {pkgver}."
     zipstem = f"Mesa-PanVK-Android-{ver}-{ident['sha8']}"
 else:
     name = f"PanVK-kbase-{label}"
-    drvver = (ident["driverInfo"] if only == "adpkg" and ident else
-              f"PanVK-kbase {label} (Mesa 26.3.0-devel git-{mesa10})")
+    drvver = ident["driverInfo"]
     title = f"PanVK-kbase {label}"
-    base = f"PanVK (Mesa) Vulkan driver for Mali v10+ CSF via kbase, {label} build."
+    base = f"PanVK (Mesa) Mali-G615 CSF v11 Kbase Vulkan ICD, {label} build."
     zipstem = f"PanVK-Kbase-Android-{ver}-{mesa8}"
 if dev_name:
     name = dev_name
@@ -89,7 +92,7 @@ for key, c in L.items():
         desc = f"{base} {c['desc']}"
     meta = {"schemaVersion":1,"name":name,"description":desc,"author":"panvk-kbase-android",
             "packageVersion":pkgver,"vendor":"Mesa","driverVersion":drvver,"minApi":c["minApi"],
-            "libraryName":c["lib"]}
+            "libraryName":c["lib"], "profile":tag, "panArch":11, "frontend":"CSF"}
     files = {"meta.json": (json.dumps(meta, indent=2) + "\n").encode(),
              c["lib"]: data,
              "SHA256SUMS.txt": f"{sha}  {c['lib']}\n".encode()}

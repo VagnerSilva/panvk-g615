@@ -50,6 +50,7 @@ esac
         patches = [x["path"] for x in b["inputs"] if x["path"].endswith(".patch")]
         ids = [Path(p).name[:3] for p in patches]
         self.assertEqual(ids[-3:], ["002", "003", "004"])
+        self.assertFalse(any("/jm-" in p for p in patches))
         self.assertFalse(any("experimental-kbase-sync" in x["path"] for x in a["inputs"]))
         self.assertFalse(any("/experimental-kbase-sync/001" in p for p in patches))
         self.assertEqual((a["variant"], b["variant"]), ("default", "kbase-sync-002-004"))

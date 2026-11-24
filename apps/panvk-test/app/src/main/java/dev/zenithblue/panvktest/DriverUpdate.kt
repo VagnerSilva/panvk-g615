@@ -39,7 +39,7 @@ import java.security.MessageDigest
 
 /**
  * "New driver available": GitHub releases of the driver repo (prereleases included), newest
- * panvk-kbase-v* (or older g615-v11-csf-v*) tag with the universal Android ICD asset. Download is refused without a published
+ * panvk-g615-v11-csf-v* tag with the G615-specific Android ICD asset. Download is refused without a published
  * SHA-256 (asset digest or SHA256SUMS), and must be an aarch64 ELF shared object of the listed size.
  */
 class DriverUpdate(private val ctx: Context) {
@@ -55,10 +55,10 @@ class DriverUpdate(private val ctx: Context) {
 
     companion object {
         const val REPO = "zenithblue-oss/panvk-kbase-android"
-        const val ASSET = "libvulkan_panfrost-android-aarch64.so"
-        // New tags are panvk-kbase-vX; the old g615-v11-csf-v prefix stays so beta/rc1 tags still parse.
+        const val ASSET = "libvulkan_panfrost-g615-v11-csf-android-aarch64.so"
+        // Historical universal and pre-migration G615 releases are not update candidates.
         // Versions continue 0.1.0-rcN then 0.1.0, so "-rcN" without beta sorting above betas is intended.
-        private val TAG_PREFIXES = listOf("panvk-kbase-v", "g615-v11-csf-v")
+        private val TAG_PREFIXES = listOf("panvk-g615-v11-csf-v")
         private const val DAY_MS = 24L * 3600 * 1000
 
         /** Debug builds only: pretend this driver version is installed (intent extra "updateAs"). */

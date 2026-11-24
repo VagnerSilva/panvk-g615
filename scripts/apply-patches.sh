@@ -13,7 +13,6 @@ while [ $# -gt 0 ]; do case "$1" in
 esac; done
 [ -n "$PROFILE" ] || { echo "--profile required" >&2; exit 2; }
 case "$PROFILE" in *[!a-zA-Z0-9_-]*|'') echo "invalid profile: $PROFILE" >&2; exit 2;; esac
-[ -f "$ROOT/profiles/$PROFILE.json" ] || { echo "invalid profile: $PROFILE" >&2; exit 2; }
 if [ "$WITH_KBASE_SYNC" = true ] && [ "$PROFILE" != "g615-v11-csf" ]; then
   echo "--with-kbase-sync requires --profile g615-v11-csf (Mesa 27)" >&2
   exit 2
@@ -22,13 +21,15 @@ fi
   echo "unsupported profile: $PROFILE; only g615-v11-csf is supported" >&2
   exit 2
 }
+[ -f "$ROOT/profiles/$PROFILE.json" ] || { echo "invalid profile: $PROFILE" >&2; exit 2; }
 ARCH="$(python3 -c "import json;print(json.load(open('$ROOT/profiles/$PROFILE.json'))['panArch'])")"
 FRONTEND="$(python3 -c "import json;print(json.load(open('$ROOT/profiles/$PROFILE.json'))['frontend'])")"
 SERIES="common android kbase-common app-loader wsi"
-if [ "$FRONTEND" = "CSF" ]; then SERIES="$SERIES csf csf-v$ARCH"; else SERIES="$SERIES jm-v$ARCH"; fi
-# Universal ICD: jm-v9 sits on top of the csf-v11 series (v9 JM + v10-v14 CSF),
-# jm-v7 (Bifrost v6/v7 kbase unblock) on top of jm-v9.
-if [ "$PROFILE" = "g615-v11-csf" ]; then SERIES="$SERIES jm-v9 jm-v7"; fi
+[ "$ARCH" = 11 ] && [ "$FRONTEND" = CSF ] || {
+  echo "invalid G615 profile: requires panArch=11 and frontend=CSF" >&2
+  exit 2
+}
+SERIES="$SERIES csf csf-v11"
 if [ "$WITH_KBASE_SYNC" = true ]; then SERIES="$SERIES experimental-kbase-sync"; fi
 if [ -n "$MANIFEST" ]; then
   MESA_PIN="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["mesaCommit"])' "$ROOT/sources.lock")"
@@ -87,28 +88,15 @@ for fam in $SERIES; do
 done
 if [ -n "$MANIFEST" ]; then
   python3 - "$ROOT" "$MANIFEST" "$MESA_PIN" "$PROFILE" "$WITH_KBASE_SYNC" $SERIES <<'PY'
-import hashlib, json, os, sys
+import json, os, sys
 from pathlib import Path
 root, target, pin, profile, sync, *families = sys.argv[1:]
 root = Path(root)
-inputs = []
-for family in families:
-    directory = root / "patches" / family
-    for path in sorted(directory.glob("*.patch")):
-        if family == "experimental-kbase-sync" and path.name not in {
-            "002-android-release-queue-mesa27.patch",
-            "003-kbase-coalesce-mem-sync.patch",
-            "004-kbase-sync-file-waiter-lifetime.patch",
-        }:
-            continue
-        inputs.append(path)
-    overlay = directory / "files"
-    if overlay.is_dir():
-        inputs.extend(sorted(p for p in overlay.rglob("*") if p.is_file() and not p.is_symlink() and p.name != "README"))
-data = {"mesaCommit": pin, "profile": profile,
-        "variant": "kbase-sync-002-004" if sync == "true" else "default",
-        "inputs": [{"path": p.relative_to(root).as_posix(),
-                    "sha256": hashlib.sha256(p.read_bytes()).hexdigest()} for p in inputs]}
+sys.path.insert(0, str(root / "scripts"))
+from build_provenance import series_manifest
+data = series_manifest(root, profile, "kbase-sync-002-004" if sync == "true" else "default")
+if data["mesaCommit"] != pin:
+    sys.exit("Mesa pin changed during patch application")
 content = (json.dumps(data, sort_keys=True, indent=2) + "\n").encode()
 staging = target + ".partial." + str(os.getpid())
 created = False

@@ -21,18 +21,6 @@ def patch_function():
 
 
 class AnbDmaBufFdTests(unittest.TestCase):
-    def test_removed_universal_series_fails_before_touching_mesa(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            mesa = Path(tmp) / "mesa"
-            mesa.mkdir()
-            result = subprocess.run(
-                ["sh", str(ROOT / "scripts/prepare-rc5-tree.sh"), "--mesa", str(mesa)],
-                capture_output=True, text=True,
-            )
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("historical jm-v7-wip series is unavailable", result.stderr)
-            self.assertEqual(list(mesa.iterdir()), [])
-
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
@@ -153,6 +141,8 @@ int main(void)
             main = replay("apply-patches.sh", "--profile", "g615-v11-csf")
             self.assertEqual(sum(f"apply {PATCH}" in line for line in main), 1)
             self.assertFalse(any("/patches/jm-v7-wip/" in line for line in main))
+            self.assertFalse(any("/patches/jm-v9/" in line or "/patches/jm-v7/" in line
+                                 for line in main))
             experimental = ROOT / "patches/experimental-kbase-sync"
             self.assertFalse(any(str(experimental) in line for line in main))
 
@@ -171,7 +161,7 @@ int main(void)
             self.assertGreater(
                 opted_in.index(applied[0]),
                 max(i for i, line in enumerate(opted_in)
-                    if " apply " in line and "/patches/jm-v7/" in line),
+                    if " apply " in line and "/patches/csf-v11/" in line),
             )
 
             rejected = subprocess.run(

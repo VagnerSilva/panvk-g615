@@ -6,7 +6,7 @@ Maintain and evolve the `panvk-kbase-android` project, including its Mesa integr
 
 The central architectural objective is to integrate Kraid as a global compiler backend within the Mesa/Panfrost project, rather than treating it as an isolated Mali-G615 experiment.
 
-The Mali-G615 with CSF v11, represented by the `g615-v11-csf` profile, is the initial development and validation baseline. It is not the architectural or hardware support limit.
+The active Mesa 27 product scope is Mali-G615 with Kbase CSF v11, represented by the sole `g615-v11-csf` profile, on Android/Bionic and Linux/glibc. Historical devices and universal releases are evidence only. Preserve upstream compiler and model infrastructure; wider driver support requires a separately approved change.
 
 Use the Mesa revision pinned in `sources.lock`. Read the [architecture guide](docs/ARCHITECTURE.md) and the relevant technical documentation before changing project behavior.
 
@@ -228,8 +228,8 @@ This sequence must run only in a disposable workspace with the intended inputs.
 
 - For incremental Android builds after setup, run `ninja -C build/android-bionic`.
 - For the Linux/glibc variant, run `./scripts/build-glibc.sh --profile g615-v11-csf`.
-- For universal releases, follow the [release guide](docs/RELEASE.md) and use `scripts/prepare-rc5-tree.sh`.
-- Do not publish a profile build as a universal release.
+- For G615-only releases, follow the [release guide](docs/RELEASE.md).
+- The universal preparation and v9 build entry points are retired. Do not publish a G615 build as universal.
 - Keep host generators and target binaries separate.
 - Use NDK-built dependencies for Android.
 - Use a fresh `BDIR` after changing the cross file.

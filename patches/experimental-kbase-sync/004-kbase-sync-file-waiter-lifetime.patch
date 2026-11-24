@@ -1,3 +1,14 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] EXPERIMENTAL: refresh 004-kbase-sync-file-waiter-lifetime.patch against the G615-only dependency series
+
+Purpose: EXPERIMENTAL: refresh 004-kbase-sync-file-waiter-lifetime.patch against the G615-only dependency series
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: VagnerSilva <vagner23silva@gmail.com>
 Date: Thu, 19 Nov 2026 16:23:00 -0300
@@ -27,9 +38,10 @@ provided; concurrent-lifetime stress remains unverified.
  1 file changed, 6 insertions(+)
 
 diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+index 8b24d135a782d6c683cb37b4747e51bc657c37b1..c6a35304a9656784c284994180447ae985f32f66 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_physical_device.c
-@@ -753,6 +753,7 @@ kbase_cpu_sync_signal(UNUSED struct vk_device *device, struct vk_sync *sync,
+@@ -746,6 +746,7 @@
  {
     struct kbase_cpu_sync *ks = container_of(sync, struct kbase_cpu_sync, sync);
     mtx_lock(&ks->mutex);
@@ -37,7 +49,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
     ks->state = KBASE_CPU_SYNC_SIGNALED;
     ks->result = VK_SUCCESS;
     ks->pending_data = NULL;
-@@ -768,6 +769,7 @@ kbase_cpu_sync_reset(UNUSED struct vk_device *device, struct vk_sync *sync)
+@@ -761,6 +762,7 @@
     struct kbase_cpu_sync *ks = container_of(sync, struct kbase_cpu_sync, sync);
     mtx_lock(&ks->mutex);
     assert(ks->state != KBASE_CPU_SYNC_WAITING);
@@ -45,7 +57,7 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
     ks->state = KBASE_CPU_SYNC_RESET;
     ks->result = VK_SUCCESS;
     ks->pending_data = NULL;
-@@ -799,6 +801,7 @@ panvk_kbase_sync_set_pending(
+@@ -792,6 +794,7 @@
      * (e.g. a reused WSI semaphore that was CPU-waited) is legal.  Only an
      * in-progress wait on the old payload would be a genuine bug. */
     assert(ks->state != KBASE_CPU_SYNC_WAITING);
@@ -53,7 +65,8 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
     ks->pending_data = data;
     ks->pending_wait = wait;
     memcpy(ks->targets, targets, sizeof(ks->targets));
-@@ -957,11 +960,13 @@ kbase_cpu_sync_wait_one(struct vk_device *device, struct kbase_cpu_sync *ks,
+@@ -919,12 +922,14 @@
+ 
           mtx_lock(&ks->mutex);
           if (result == VK_SUCCESS) {
 +            kbase_sync_file_waiter_free(ks);
@@ -67,6 +80,11 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/p
              ks->state = KBASE_CPU_SYNC_FAILED;
              ks->result = result;
           }
-@@ -1052,1 +1057,2 @@ kbase_cpu_sync_move(UNUSED struct vk_device *device, struct vk_sync *dst,
+@@ -1012,6 +1017,7 @@
+    assert(ks_src->state != KBASE_CPU_SYNC_WAITING);
+    assert(ks_dst->state != KBASE_CPU_SYNC_WAITING);
+ 
 +   kbase_sync_file_waiter_free(ks_dst);
     ks_dst->state = ks_src->state;
+    ks_dst->result = ks_src->result;
+    ks_dst->pending_data = ks_src->pending_data;

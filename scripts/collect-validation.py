@@ -21,6 +21,8 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+from build_provenance import checked_series
 
 ANDROID_GATES = (
     "enumeration",
@@ -182,22 +184,37 @@ def find_matrix(profile: str) -> pathlib.Path | None:
 
 def patch_series_id(profile: str) -> str:
     script = ROOT / "scripts" / "compute-patch-series-id.py"
-    if script.exists():
-        out = sh("python3", str(script), "--profile", profile)
-        if out.startswith("sha256:"):
-            return out
-    lock = read_json(ROOT / "sources.lock")
-    return lock.get("patchSeriesId", "unknown")
+    out = subprocess.check_output([sys.executable, str(script), "--profile", profile],
+                                  text=True).strip()
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", out):
+        raise ValueError("invalid computed patch series identity")
+    return out
 
 
-def collect(profile: str) -> dict:
+def collect(profile: str, stage: pathlib.Path | None = None, abi: str | None = None) -> dict:
     vdir = ROOT / "validation" / profile
-    prof = read_json(ROOT / "profiles" / f"{profile}.json")
-    lock = read_json(ROOT / "sources.lock")
+    prof = json.loads((ROOT / "profiles" / f"{profile}.json").read_text())
+    lock = json.loads((ROOT / "sources.lock").read_text())
     android_so = ROOT / "dist" / f"android-{profile}" / "libvulkan_panfrost.so"
     glibc_so = ROOT / "dist" / f"glibc-{profile}" / "libvulkan_panfrost.so"
     android_sha = sha256_file(android_so)
     glibc_sha = sha256_file(glibc_so)
+    identity = {}
+    if stage is not None:
+        if abi not in ("android-aarch64-bionic", "linux-aarch64-glibc"):
+            raise ValueError("staged validation requires the candidate ABI")
+        candidate_sha = sha256_file(stage / "libvulkan_panfrost.so")
+        if candidate_sha is None:
+            raise ValueError("staged candidate binary is missing")
+        series, digest = checked_series(ROOT, (stage / "series-manifest.json").read_bytes())
+        if series["profile"] != profile:
+            raise ValueError("staged profile does not match the candidate")
+        if abi == "android-aarch64-bionic":
+            android_sha = candidate_sha
+        else:
+            glibc_sha = candidate_sha
+        identity = {"abi": abi, "variant": series["variant"],
+                    "binarySha256": candidate_sha, "seriesManifestSha256": digest}
     mesa = lock.get("mesaCommit")  # release pin; work/mesa may be a dev tree
 
     android = {}
@@ -237,6 +254,7 @@ def collect(profile: str) -> dict:
     }
 
     return {
+        **identity,
         "profile": profile,
         "device": prof.get("device", "Poco X6 Pro"),
         "gpuId": prof.get("gpuId", "0xb8a31030"),
@@ -261,13 +279,13 @@ def flatten_status(doc: dict) -> list[tuple[str, str]]:
     return out
 
 
-def require_beta_gates(doc: dict) -> list[str]:
+def require_beta_gates(doc: dict, abi: str | None = None) -> list[str]:
     missing = []
-    for k in ANDROID_GATES:
+    for k in (ANDROID_GATES if abi != "linux-aarch64-glibc" else ()):
         st = doc["android"][k]["status"]
         if st != "pass":
             missing.append(f"android.{k}={st}")
-    for k in GLIBC_GATES:
+    for k in (GLIBC_GATES if abi != "android-aarch64-bionic" else ()):
         st = doc["glibc"][k]["status"]
         if st != "pass":
             missing.append(f"glibc.{k}={st}")
@@ -278,7 +296,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--profile", default="g615-v11-csf")
     ap.add_argument("--out", help="VALIDATION.json path (default dist/VALIDATION.json)")
-    ap.add_argument("--abi", help="ignored; accepted for generate-release-manifest.py")
+    ap.add_argument("--abi", choices=("android-aarch64-bionic", "linux-aarch64-glibc"),
+                    help="ABI of the staged candidate")
     ap.add_argument("--stage", help="if set and --out omitted, write STAGE/VALIDATION.json")
     ap.add_argument(
         "--require-beta-gates",
@@ -287,7 +306,9 @@ def main() -> int:
     )
     a = ap.parse_args()
 
-    doc = collect(a.profile)
+    if a.profile != "g615-v11-csf":
+        ap.error("only g615-v11-csf is supported")
+    doc = collect(a.profile, pathlib.Path(a.stage) if a.stage else None, a.abi)
     if a.out:
         out = pathlib.Path(a.out)
     elif a.stage:
@@ -301,7 +322,7 @@ def main() -> int:
         print(f"  {name}={st}")
 
     if a.require_beta_gates:
-        missing = require_beta_gates(doc)
+        missing = require_beta_gates(doc, a.abi)
         if missing:
             print("FAIL untested/fail mandatory beta gates:", file=sys.stderr)
             for m in missing:

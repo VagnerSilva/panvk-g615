@@ -9,11 +9,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH = ROOT / "patches/csf-v11/234-restrict-kbase-panvk-to-g615.patch"
-MESA = Path(os.environ.get("PANVK_MESA_SOURCE", ROOT / "work/mesa"))
+MESA = Path(os.environ.get("PANVK_MESA_SOURCE", ROOT / "work/mesa")).resolve()
 
 
 def extract_function(source, name):
-    match = re.search(r"\bstatic\s+bool\s+" + re.escape(name) + r"\s*\(", source)
+    match = re.search(r"\b(?:static\s+)?bool\s+" + re.escape(name) + r"\s*\(", source)
     if match is None:
         raise AssertionError(f"missing {name} in patched Mesa source")
 
@@ -71,6 +71,61 @@ def patched_sources():
 
 
 class G615DeviceFilterTests(unittest.TestCase):
+    def test_real_discovery_requires_both_g615_and_csf(self):
+        physical = (MESA / "src/panfrost/vulkan/panvk_physical_device.c").read_text()
+        kbase = (MESA / "src/panfrost/lib/kmod/kbase_kmod.c").read_text()
+        getter = extract_function(kbase, "kbase_kmod_is_csf")
+        model_filter = extract_function(physical, "panvk_is_supported_kbase_model")
+        start = physical.index("if (!kbase_kmod_is_csf(device->kmod.dev)")
+        end = physical.index(") {", start)
+        rejection = physical[start + len("if ("):end]
+        harness = f"""
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include "util/macros.h"
+#include "{MESA / 'src/panfrost/model/pan_model.h'}"
+static const int kbase_kmod_ops = 0;
+struct pan_kmod_dev {{ const void *ops; }};
+struct kbase_kmod_dev {{ struct pan_kmod_dev base; bool is_csf; }};
+struct test_device {{
+   const struct pan_model *model;
+   struct {{ struct pan_kmod_dev *dev; }} kmod;
+}};
+{getter}
+{model_filter}
+static bool rejected(struct test_device *device)
+{{
+   return {rejection};
+}}
+int main(void)
+{{
+   struct kbase_kmod_dev kbase = {{ {{ &kbase_kmod_ops }}, true }};
+   struct test_device device = {{
+      pan_get_model(0xb8a31030, 4, 4, 0), {{ &kbase.base }}
+   }};
+   assert(!rejected(&device));
+   kbase.is_csf = false;
+   assert(rejected(&device));
+   kbase.is_csf = true;
+   device.model = pan_get_model(0xb8a21030, 4, 4, 0);
+   assert(rejected(&device));
+   device.model = NULL;
+   assert(rejected(&device));
+   return 0;
+}}
+"""
+        with tempfile.TemporaryDirectory(prefix="panvk-g615-csf-test-") as temp:
+            source = Path(temp) / "filter.c"
+            binary = Path(temp) / "filter"
+            source.write_text(harness)
+            subprocess.run([
+                os.environ.get("CC", "cc"), "-std=gnu11", "-Wall", "-Werror",
+                f"-I{MESA / 'src'}", f"-I{MESA / 'include'}", str(source),
+                str(MESA / "src/panfrost/model/pan_model.c"), "-o", str(binary),
+            ], check=True, capture_output=True, text=True)
+            subprocess.run([str(binary)], check=True)
+
     def test_real_filter_accepts_only_g615_product(self):
         with patched_sources() as mesa:
             source = (mesa / "src/panfrost/vulkan/panvk_physical_device.c").read_text()

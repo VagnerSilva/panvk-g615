@@ -16,11 +16,9 @@ Directories:
 
 - `common/` — upstream-safe fixes, build fixes, logging.
 - `android/` — Bionic/NDK build, Android WSI, gralloc/AHB interop.
-- `kbase-common/` — pan_kmod/Kbase abstraction shared by JM + CSF.
+- `kbase-common/` — pan_kmod/Kbase abstraction used by the G615 CSF build.
 - `csf/` — CSF queue/group/register/bind/kick lifecycle (all CSF).
-- `csf-v10/ csf-v11/ csf-v12/ csf-v13/ csf-v14/` — arch-scoped CSF quirks.
-- `jm-v7/` — Bifrost v7 JM backend.
-- `jm-v9/` — Valhall v9 JM backend (a real port, not a flag).
+- `csf-v11/` — the active G615 architecture-scoped patches.
 - `app-loader/` — generic ICD exports (`vk_icdGetInstanceProcAddr`,
   `vk_icdNegotiateLoaderICDInterfaceVersion`) coexisting with Android WSI.
   The G52 lesson: enabling Android WSI must not select the HAL-only symbol
@@ -35,7 +33,18 @@ Directories:
 The historical `jm-v7-wip` patch files are not part of the selected Mesa 27
 G615 series and have been removed from this tree. Its README and worklogs
 remain historical records. The old universal tree cannot be reconstructed
-from this checkout; its preparation script fails explicitly.
+from this checkout; the universal and v9 preparation scripts are retired.
+The remaining 38 `jm-v9`/`jm-v7` patches have also been retired. Their
+[inventory](../docs/engineering/g615-patch-inventory.tsv) records the shared
+dependencies extracted into 235-240 and the evidence for dropping each
+legacy implementation. Other architecture families are not selected.
+
+The G615-only series contains 192 patches by default and 195 with sync
+002-004. PanVK builds only v11 and checks the actual Kbase CSF context in
+addition to the G615 product ID. The six replacement patches follow their
+late v11 prerequisites: Kbase/model APIs (235), varying architecture (236),
+EXEC/JIT and ION (237), build/discovery policy (238), XCB symbols (239), and
+the shared draw-chunk instance cap (240).
 
 `kbase-common/018` supersedes the unconditional physical backend build in
 `kbase-common/002`: `panfrost-kmds` now controls both compilation and
@@ -50,7 +59,7 @@ Rules:
 - No release from an unrecorded Mesa commit (`sources.lock` is normative).
 - P3 rebase target: pinned Mesa in `sources.lock` (27.0.0-devel/main).
 
-Mesa 27 migration (in progress):
+Historical Mesa 27 migration checkpoints (before JM retirement):
 
 - Android patch 018 ports the native-buffer dma-buf fd search from historical
   `jm-v7-wip/0178` to the main series.
@@ -65,8 +74,8 @@ Mesa 27 migration (in progress):
 - Before adding the G615-only filter, the `g615-v11-csf` series (218 patches,
   including JM v9/v7) passed `scripts/apply-patches.sh` without offsets or fuzz
   in a new detached worktree at `13baeb70c066a9f82d2bcfb29f06e4865212affa`.
-  The G615-only filter is `csf-v11/234`, immediately after 233 and before JM.
-  The updated series strictly replays as 224 patches, or 227 with opt-in
+  At that checkpoint the G615-only filter was `csf-v11/234`, immediately after 233 and before JM.
+  That series strictly replayed as 224 patches, or 227 with opt-in
   Kbase sync 002-004. These checks prove applicability, not build or runtime.
 - Ports preserve upstream poly heap state, Android external-format-resolve
   preprocessing, X11 event connections, named BO allocations, and TLS size
@@ -99,10 +108,10 @@ Build validation checkpoint (isolated native Linux build, not Android):
   their existing labels; patch 205's context was refreshed for the arena label.
 - A new detached Mesa worktree at the pinned commit replayed all 218 patches
   with `scripts/apply-patches.sh --profile g615-v11-csf` without offset or fuzz.
-  The profile also applies jm-v9 023, whose tiler-heap call already has a label.
+  That historical profile also applied jm-v9 023, whose tiler-heap call already had a label.
 - The geometry-shader passthrough varying calls use `inputs.arch` for Mesa 27;
   patch 076's dependent context was updated. The viewport calls introduced by
-  patch 090 are already converted to `inputs.arch` by jm-v9 011 in this profile.
+  patch 090 were converted to `inputs.arch` by jm-v9 011; replacement 236 now preserves those calls.
 - A fresh isolated replay applied all 218 patches without offsets or fuzz.
   Native Meson setup with Kbase passed using existing local Rust subprojects.
   `libpankmod_lib.a`, the v9 and v11 shader objects, and `libpanvk_v11.a` all

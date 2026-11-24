@@ -30,7 +30,6 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$PROFILE" ] || { echo "--profile required" >&2; exit 2; }
 case "$PROFILE" in *[!a-zA-Z0-9_-]*|'') echo "invalid profile: $PROFILE" >&2; exit 2;; esac
-[ -f "$ROOT/profiles/$PROFILE.json" ] || { echo "invalid profile: $PROFILE" >&2; exit 2; }
 if [ "$WITH_KBASE_SYNC" = true ] && [ "$PROFILE" != "g615-v11-csf" ]; then
   echo "--with-kbase-sync requires --profile g615-v11-csf" >&2; exit 2
 fi
@@ -38,6 +37,7 @@ fi
   echo "unsupported profile: $PROFILE; only g615-v11-csf is supported" >&2
   exit 2
 }
+[ -f "$ROOT/profiles/$PROFILE.json" ] || { echo "invalid profile: $PROFILE" >&2; exit 2; }
 case "$JOBS" in 1|2) ;; *) echo "--jobs must be 1 or 2" >&2; exit 2;; esac
 if [ -n "$CROSS_FILE" ]; then
   [ "$SERIAL_EXPLICIT" = false ] || { echo "--cross-file and --serial cannot be combined" >&2; exit 2; }

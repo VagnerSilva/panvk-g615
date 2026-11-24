@@ -37,7 +37,7 @@
 
 ## About
 
-A patch and build layer around pinned upstream Mesa 27. The supported target is Mali-G615 CSF v11 using the `mali_kbase` kernel interface (`/dev/mali0`). The Android/Bionic and Linux/glibc builds use the `g615-v11-csf` profile; other profiles remain historical data and are rejected by the build and patch entry points.
+A patch and build layer around pinned upstream Mesa 27. The only active target is Mali-G615 CSF v11 using the `mali_kbase` kernel interface (`/dev/mali0`), on Android/Bionic and Linux/glibc. Only `g615-v11-csf` remains under `profiles/`; build, patch, packaging and release entry points reject other profiles. Historical releases and device evidence are preserved, not qualified for this series.
 
 **Driver identity.** The Mesa 27 G615 candidate reports `driverName` as `panvk` and identifies the Mesa revision in `driverInfo`. The exact string and binary hash depend on the build.
 
@@ -114,7 +114,9 @@ Run the following only in a disposable workspace: `fetch-mesa.sh` can reset its 
 
 ```sh
 ./scripts/fetch-mesa.sh
-./scripts/apply-patches.sh --profile g615-v11-csf
+mkdir -p dist/android-g615-v11-csf
+./scripts/apply-patches.sh --profile g615-v11-csf \
+  --series-manifest dist/android-g615-v11-csf/series-manifest.json
 ./scripts/build-android.sh --profile g615-v11-csf
 ./scripts/validate-binary.sh --abi android dist/android-g615-v11-csf/libvulkan_panfrost.so
 ./scripts/package-android-adpkg.sh --profile g615-v11-csf
@@ -143,7 +145,7 @@ import, without claiming release or device-validation evidence:
 
 ```sh
 ./scripts/package-launcher-zips.sh \
-  --so dist/android-universal-g615-v11-csf/libvulkan_panfrost.so \
+  --so dist/android-g615-v11-csf/libvulkan_panfrost.so \
   --version v0.0.0-dev --outdir dist/kraid-test --only adpkg
 ```
 
@@ -159,13 +161,13 @@ sets the name in `meta.json` when used with `--only adpkg`. Choose a name not
 already used by the target app; driver import and replacement behavior
 depends on the app.
 
-The Mesa 27 target is the G615 profile, not a universal v6-v14 release. The historical universal preparation script requires patch inputs no longer present in this checkout and fails explicitly. See [`docs/RELEASE.md`](docs/RELEASE.md) for the release process. The exact Mesa commit is pinned in `sources.lock`.
+The Mesa 27 target is the G615 profile, not a universal v6-v14 release. The universal and v9 build entry points and the JM patch families have been retired. Shared fixes survive as CSF v11 patches 235-240; upstream compiler and model support is not deleted. See [`docs/RELEASE.md`](docs/RELEASE.md) for the G615-only release process. The exact Mesa commit is pinned in `sources.lock`.
 
 ## Layout
 
 ```text
 sources.lock          exact Mesa commit + reference repos (no moving branches)
-profiles/             G615 Kbase profile and historical profile data
+profiles/             only g615-v11-csf
 patches/              qualified patch families
 meson/                cross files (android-aarch64, linux-aarch64-native)
 scripts/              fetch / patch / build / package / validate / release

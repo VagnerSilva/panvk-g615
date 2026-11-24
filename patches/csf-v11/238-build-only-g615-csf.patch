@@ -1,0 +1,178 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] panvk: build only v11 and reject non-CSF Kbase devices
+
+Purpose: panvk: build only v11 and reject non-CSF Kbase devices
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
+diff --git a/src/panfrost/vulkan/meson.build b/src/panfrost/vulkan/meson.build
+index 12661b10e508b830eeda9eaa0a2361cb18efd1bb..69ad3d64e007581ed41b4819e1e803b6682d56cb 100644
+--- a/src/panfrost/vulkan/meson.build
++++ b/src/panfrost/vulkan/meson.build
+@@ -72,21 +72,21 @@
+ panvk_flags = []
+ panvk_per_arch_libs = []
+ 
+-bifrost_archs = [6, 7]
++bifrost_archs = []
+ bifrost_inc_dir = ['bifrost']
+ bifrost_files = [
+   'bifrost/panvk_vX_meta_desc_copy.c',
+ ]
+ 
+-valhall_archs = [9, 10, 11]
++valhall_archs = [11]
+ valhall_inc_dir = ['valhall']
+ valhall_files = []
+ 
+-fifthgen_archs = [12, 13, 14]
++fifthgen_archs = []
+ fifthgen_inc_dir = ['fifthgen']
+ fifthgen_files = []
+ 
+-jm_archs = [6, 7]
++jm_archs = []
+ jm_inc_dir = ['jm']
+ jm_files = [
+   'jm/panvk_vX_cmd_buffer.c',
+@@ -99,7 +99,7 @@
+   'jm/panvk_vX_gpu_queue.c',
+ ]
+ 
+-csf_archs = [10, 11, 12, 13, 14]
++csf_archs = [11]
+ csf_inc_dir = ['csf']
+ csf_files = [
+   'csf/panvk_gpu_prerast.c',
+@@ -143,7 +143,7 @@
+   sha1_h,
+ ]
+ 
+-foreach arch : [6, 7, 10, 11, 12, 13, 14]
++foreach arch : [11]
+   per_arch_files = common_per_arch_files
+   inc_panvk_per_arch = []
+ 
+diff --git a/src/panfrost/vulkan/panvk_macros.h b/src/panfrost/vulkan/panvk_macros.h
+index 3052c0c05613006eae12e27ce0fbd19e39f120ce..eabe3f5ba1e7ca51b9342891a8de5c367b8fefa1 100644
+--- a/src/panfrost/vulkan/panvk_macros.h
++++ b/src/panfrost/vulkan/panvk_macros.h
+@@ -46,26 +46,8 @@
+ #define panvk_arch_dispatch(arch, name, ...)                                   \
+    do {                                                                        \
+       switch (arch) {                                                          \
+-      case 6:                                                                  \
+-         panvk_arch_name(name, v6)(__VA_ARGS__);                               \
+-         break;                                                                \
+-      case 7:                                                                  \
+-         panvk_arch_name(name, v7)(__VA_ARGS__);                               \
+-         break;                                                                \
+-      case 10:                                                                 \
+-         panvk_arch_name(name, v10)(__VA_ARGS__);                              \
+-         break;                                                                \
+       case 11:                                                                 \
+          panvk_arch_name(name, v11)(__VA_ARGS__);                              \
+-         break;                                                                \
+-      case 12:                                                                 \
+-         panvk_arch_name(name, v12)(__VA_ARGS__);                              \
+-         break;                                                                \
+-      case 13:                                                                 \
+-         panvk_arch_name(name, v13)(__VA_ARGS__);                              \
+-         break;                                                                \
+-      case 14:                                                                 \
+-         panvk_arch_name(name, v14)(__VA_ARGS__);                              \
+          break;                                                                \
+       default:                                                                 \
+          UNREACHABLE("Unsupported architecture");                              \
+@@ -75,26 +57,8 @@
+ #define panvk_arch_dispatch_ret(arch, name, ret, ...)                          \
+    do {                                                                        \
+       switch (arch) {                                                          \
+-      case 6:                                                                  \
+-         ret = panvk_arch_name(name, v6)(__VA_ARGS__);                         \
+-         break;                                                                \
+-      case 7:                                                                  \
+-         ret = panvk_arch_name(name, v7)(__VA_ARGS__);                         \
+-         break;                                                                \
+-      case 10:                                                                 \
+-         ret = panvk_arch_name(name, v10)(__VA_ARGS__);                        \
+-         break;                                                                \
+       case 11:                                                                 \
+          ret = panvk_arch_name(name, v11)(__VA_ARGS__);                        \
+-         break;                                                                \
+-      case 12:                                                                 \
+-         ret = panvk_arch_name(name, v12)(__VA_ARGS__);                        \
+-         break;                                                                \
+-      case 13:                                                                 \
+-         ret = panvk_arch_name(name, v13)(__VA_ARGS__);                        \
+-         break;                                                                \
+-      case 14:                                                                 \
+-         ret = panvk_arch_name(name, v14)(__VA_ARGS__);                        \
+          break;                                                                \
+       default:                                                                 \
+          UNREACHABLE("Unsupported architecture");                              \
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+index 758faab61eca8303ace9695a08cae1c622b278f6..70b0a92da891435a904f23d8b4dce2619b02bb82 100644
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -75,13 +75,7 @@
+    void panvk_v##_ver##_destroy_device(                                        \
+       struct panvk_device *device, const VkAllocationCallbacks *pAllocator)
+ 
+-PER_ARCH_FUNCS(6);
+-PER_ARCH_FUNCS(7);
+-PER_ARCH_FUNCS(10);
+ PER_ARCH_FUNCS(11);
+-PER_ARCH_FUNCS(12);
+-PER_ARCH_FUNCS(13);
+-PER_ARCH_FUNCS(14);
+ 
+ static VkResult
+ create_kmod_dev(struct panvk_physical_device *device,
+@@ -1423,9 +1417,10 @@
+       goto fail_kbase;
+    }
+ 
+-   if (!panvk_is_supported_kbase_model(device->model)) {
++   if (!kbase_kmod_is_csf(device->kmod.dev) ||
++       !panvk_is_supported_kbase_model(device->model)) {
+       result = panvk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
+-                            "Unsupported Kbase GPU product ID %#x",
++                            "This ICD requires Mali-G615 Kbase CSF (product ID %#x)",
+                             device->model->gpu_prod_id);
+       goto fail_kbase;
+    }
+diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_kmod.c
+index 1e6b69aaf1756830d0f85825225d8a4009de12f6..052eb9c0196f6085d18f1039c7919b2a986e7c27 100644
+--- a/src/panfrost/lib/kmod/kbase_kmod.c
++++ b/src/panfrost/lib/kmod/kbase_kmod.c
+@@ -2403,3 +2403,12 @@
+    .query_timestamp        = kbase_kmod_query_timestamp,
+    .bo_set_label           = kbase_kmod_bo_set_label,
+ };
++
++bool
++kbase_kmod_is_csf(const struct pan_kmod_dev *dev)
++{
++   assert(dev->ops == &kbase_kmod_ops);
++   const struct kbase_kmod_dev *kbase_dev =
++      container_of(dev, const struct kbase_kmod_dev, base);
++   return kbase_dev->is_csf;
++}
+diff --git a/src/panfrost/lib/kmod/kbase_kmod.h b/src/panfrost/lib/kmod/kbase_kmod.h
+index 8397d6964b8d93e3e080447960b091bd93fe3d81..4c7953ec3c32992fa34ed5a3fcc652eed30ba8ad 100644
+--- a/src/panfrost/lib/kmod/kbase_kmod.h
++++ b/src/panfrost/lib/kmod/kbase_kmod.h
+@@ -142,6 +142,8 @@
+ void kbase_kmod_alias_destroy(struct pan_kmod_dev *dev, uint64_t va,
+                               uint64_t size, uint32_t nents);
+ 
++bool kbase_kmod_is_csf(const struct pan_kmod_dev *dev);
++
+ #if defined(__cplusplus)
+ } // extern "C"
+ #endif

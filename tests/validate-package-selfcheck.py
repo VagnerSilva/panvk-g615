@@ -8,10 +8,27 @@ PIN = json.loads((ROOT / "sources.lock").read_text())["mesaCommit"]
 PSID = subprocess.check_output(
     [sys.executable, str(ROOT / "scripts/compute-patch-series-id.py"),
      "--profile", "g615-v11-csf"], text=True).strip()
-SO = b"fake-so-bytes\n"
+sys.path.insert(0, str(ROOT / "scripts"))
+from build_provenance import series_manifest, binary_build_id
+
+with tempfile.TemporaryDirectory() as fixture_dir:
+    fixture_so = pathlib.Path(fixture_dir) / "fixture.so"
+    subprocess.run(["cc", "-x", "c", "-shared", "-fPIC", "-Wl,--build-id=sha1",
+                    "-o", str(fixture_so), "-"], input="int panvk_package_fixture;\n",
+                   text=True, check=True, capture_output=True)
+    SO = fixture_so.read_bytes()
+SERIES = (json.dumps(series_manifest(ROOT, "g615-v11-csf", "default"),
+                     sort_keys=True, indent=2) + "\n").encode()
+BUILD_ID = binary_build_id(SO)
 
 def digest(b):
     return hashlib.sha256(b).hexdigest()
+
+def provenance(abi):
+    return {"profile": "g615-v11-csf", "abi": abi, "mesaCommit": PIN,
+            "patchSeriesId": PSID, "variant": "default",
+            "seriesManifestSha256": digest(SERIES), "binarySha256": digest(SO),
+            "buildId": BUILD_ID}
 
 def write_zip(path, files):
     with zipfile.ZipFile(path, "w") as z:
@@ -32,10 +49,10 @@ def android_ok(**overrides):
         "published": False, "bcCompatibility": {"included": False},
     }
     meta.update(overrides.get("meta", {}))
-    man = {"profile": "g615-v11-csf", "abi": "android-aarch64-bionic",
-           "binarySha256": sha, "patchSeriesId": PSID}
+    man = provenance("android-aarch64-bionic")
     man.update(overrides.get("man", {}))
     valid = {
+        **provenance("android-aarch64-bionic"),
         "android": {
             "enumeration": "pass", "deviceCreate": "pass", "compute10": "pass",
             "offscreen": "pass", "ahb": "pass", "vulkanSurface": "pass",
@@ -47,7 +64,8 @@ def android_ok(**overrides):
         "libvulkan_panfrost.so": SO,
         "meta.json": json.dumps(meta),
         "MANIFEST.json": json.dumps(man),
-        "SOURCE.json": json.dumps({"mesaCommit": PIN, "patchSeriesId": PSID}),
+        "SOURCE.json": json.dumps(provenance("android-aarch64-bionic")),
+        "series-manifest.json": SERIES,
         "VALIDATION.json": json.dumps(valid),
         "SHA256SUMS.txt": f"{sha}  libvulkan_panfrost.so\n",
         "runtime-feature-matrix.json": json.dumps({"gpuId": "0xb8a31030"}),
@@ -70,10 +88,11 @@ def glibc_ok():
             "packageVersion": "0.1.0-beta.3", "prerelease": True,
             "published": False, "bcCompatibility": {"included": False},
         }),
-        "MANIFEST.json": json.dumps({"profile": "g615-v11-csf", "abi": "linux-aarch64-glibc",
-                                    "binarySha256": sha, "patchSeriesId": PSID}),
-        "SOURCE.json": json.dumps({"mesaCommit": PIN, "patchSeriesId": PSID}),
-        "VALIDATION.json": json.dumps({"glibc": {"enumeration": "pass", "compute10": "pass", "offscreen": "pass"}}),
+        "MANIFEST.json": json.dumps(provenance("linux-aarch64-glibc")),
+        "SOURCE.json": json.dumps(provenance("linux-aarch64-glibc")),
+        "series-manifest.json": SERIES,
+        "VALIDATION.json": json.dumps({**provenance("linux-aarch64-glibc"),
+            "glibc": {"enumeration": "pass", "compute10": "pass", "offscreen": "pass"}}),
         "SHA256SUMS.txt": f"{sha}  libvulkan_panfrost.so\n",
         "runtime-feature-matrix.json": json.dumps({"gpuId": "0xb8a31030"}),
         "extension-gap.json": json.dumps({"summary": {"runtimeExposed": 194}}),
@@ -95,6 +114,37 @@ def main():
     fails = 0
     fails += expect("android-beta-pass", android_ok(), True)
     fails += expect("glibc-beta-pass", glibc_ok(), True)
+    for name, evidence, alias in (
+        ("uppercase", {"status": "PASS"}, None),
+        ("result-precedence", {"result": "PASS", "status": "fail"}, None),
+        ("true-result", {"result": True}, None),
+        ("flat-alias", {"state": "PASS"}, "glibcCompute"),
+    ):
+        files = android_ok()
+        valid = json.loads(files["VALIDATION.json"])
+        evidence = {**evidence, "binarySha256": "ab" * 32}
+        if alias:
+            del valid["android"]["compute10"]
+            valid[alias] = evidence
+        else:
+            valid["android"]["compute10"] = evidence
+        files["VALIDATION.json"] = json.dumps(valid)
+        fails += expect(f"stale-gate-{name}", files, False)
+    valid = json.loads(android_ok()["VALIDATION.json"])
+    valid["android"]["compute10"] = {
+        "result": "PASS", "status": "fail", "binarySha256": digest(SO),
+    }
+    fails += expect("matching-gate-result-precedence", android_ok(valid=valid), True)
+    fails += expect("missing-applied-series", android_ok(drop=("series-manifest.json",)), False)
+    fails += expect("wrong-validation-binary", android_ok(valid={"binarySha256": "ab" * 32}), False)
+    fails += expect("wrong-validation-abi", android_ok(valid={"abi": "linux-aarch64-glibc"}), False)
+    fails += expect("wrong-validation-variant", android_ok(valid={"variant": "kbase-sync-002-004"}), False)
+    fails += expect("wrong-series-digest", android_ok(man={"seriesManifestSha256": "ab" * 32}), False)
+    fails += expect("wrong-build-id", android_ok(man={"buildId": "ab" * 20}), False)
+    incomplete = json.loads(SERIES)
+    incomplete["inputs"] = incomplete["inputs"][:-1]
+    fails += expect("incomplete-applied-series", android_ok(
+        files={"series-manifest.json": json.dumps(incomplete)}), False)
     fails += expect("missing-validation", android_ok(drop=("VALIDATION.json",)), False)
     fails += expect("missing-matrix", android_ok(drop=("runtime-feature-matrix.json",)), False)
     fails += expect("short-profile-rejected", android_ok(meta={"profile": "v11-csf"}), False)
@@ -108,13 +158,19 @@ def main():
         {"mesaCommit": PIN})}), False)
     fails += expect("missing-manifest-psid", android_ok(man={"patchSeriesId": ""}), False)
     other_profile = "g52-v7-jm"
-    other_psid = subprocess.check_output(
+    other_result = subprocess.run(
         [sys.executable, str(ROOT / "scripts/compute-patch-series-id.py"),
-         "--profile", other_profile], text=True).strip()
+         "--profile", other_profile], text=True, capture_output=True)
+    if (other_result.returncode == 0 or
+            "only g615-v11-csf is supported" not in other_result.stderr):
+        print("FAIL retired-profile-series-id")
+        fails += 1
+    else:
+        print("PASS retired-profile-series-id")
     fails += expect("other-profile-psid", android_ok(
-        meta={"profile": other_profile, "patchSeriesId": other_psid},
-        man={"profile": other_profile, "patchSeriesId": other_psid},
-        files={"SOURCE.json": json.dumps({"mesaCommit": PIN, "patchSeriesId": other_psid})}), True)
+        meta={"profile": other_profile, "patchSeriesId": PSID},
+        man={"profile": other_profile, "patchSeriesId": PSID},
+        files={"SOURCE.json": json.dumps({"mesaCommit": PIN, "patchSeriesId": PSID})}), False)
     with tempfile.TemporaryDirectory() as td:
         fixture = pathlib.Path(td)
         for directory in ("scripts", "profiles", "patches"):

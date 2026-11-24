@@ -1,0 +1,36 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] panvk: preserve the shared draw and fan chunk instance limit
+
+Purpose: panvk: preserve the shared draw and fan chunk instance limit
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
+diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helper.cl
+index 5dbc27c408c75dfa66226ddd458a662fff696b49..85f3a84d6dededfdbc1695b77669b7a1fec9eb73 100644
+--- a/src/panfrost/libpan/draw_helper.cl
++++ b/src/panfrost/libpan/draw_helper.cl
+@@ -477,7 +477,8 @@
+    if (verts <= c->max_verts) {
+       n_verts = verts;
+       n_insts = min(max(c->max_verts / verts, 1u), insts - inst);
+-      n_insts = min(n_insts, PANLIB_CHUNK_MAX_INSTANCES);
++      n_insts = min(n_insts, c->max_insts ? c->max_insts
++                                          : PANLIB_CHUNK_MAX_INSTANCES);
+       if (strips) {
+          prims = sc.closed + u_decomposed_prims_for_vertices(prim, sc.run);
+       } else {
+diff --git a/src/panfrost/libpan/tess_draw.h b/src/panfrost/libpan/tess_draw.h
+index 72a15e55143f81386b2a88c2d6f55d9d68964027..357148d32390d52bc1b0036dd4702a7958628d1b 100644
+--- a/src/panfrost/libpan/tess_draw.h
++++ b/src/panfrost/libpan/tess_draw.h
+@@ -139,4 +139,6 @@
+    uint32_t chunk_instance;
+    /* Copy of "more" stored by the compute CS for the vertex/tiler CS. */
+    uint32_t more_vt;
++   /* Instances per chunk; zero uses PANLIB_CHUNK_MAX_INSTANCES. */
++   uint32_t max_insts;
+ } PACKED;

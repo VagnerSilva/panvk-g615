@@ -10,7 +10,13 @@ jobs:
       - name: Fetch exact Mesa
         run: ./scripts/fetch-mesa.sh
       - name: Verify patch applicability (g615-v11-csf)
-        run: ./scripts/apply-patches.sh --profile g615-v11-csf
+        run: |
+          mkdir -p dist
+          ./scripts/apply-patches.sh --profile g615-v11-csf --series-manifest dist/series-manifest.json
+      - name: Verify G615-only policy and shared regressions
+        env:
+          PANVK_MESA_SOURCE: work/mesa
+        run: python3 -m unittest discover -s tests -p 'test_g615_*.py'
       - name: Capture upstream matrix
         run: python3 scripts/capture-matrix.py --mesa work/mesa --out dist/matrix-g615-v11-csf
       - name: Static validate later (device gates run on Poco)

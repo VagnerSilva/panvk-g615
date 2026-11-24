@@ -1,7 +1,7 @@
 name: release
 on:
   push:
-    tags: ['*-v*']
+    tags: ['panvk-g615-v11-csf-v*']
 permissions:
   contents: write
 jobs:
@@ -14,6 +14,10 @@ jobs:
         run: |
           set -eu
           TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in
+            panvk-g615-v11-csf-v*) ;;
+            *) echo "FAIL: only G615-only release tags are supported" >&2; exit 1 ;;
+          esac
           TIER=stable
           PRE=false
           case "$TAG" in
@@ -26,29 +30,13 @@ jobs:
           echo "tier=$TIER" >> "$GITHUB_OUTPUT"
           echo "prerelease=$PRE" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG tier=$TIER prerelease=$PRE"
-      - name: Require evidence for beta/rc/stable
-        if: ${{ steps.meta.outputs.tier == 'beta' || steps.meta.outputs.tier == 'rc' || steps.meta.outputs.tier == 'stable' }}
-        run: |
-          set -eu
-          missing=0
-          for f in VALIDATION.json SOURCE.json runtime-feature-matrix.json SHA256SUMS.txt; do
-            if [ ! -d dist ] || ! find dist -name "$f" -type f | grep -q .; then
-              echo "FAIL: beta/rc/stable release input lacks $f" >&2
-              missing=1
-            else
-              echo "OK $f"
-            fi
-          done
-          if [ "$missing" != 0 ]; then
-            echo "CI must not publish beta/rc/stable without provenance + validation evidence." >&2
-            exit 1
-          fi
       - name: Require EMULATOR zip and launcher zips for beta/rc
         if: ${{ steps.meta.outputs.tier == 'beta' || steps.meta.outputs.tier == 'rc' }}
         run: |
           set -eu
           missing=0
-          for pat in '*-EMULATOR.zip' '*.adpkg.zip' 'libvulkan_panfrost-glibc-aarch64.so' \
+          for pat in '*-EMULATOR.zip' '*.adpkg.zip' 'libvulkan_panfrost-g615-v11-csf-android-aarch64.so' \
+                     'libvulkan_panfrost-g615-v11-csf-glibc-aarch64.so' \
                      '*-adrenotools.zip' '*-winlator.zip' '*-bannerlator.zip' '*-cmod.zip' '*-ludashi.zip' '*-gamehub.zip'; do
             if [ ! -d dist ] || ! find dist -maxdepth 1 -name "$pat" -type f | grep -q .; then
               echo "FAIL: rc/beta release lacks $pat" >&2
@@ -58,6 +46,23 @@ jobs:
             fi
           done
           [ "$missing" = 0 ] || exit 1
+      - name: Validate each canonical package and its attached binary
+        run: |
+          set -eu
+          android=false
+          glibc=false
+          for package in dist/*.adpkg.zip dist/*-EMULATOR.zip; do
+            [ -f "$package" ] || continue
+            ./scripts/validate-package.sh "$package"
+            case "$package" in
+              *.adpkg.zip) binary=dist/libvulkan_panfrost-g615-v11-csf-android-aarch64.so; android=true ;;
+              *) binary=dist/libvulkan_panfrost-g615-v11-csf-glibc-aarch64.so; glibc=true ;;
+            esac
+            expected=$(unzip -p "$package" libvulkan_panfrost.so | sha256sum | cut -d' ' -f1)
+            actual=$(sha256sum "$binary" | cut -d' ' -f1)
+            [ "$expected" = "$actual" ] || { echo "FAIL: $binary does not match $package" >&2; exit 1; }
+          done
+          [ "$android" = true ] && [ "$glibc" = true ] || { echo "FAIL: Android and glibc packages are required" >&2; exit 1; }
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,19 +79,36 @@ jobs:
           fi
           NOTES="$(mktemp)"
           {
-            echo "Hardware-qualified on one Poco X6 Pro configuration."
+            echo "Mali-G615 CSF v11 / Kbase only. See each package's binary-specific validation."
             echo "Not Vulkan-conformant."
             echo "Not universal Mali support."
             echo "Not validated yet in Samba S3/Bachata/Winlator/GameHub unless those tests are actually run."
             echo
             echo "tier=$TIER prerelease=$PRE"
           } > "$NOTES"
-          ASSETS=()
-          if [ -d dist ]; then
-            while IFS= read -r f; do
-              [ -n "$f" ] && ASSETS+=("$f")
-            done < <(find dist -maxdepth 1 -type f || true)
-          fi
+          ASSETS=(dist/libvulkan_panfrost-g615-v11-csf-android-aarch64.so
+                  dist/libvulkan_panfrost-g615-v11-csf-glibc-aarch64.so)
+          for package in dist/*.adpkg.zip dist/*-EMULATOR.zip; do
+            [ ! -f "$package" ] || ASSETS+=("$package")
+          done
+          for launcher in adrenotools winlator bannerlator cmod ludashi gamehub; do
+            for package in dist/*-"$launcher".zip; do
+              [ -f "$package" ] || continue
+              python3 - "$package" <<'PY'
+          import hashlib, json, pathlib, sys, zipfile
+          expected = hashlib.sha256(pathlib.Path(
+              "dist/libvulkan_panfrost-g615-v11-csf-android-aarch64.so").read_bytes()).hexdigest()
+          with zipfile.ZipFile(sys.argv[1]) as package:
+              meta = json.loads(package.read("meta.json"))
+              if (meta.get("profile"), meta.get("panArch"), meta.get("frontend")) != ("g615-v11-csf", 11, "CSF"):
+                  sys.exit("FAIL: launcher package is not G615 CSF v11")
+              actual = hashlib.sha256(package.read(meta["libraryName"])).hexdigest()
+              if actual != expected:
+                  sys.exit("FAIL: launcher package contains another binary")
+          PY
+              ASSETS+=("$package")
+            done
+          done
           gh release create "$TAG" \
             --title "Mesa PanVK ${TAG}${TITLE_EXTRA}" \
             --notes-file "$NOTES" \

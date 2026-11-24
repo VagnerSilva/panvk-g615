@@ -1,0 +1,34 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] wsi: preserve Mesa 27 Android XCB event-connection symbols
+
+Purpose: wsi: preserve Mesa 27 Android XCB event-connection symbols
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
+diff --git a/src/vulkan/wsi/wsi_x11_dlopen.c b/src/vulkan/wsi/wsi_x11_dlopen.c
+index 7ad4f64c5fe0e7a13ab2772ff347f15a92c5cada..1c587437fe5bf320ead23c38ffed967abdd10cda 100644
+--- a/src/vulkan/wsi/wsi_x11_dlopen.c
++++ b/src/vulkan/wsi/wsi_x11_dlopen.c
+@@ -29,14 +29,18 @@
+ 
+ #define WSI_X11_SYMS(S) \
+    S(xcb_change_property_checked) \
++   S(xcb_connect) \
++   S(xcb_connection_has_error) \
+    S(xcb_create_gc) \
+    S(xcb_delete_property_checked) \
+    S(xcb_depth_next) \
+    S(xcb_depth_visuals_iterator) \
+    S(xcb_discard_reply) \
++   S(xcb_disconnect) \
+    S(xcb_flush) \
+    S(xcb_free_pixmap) \
+    S(xcb_generate_id) \
++   S(xcb_get_file_descriptor) \
+    S(xcb_get_geometry) \
+    S(xcb_get_geometry_reply) \
+    S(xcb_get_geometry_unchecked) \

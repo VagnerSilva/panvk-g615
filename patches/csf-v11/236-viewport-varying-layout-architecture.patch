@@ -1,0 +1,26 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] panvk: preserve the architecture input for viewport varying layouts
+
+Purpose: panvk: preserve the architecture input for viewport varying layouts
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
+diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_vX_shader.c
+index 44a389bdc496f52a31890beda7aefaf8105131a2..549160add8927ea2c43af20915341ac489a58f09 100644
+--- a/src/panfrost/vulkan/panvk_vX_shader.c
++++ b/src/panfrost/vulkan/panvk_vX_shader.c
+@@ -3559,8 +3559,8 @@
+ #if PAN_ARCH >= 10
+          if (vp_loc) {
+             shader->gpu_prerast.vp_scissor_loc = vp_loc;
+-            pan_varying_collect_formats(&vp_layout, nir, inputs.gpu_id);
+-            pan_build_varying_layout_compact(&vp_layout, nir, inputs.gpu_id);
++            pan_varying_collect_formats(&vp_layout, nir, inputs.arch);
++            pan_build_varying_layout_compact(&vp_layout, nir, inputs.arch);
+             inputs.varying_layout = &vp_layout;
+             inputs.skip_viewport_transform = true;
+          } else if (v == PANVK_VS_VARIANT_GPU_PASSTHROUGH) {

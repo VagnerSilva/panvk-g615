@@ -15,7 +15,7 @@ class PackagePrebuiltTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             so = root / "driver.so"
-            so.write_bytes(b"test driver")
+            so.write_bytes(b"\x00Mesa 27.0.0-devel (git-13baeb70c0)\x00test driver")
             icd = root / "icd.json"
             icd.write_text('{"ICD":{"library_path":"libvulkan_panfrost.so"}}\n')
             out = root / "out"

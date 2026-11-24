@@ -9,6 +9,8 @@ python3 - "$Z" "$ROOT" <<'EOF'
 import hashlib, json, os, re, subprocess, sys, zipfile
 
 zpath, root = sys.argv[1], sys.argv[2]
+sys.path.insert(0, os.path.join(root, "scripts"))
+from build_provenance import PASS_GATE_STATUSES, gate_status, validate_artifact_provenance
 PINNED_MESA = "5a07217f034b3e50d8c7c7794f97a2df1742613b"
 
 def die(msg):
@@ -149,6 +151,8 @@ if manifest.get("profile") and manifest["profile"] != meta["profile"]:
     die(f"MANIFEST.profile {manifest['profile']} != meta.profile {meta['profile']}")
 
 prof = meta["profile"]
+if prof != "g615-v11-csf":
+    die("only g615-v11-csf is supported")
 prof_path = os.path.join(root, "profiles", f"{prof}.json")
 if not os.path.isfile(prof_path):
     die(f"unknown profile {prof}")
@@ -229,22 +233,24 @@ def status_of(valid, key, section):
         return glibc_map[key]
     return None
 
-def unwrap(v):
-    if isinstance(v, dict):
-        return str(v.get("result") or v.get("status") or v.get("state") or "untested")
-    return str(v if v is not None else "untested")
-
 if beta_plus and "VALIDATION.json" in names:
     valid = loadj("VALIDATION.json")
+    loadj("series-manifest.json")
     keys = MANDATORY_ANDROID if android else MANDATORY_GLIBC
     section = "android" if android else "glibc"
+    gates = {key: status_of(valid, key, section) for key in keys}
+    try:
+        validate_artifact_provenance(root, z.read, manifest, loadj("SOURCE.json"),
+                                     valid, abi, prof, manifest["binarySha256"], gates)
+    except (ValueError, KeyError, subprocess.CalledProcessError) as error:
+        die(str(error))
     untested = []
     failed = []
-    for k in keys:
-        st = unwrap(status_of(valid, k, section)).lower()
+    for k, evidence in gates.items():
+        st = gate_status(evidence)
         if st in ("untested", "", "none", "null"):
             untested.append(k)
-        elif st not in ("pass", "passed", "ok", "true"):
+        elif st not in PASS_GATE_STATUSES:
             failed.append(f"{k}={st}")
     if untested:
         die(f"mandatory {section} gates untested: {','.join(untested)}")
