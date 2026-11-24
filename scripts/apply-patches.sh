@@ -29,8 +29,7 @@ SERIES="common android kbase-common app-loader wsi"
   echo "invalid G615 profile: requires panArch=11 and frontend=CSF" >&2
   exit 2
 }
-SERIES="$SERIES csf csf-v11"
-if [ "$WITH_KBASE_SYNC" = true ]; then SERIES="$SERIES experimental-kbase-sync"; fi
+SERIES="$SERIES csf csf-v11 experimental-kbase-sync"
 if [ -n "$MANIFEST" ]; then
   MESA_PIN="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["mesaCommit"])' "$ROOT/sources.lock")"
   [ -d "$MESA" ] && [ "$(git -C "$MESA" rev-parse HEAD 2>/dev/null)" = "$MESA_PIN" ] || {
@@ -56,7 +55,7 @@ for fam in $SERIES; do
     [ -e "$p" ] || continue
     if [ "$fam" = "experimental-kbase-sync" ]; then
       case "$(basename "$p")" in
-        002-android-release-queue-mesa27.patch|003-kbase-coalesce-mem-sync.patch|004-kbase-sync-file-waiter-lifetime.patch) ;;
+        002-android-release-queue-mesa27.patch|003-kbase-coalesce-mem-sync.patch|004-kbase-sync-file-waiter-lifetime.patch|005-kbase-avoid-wait-any-spin.patch) ;;
         *) continue;;
       esac
     fi

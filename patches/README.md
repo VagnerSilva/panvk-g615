@@ -24,10 +24,11 @@ Directories:
   The G52 lesson: enabling Android WSI must not select the HAL-only symbol
   scheme and hide the ICD entry points.
 - `wsi/` — swapchain/acquire/present/resize, acquire-present sync.
-- `experimental-kbase-sync/` — opt-in Mesa 27 G615 sync updates. Use
-  `scripts/apply-patches.sh --profile g615-v11-csf --with-kbase-sync`
-  on a fresh pinned Mesa tree to append exactly 002, 003 and 004. Historical
-  001 is excluded. Defaults are unchanged; see the family README for
+- `experimental-kbase-sync/` — historical directory name for the Mesa 27 G615
+  sync updates promoted to the default series on 2026-11-24. Preparation
+  appends exactly 002, 003, 004 and 005 after `csf-v11/`; historical 001 and
+  any unlisted patches remain excluded. `--with-kbase-sync` is retained for
+  compatibility, not required. See the family README for user approval,
   validation results and the unresolved shutdown limitation.
 
 The historical `jm-v7-wip` patch files are not part of the selected Mesa 27
@@ -39,8 +40,8 @@ The remaining 38 `jm-v9`/`jm-v7` patches have also been retired. Their
 dependencies extracted into 235-240 and the evidence for dropping each
 legacy implementation. Other architecture families are not selected.
 
-The G615-only series contains 192 patches by default and 195 with sync
-002-004. PanVK builds only v11 and checks the actual Kbase CSF context in
+The G615-only series contains 196 patches by default, including sync
+002-005. PanVK builds only v11 and checks the actual Kbase CSF context in
 addition to the G615 product ID. The six replacement patches follow their
 late v11 prerequisites: Kbase/model APIs (235), varying architecture (236),
 EXEC/JIT and ION (237), build/discovery policy (238), XCB symbols (239), and

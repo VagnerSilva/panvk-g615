@@ -144,18 +144,18 @@ int main(void)
             self.assertFalse(any("/patches/jm-v9/" in line or "/patches/jm-v7/" in line
                                  for line in main))
             experimental = ROOT / "patches/experimental-kbase-sync"
-            self.assertFalse(any(str(experimental) in line for line in main))
-
             opted_in = replay("apply-patches.sh", "--profile", "g615-v11-csf",
                               "--with-kbase-sync")
             sync_patches = [
                 experimental / "002-android-release-queue-mesa27.patch",
                 experimental / "003-kbase-coalesce-mem-sync.patch",
                 experimental / "004-kbase-sync-file-waiter-lifetime.patch",
+                experimental / "005-kbase-avoid-wait-any-spin.patch",
             ]
-            applied = [line for line in opted_in if line.startswith("-C ") and
+            self.assertEqual(main, opted_in)
+            applied = [line for line in main if line.startswith("-C ") and
                        f" apply {experimental}/" in line]
-            self.assertEqual(len(applied), 3)
+            self.assertEqual(len(applied), 4)
             for line, patch in zip(applied, sync_patches):
                 self.assertIn(f"apply {patch}", line)
             self.assertGreater(

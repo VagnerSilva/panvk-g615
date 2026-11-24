@@ -4,6 +4,12 @@ Tiers: `dev` < `alpha` < `beta` < `rc` < `stable`. First Poco build is never
 stable. Active tags use `panvk-g615-v11-csf-v27.0.0-beta.1`. Immutable: patch change = new
 release even if Mesa SHA unchanged.
 
+The G615 source release series includes Kbase sync 002-005 by default following
+user approval on 2026-11-24. `--with-kbase-sync` remains a compatibility option
+with the same patch inputs. See the [series approval and reported comparison](../patches/experimental-kbase-sync/README.md#user-reported-nyushu-comparison-and-release-approval).
+This source promotion does not rebuild or republish existing assets; preserve
+their original manifests, binary hashes and validation evidence.
+
 Android asset: `Mesa-PanVK-Android-<version>-<sha8>.adpkg.zip`
 (flat: `libvulkan_panfrost.so + meta.json + MANIFEST.json + SOURCE.json +
 VALIDATION.json + series-manifest.json + SHA256SUMS.txt + runtime-feature-matrix.json`).

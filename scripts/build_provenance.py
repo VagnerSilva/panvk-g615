@@ -25,9 +25,8 @@ def series_manifest(root, profile, variant):
         raise ValueError("invalid G615 profile: requires v11, CSF and mali_kbase")
     if variant not in ("default", "kbase-sync-002-004"):
         raise ValueError(f"unsupported series variant: {variant}")
-    families = ["common", "android", "kbase-common", "app-loader", "wsi", "csf", "csf-v11"]
-    if variant != "default":
-        families.append("experimental-kbase-sync")
+    families = ["common", "android", "kbase-common", "app-loader", "wsi", "csf", "csf-v11",
+                "experimental-kbase-sync"]
     inputs = []
     for family in families:
         directory = root / "patches" / family
@@ -36,6 +35,7 @@ def series_manifest(root, profile, variant):
                 "002-android-release-queue-mesa27.patch",
                 "003-kbase-coalesce-mem-sync.patch",
                 "004-kbase-sync-file-waiter-lifetime.patch",
+                "005-kbase-avoid-wait-any-spin.patch",
             }:
                 continue
             inputs.append(path)

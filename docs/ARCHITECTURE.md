@@ -27,8 +27,9 @@ not a promise of support for another GPU.
 
 The 38 downstream JM patches have been removed. Patches 235-240 preserve the
 shared model/budget API, viewport varying architecture, EXEC/JIT page sizing,
-ION fallback, XCB symbols and draw-chunk instance cap. Experimental sync
-002-004 remains opt-in. Historical app binaries and runtime evidence are not
+ION fallback, XCB symbols and draw-chunk instance cap. Kbase sync
+002-005 is included by default following user approval on 2026-11-24.
+Historical app binaries and runtime evidence are not
 relabelled as this candidate.
 
 Key lessons carried forward:

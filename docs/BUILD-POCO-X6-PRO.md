@@ -42,17 +42,19 @@ release candidate only after full gate set.
 ## glibc series identity
 
 The default glibc build retains `dist/glibc-<profile>/`, as required by
-existing packaging scripts. The experimental sync series is explicitly opt-in:
+existing packaging scripts. Kbase sync 002-005 is included by default following
+the user-approved promotion on 2026-11-24:
 
 ```sh
-./scripts/build-glibc.sh --profile g615-v11-csf --with-kbase-sync --serial "$SERIAL"
+./scripts/build-glibc.sh --profile g615-v11-csf --serial "$SERIAL"
 ```
 
 Omit `--serial` on an AArch64 build host. On other hosts confirm the device,
 chroot and Kbase access before using ADB. Each run reconstructs Mesa in a new
 `build/glibc-replay-<profile>-<pid>` workspace, records the actual ordered
 patch and overlay hashes in `series-manifest.json`, and uses the SHA-256 of
-that file as its source identity. The opt-in result goes to
+that file as its source identity. The legacy `--with-kbase-sync` flag selects
+the same inputs but retains its variant label and destination:
 `dist/glibc-<profile>-kbase-sync-002-004-<manifest-sha256>/`, separate from
 the default destination. Both destinations contain the ICD, ICD JSON and
 series manifest and are published only after static validation. An existing
@@ -63,7 +65,7 @@ not reused. `--clean` remains accepted but each run is already fresh.
 The manifest records source inputs, not toolchain, binary identity or runtime
 evidence. Record the compiler/toolchain, Build ID and ICD SHA-256 separately,
 and execute the documented glibc device gates before qualifying a build.
-The experimental series is not promoted by this workflow.
+Source promotion does not establish glibc runtime or performance validation.
 
 ## glibc cross-build on WSL or Linux
 

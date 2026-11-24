@@ -1,0 +1,48 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] panvk/kbase: avoid WAIT_ANY spin with bounded sleep
+
+Purpose: Replace the sched_yield loop in kbase_cpu_sync_wait_many with deadline-limited exponential nanosleep backoff from 50 us to 1 ms.
+Source/Reference: https://gitlab.freedesktop.org/mesa/mesa/-/commit/13baeb70c066a9f82d2bcfb29f06e4865212affa; user-reported Poco X6 Pro WAIT_ANY CPU/thermal observations.
+Tested GPU: User-approved Nyushu CPU/thermal comparison on 2026-11-24; target Mali-G615 CSF v11; exact device identity not supplied with the comparison.
+Tested Kbase UAPI: Target CSF 1.21; exact tested UAPI not supplied with the user comparison.
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: G615 profile series and experimental-kbase-sync/002 through 004, including 004-kbase-sync-file-waiter-lifetime.patch.
+Validation test: tests/test_kbase_wait_any.py; prior strict G615 replay and Android build; user-reported CPU/thermal comparison and approval on 2026-11-24 (see family README).
+
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+index c6a35304a9656784c284994180447ae985f32f66..d5dd3357c0b5d2ef889f11d6bc30ab452d06b680 100644
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -19,6 +19,7 @@
+ #include <poll.h>
+ #include <string.h>
+ #include <sys/ioctl.h>
++#include <time.h>
+ #include <unistd.h>
+ #include "util/timespec.h"
+ #endif
+@@ -984,3 +985,4 @@ kbase_cpu_sync_wait_many(struct vk_device *device,
++   uint64_t sleep_ns = 50000ULL;
+    while (true) {
+       for (uint32_t i = 0; i < wait_count; i++) {
+          struct kbase_cpu_sync *ks =
+@@ -991,8 +993,17 @@ kbase_cpu_sync_wait_many(struct vk_device *device,
+          if (result != VK_TIMEOUT)
+             return result;
+       }
+-      if (abs_timeout_ns == 0 || os_time_get_nano() >= abs_timeout_ns)
++      uint64_t now = os_time_get_nano();
++      if (abs_timeout_ns == 0 || now >= abs_timeout_ns)
+          return VK_TIMEOUT;
+-      sched_yield();
++
++      uint64_t delay_ns = MIN2(sleep_ns, abs_timeout_ns - now);
++      struct timespec ts = {
++         .tv_sec = delay_ns / 1000000000ULL,
++         .tv_nsec = delay_ns % 1000000000ULL,
++      };
++      if (nanosleep(&ts, NULL) != 0 && errno != EINTR)
++         return vk_errorf(device, VK_ERROR_UNKNOWN, "nanosleep failed: %m");
++      sleep_ns = MIN2(sleep_ns * 2, 1000000ULL);
+    }
+ }

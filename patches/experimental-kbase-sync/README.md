@@ -1,34 +1,37 @@
-# Experimental Kbase Android release synchronization
+# Kbase Android release synchronization
 
-## Consolidated opt-in build
+## Default release series (approved 2026-11-24)
 
-The G615 Mesa 27 preparation flow can apply the main series followed by
-002, 003, and 004 in a fixed order. The default profile and release workflows
-remain unchanged. Use a fresh checkout at the pinned Mesa commit:
+The user approved promotion of the complete 002-005 series after reporting
+the Nyushu comparison below. G615 Mesa 27 preparation now applies the main
+series followed by 002, 003, 004, and 005 by default, in the same fixed order
+as the previously built opt-in candidate. The directory name is historical.
+Use a fresh checkout at the pinned Mesa commit:
 
 ```sh
 ./scripts/apply-patches.sh --profile g615-v11-csf \
-  --mesa /path/to/clean/mesa --with-kbase-sync
+  --mesa /path/to/clean/mesa
 MESA=/path/to/clean/mesa ./scripts/build-android.sh \
   --profile g615-v11-csf --ndk /path/to/android-ndk
 ```
 
 The build command consumes the prepared tree; it does not apply patches
 itself. Do not apply the preparation command to an already patched tree.
-The option rejects other profiles, excludes historical 001, and retains
+Preparation rejects other profiles, excludes historical 001, and retains
 the offset/fuzz rejection gate. New experimental patches are not included
 automatically. Both supplied patches match the consolidated code; only
 hunk coordinates were refreshed for strict replay.
 
-Consolidation replay on the pinned base applied all 224 patches without
-offsets or fuzz. Tests check that default preparation excludes the
-experimental family, opt-in preparation appends exactly 002 then 003 after
-the main series, and unsupported profiles fail explicitly.
+The prior G615-only candidate replay applied all 196 patches without offsets
+or fuzz and passed the Android build and focused backoff/provenance tests.
+Selection tests now expect the same 002-005 inputs with and without
+`--with-kbase-sync`; unsupported profiles still fail explicitly. No build,
+test suite or device run was repeated for this promotion, as requested.
 
 The user subsequently reported 20 FPS at 0.5X. This is a user-observed
 result, not a new instrumented capture or proof that 003 caused the gain.
-The prior shutdown failure remains an open acceptance limitation. Opt-in
-availability preserves reproducibility; it does not certify no regressions.
+The prior shutdown failure remains an open acceptance limitation. Promotion
+does not certify its resolution or the absence of other regressions.
 No device selection or resolution is changed by this consolidation.
 
 For the Mesa 27 profile at `13baeb70c0`, apply
@@ -44,8 +47,24 @@ fails. Patch 004 closes `sync_file` waiter lifetime gaps when pending payloads
 resolve, fail, reset, or are replaced. None of these patches require the
 historical Kraid overlay.
 
-All three patches are opt-in and are not included in the default patch series.
-For the Mesa 27 G615 profile, verify the base, then check and apply:
+Patch 005 replaces the `WAIT_ANY` yield loop with an exponential sleep from
+50 us to 1 ms, clamped to the remaining absolute timeout. Interrupted sleeps
+recheck syncs and the deadline; other sleep errors are logged and propagated.
+Immediate success, zero/expired timeout and `WAIT_ALL` behavior are preserved.
+Host tests compile the wait function with deterministic clock/sync stubs;
+they do not establish device CPU, clock, temperature or runtime correctness.
+The user-reported CPU/thermal comparison is recorded below; it is not an
+independently captured device gate.
+
+The legacy variant label `kbase-sync-002-004` is retained for compatibility.
+The legacy flag is optional and selects that label with the same ordered
+inputs as `default`. Both manifests include 002-005 and their SHA-256 hashes;
+old manifests are not valid provenance for this candidate. The Android build consumes the prepared
+tree and does not accept `--with-kbase-sync`.
+
+All four patches are included in the default G615 patch series. Do not apply
+them again to a tree prepared by `scripts/apply-patches.sh`.
+For historical manual preparation, verify the base, then check and apply:
 
 ```sh
 git -C /path/to/mesa apply --check /path/to/002-android-release-queue-mesa27.patch
@@ -59,6 +78,30 @@ Kraid experimental overlay instead:
 git -C /path/to/mesa apply --check /path/to/001-android-release-queue.patch
 git -C /path/to/mesa apply /path/to/001-android-release-queue.patch
 ```
+
+### User-reported Nyushu comparison and release approval
+
+On 2026-11-24 the user reported testing and approval of patch 005 and explicitly
+approved promoting all of 002-005 to the principal release series:
+
+| Metric | Baseline (`sched_yield`) | Patch 005 (`nanosleep`) |
+|---|---|---|
+| Process CPU | 364% | 148% |
+| Kernel time (`%sys`) | 227% | 121% |
+| Idle CPU (`%idle`) | 168% | 479% |
+| Swap / ZRAM in use | 2.64 GB | 1.71 GB |
+| Internal SOC / GPU temperature | 65.0-66.4 C | 50.8-51.2 C |
+| External SKIN temperature | 40.3 C | 35.3 C |
+
+The reported process CPU reduction is approximately 59%; kernel and idle
+changes are -106 and +311 percentage points, respectively. These are
+user-supplied observations, not measurements collected during this promotion.
+Exact device/UAPI, binary hashes, sampling duration and raw logs were not
+provided with the comparison; it does not establish glibc or other-device
+performance, general stability, or causality for the swap/ZRAM change.
+Existing binaries and package metadata are preserved, not rebuilt or
+relabelled with the new source provenance. A future publication requires a
+new immutable release and matching binary/package provenance.
 
 Kbase uses a CPU-backed sync type, not DRM syncobjs. The patch leaves the
 DRM callback unset for Kbase, so the common Android native-buffer release
