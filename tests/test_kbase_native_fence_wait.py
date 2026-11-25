@@ -30,6 +30,11 @@ static int producer_live, producer_enqueues, producer_deletes, creates;
 static uint64_t ticks;
 static _Alignas(4096) unsigned char cpu[4096], tracking[4096], backing[4096];
 
+static int cqs_input_mode(void)
+{
+   return scenario >= 28;
+}
+
 static void publish(void)
 {
    if (!queue_live || enqueues != 3 ||
@@ -115,16 +120,25 @@ static int mock_ioctl(int fd, unsigned long request, ...)
    if (fd != 30)
       abort();
    if (request == KBASE_IOCTL_CS_EVENT_SIGNAL && scenario >= 18) {
-      if (scenario == 25) {
+      if (scenario == 25 || scenario == 32) {
          errno = EIO;
          return -1;
       }
       uint64_t value;
       memcpy(&value, (cached ? backing : cpu) + 128, 8);
-      if (value != 1 || !producer_live || producer_enqueues != 2)
-         failure = 1;
-      if (scenario != 26)
-         status = scenario == 27 ? -EIO : 1;
+      if (cqs_input_mode()) {
+         uint32_t error;
+         memcpy(&error, (cached ? backing : cpu) + 136, 4);
+         if (value != 1 || !queue_live || enqueues != 3 ||
+             error != (scenario != 29))
+            failure = 1;
+         status = error ? -EIO : 1;
+      } else {
+         if (value != 1 || !producer_live || producer_enqueues != 2)
+            failure = 1;
+         if (scenario != 26)
+            status = scenario == 27 ? -EIO : 1;
+      }
       publish();
       return 0;
    }
@@ -159,7 +173,8 @@ static int mock_ioctl(int fd, unsigned long request, ...)
          memcpy(backing, cpu, sizeof(cpu));
       } else if (sync->type == BASE_SYNCSET_OP_CSYNC) {
          /* First observation of B exposes an intentionally stale A. */
-         if (scenario == 2 && has_error && !stale_done_read) {
+         if ((scenario == 2 || scenario == 30) &&
+             has_error && !stale_done_read) {
             memcpy(cpu + 64, backing + 64, 64);
             stale_done_read = 1;
          } else {
@@ -170,7 +185,7 @@ static int mock_ioctl(int fd, unsigned long request, ...)
       }
    } else if (request == KBASE_IOCTL_KCPU_QUEUE_CREATE) {
       creates++;
-      if (scenario >= 18 && creates == 1) {
+      if (scenario >= 18 && !cqs_input_mode() && creates == 1) {
          ((struct kbase_ioctl_kcpu_queue_new *)data)->id = 8;
          producer_live = 1;
          return 0;
@@ -213,15 +228,33 @@ static int mock_ioctl(int fd, unsigned long request, ...)
          failure = 1;
       if ((scenario == 7 && enqueues == 1) ||
           (scenario == 8 && enqueues == 2) ||
-          (scenario == 14 && enqueues == 3)) {
+          (scenario == 14 && enqueues == 3) ||
+          (scenario == 31 && enqueues == 2)) {
          errno = ENOMEM;
          return -1;
       }
       if (enqueues == 1) {
-         struct base_fence *fence = (void *)(uintptr_t)cmd->info.fence.fence;
-         if (cmd->type != BASE_KCPU_COMMAND_TYPE_FENCE_WAIT ||
-             fence->basep.fd != 20 || status != 0)
-            failure = 1;
+         if (cqs_input_mode()) {
+            struct base_cqs_wait_operation_info *wait =
+               (void *)(uintptr_t)cmd->info.cqs_wait_operation.objs;
+            uint32_t error;
+            uint64_t value;
+            memcpy(&value, (cached ? backing : cpu) + 128, 8);
+            memcpy(&error, (cached ? backing : cpu) + 136, 4);
+            if (cmd->type != BASE_KCPU_COMMAND_TYPE_CQS_WAIT_OPERATION ||
+                cmd->info.cqs_wait_operation.nr_objs != 1 ||
+                cmd->info.cqs_wait_operation.inherit_err_flags != 1 ||
+                wait->addr != (uintptr_t)cpu + 128 || wait->val != 0 ||
+                wait->operation != BASEP_CQS_WAIT_OPERATION_GT ||
+                wait->data_type != BASEP_CQS_DATA_TYPE_U64 ||
+                value != 0 || error != (scenario != 29))
+               failure = 1;
+         } else {
+            struct base_fence *fence = (void *)(uintptr_t)cmd->info.fence.fence;
+            if (cmd->type != BASE_KCPU_COMMAND_TYPE_FENCE_WAIT ||
+                fence->basep.fd != 20 || status != 0)
+               failure = 1;
+         }
       } else {
          const unsigned char *obj = (void *)(uintptr_t)cmd->info.padding[0];
          uint64_t addr, val;
@@ -251,7 +284,7 @@ static int mock_ioctl(int fd, unsigned long request, ...)
       deletes++;
       if (((struct kbase_ioctl_kcpu_queue_delete *)data)->id != 7)
          failure = 1;
-      if (scenario == 9) {
+      if (scenario == 9 || scenario == 33) {
          errno = EIO;
          return -1;
       }
@@ -331,8 +364,13 @@ int main(int argc, char **argv)
       args[2] = scenario == 19 ? "pending-delete" :
                 scenario == 20 ? "error" : "success";
    }
+   if (cqs_input_mode()) {
+      args[1] = "--kcpu-cqs";
+      args[2] = scenario == 29 ? "success" : "error";
+   }
    int result = native_main(scenario == 2 || scenario == 11 || scenario == 17 ?
-                            4 : (scenario == 18 || scenario == 24 ? 4 : 3), args);
+                            4 : (scenario == 18 || scenario == 24 ||
+                                 scenario == 30 ? 4 : 3), args);
    if (timeline_live || fence_live)
       failure = 1;
    if ((scenario == 4 || scenario == 5 || scenario == 6 || scenario == 15) &&
@@ -340,14 +378,17 @@ int main(int argc, char **argv)
       failure = 1;
    if (scenario == 20 && (mali_opens || timeline_live || creates))
       failure = 1;
-   if ((scenario == 9 || scenario == 23) && (event_unmaps || mali_closes))
+   if ((scenario == 9 || scenario == 23 || scenario == 33) &&
+       (event_unmaps || mali_closes))
       failure = 1;
-   if (scenario != 9 && scenario != 23 && mali_opens && mali_closes != 1)
+   if (scenario != 9 && scenario != 23 && scenario != 33 &&
+       mali_opens && mali_closes != 1)
       failure = 1;
-   if (scenario >= 18 && scenario != 20 &&
+   if (scenario >= 18 && scenario != 20 && !cqs_input_mode() &&
        (producer_deletes != 1 || (producer_live && scenario != 23)))
       failure = 1;
-   if ((scenario == 7 || scenario == 8 || scenario == 14) && deletes != 1)
+   if ((scenario == 7 || scenario == 8 || scenario == 14 || scenario == 31 ||
+        scenario == 32 || scenario == 33) && deletes != 1)
       failure = 1;
    if (failure) {
       fprintf(stderr, "FAIL mock lifecycle/protocol invariant\n");
@@ -456,6 +497,21 @@ class NativeKCPUFenceTests(unittest.TestCase):
     def test_kcpu_producer_status_wait_is_bounded_and_rejects_error(self):
         for scenario, message in ((26, "FAIL producer fence timeout"),
                                   (27, "FAIL producer fence status")):
+            with self.subTest(scenario=scenario):
+                self.run_case(scenario, 1, message)
+
+    def test_cqs_input_error_is_inherited_and_published(self):
+        for scenario in (28, 30):
+            with self.subTest(scenario=scenario):
+                self.run_case(scenario, 0, "PASS KCPU_CQS_INHERIT error")
+
+    def test_cqs_input_without_error_is_success_control(self):
+        self.run_case(29, 0, "PASS KCPU_CQS_INHERIT success")
+
+    def test_cqs_input_failures_keep_resources_until_delete(self):
+        for scenario, message in ((31, "FAIL KCPU ENQUEUE"),
+                                  (32, "FAIL producer CS_EVENT_SIGNAL"),
+                                  (33, "FATAL KCPU DELETE")):
             with self.subTest(scenario=scenario):
                 self.run_case(scenario, 1, message)
 

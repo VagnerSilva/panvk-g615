@@ -272,16 +272,24 @@ open_kcpu_producer(int mali, struct event_cell *cells, bool needs_sync,
 }
 
 static int
-release_kcpu_producer(int mali, struct event_cell *cells, bool needs_sync,
-                      struct producer *producer)
+signal_cqs_producer(int mali, struct event_cell *cells, bool needs_sync)
 {
    __atomic_store_n(&cells[2].value, 1, __ATOMIC_RELEASE);
    if (sync_producer_cell(mali, cells, needs_sync))
       return 1;
-   if (ioctl(mali, KBASE_IOCTL_CS_EVENT_SIGNAL)) {
+   if (ioctl(mali, KBASE_IOCTL_CS_EVENT_SIGNAL, NULL)) {
       fprintf(stderr, "FAIL producer CS_EVENT_SIGNAL: %s\n", strerror(errno));
       return 1;
    }
+   return 0;
+}
+
+static int
+release_kcpu_producer(int mali, struct event_cell *cells, bool needs_sync,
+                      struct producer *producer)
+{
+   if (signal_cqs_producer(mali, cells, needs_sync))
+      return 1;
    uint64_t start, now;
    if (milliseconds(&start))
       return 1;
@@ -315,7 +323,7 @@ main(int argc, char **argv)
        (argc == 4 && strcmp(argv[3], "--cached")) ||
        (strcmp(argv[2], "success") && strcmp(argv[2], "error") &&
         strcmp(argv[2], "pending-delete"))) {
-      fprintf(stderr, "usage: %s <sw_sync-path|--kcpu> "
+      fprintf(stderr, "usage: %s <sw_sync-path|--kcpu|--kcpu-cqs> "
                       "<success|error|pending-delete> [--cached]\n", argv[0]);
       return 2;
    }
@@ -331,12 +339,20 @@ main(int argc, char **argv)
 
    const bool error_case = !strcmp(argv[2], "error");
    const bool kcpu_producer = !strcmp(argv[1], "--kcpu");
+   const bool cqs_input = !strcmp(argv[1], "--kcpu-cqs");
+   if (cqs_input && !strcmp(argv[2], "pending-delete")) {
+      fprintf(stderr, "BLOCKED pending-delete requires the fence producer\n");
+      return 77;
+   }
    if (kcpu_producer && error_case) {
       fprintf(stderr, "BLOCKED KCPU producer cannot create a negative fence; "
                       "error gate remains untested\n");
       return 77;
    }
-   printf("INFO producer=%s\n", kcpu_producer ? "kcpu" : "sw_sync");
+   printf("INFO producer=%s\n",
+          cqs_input ? "injected-cqs-input" : kcpu_producer ? "kcpu" : "sw_sync");
+   if (cqs_input)
+      printf("NEGATIVE_SYNC_FILE=NOT_EXECUTED FENCE_WAIT=NOT_EXECUTED\n");
    const bool delete_pending = !strcmp(argv[2], "pending-delete");
    const bool request_cached = argc == 4;
    struct producer producer = {.timeline = -1, .fence = -1};
@@ -346,7 +362,7 @@ main(int argc, char **argv)
    bool queue_created = false, needs_sync = false;
    struct kbase_ioctl_kcpu_queue_new queue = {0};
 
-   if (!kcpu_producer) {
+   if (!kcpu_producer && !cqs_input) {
       result = open_producer(&producer, argv[1]);
       if (result)
          goto cleanup;
@@ -430,6 +446,11 @@ main(int argc, char **argv)
    memset(cells, 0, 4096);
    if (cache_sync(mali, cells, needs_sync, BASE_SYNCSET_OP_MSYNC))
       goto cleanup;
+   if (cqs_input) {
+      cells[2].error = error_case ? 1 : 0;
+      if (sync_producer_cell(mali, cells, needs_sync))
+         goto cleanup;
+   }
    if (kcpu_producer && open_kcpu_producer(mali, cells, needs_sync, &producer))
       goto cleanup;
    if (ioctl(mali, KBASE_IOCTL_KCPU_QUEUE_CREATE, &queue)) {
@@ -438,6 +459,11 @@ main(int argc, char **argv)
    }
    queue_created = true;
    struct base_fence fence = {.basep = {.fd = producer.fence, .stream_fd = -1}};
+   struct base_cqs_wait_operation_info input = {
+      .addr = (uintptr_t)&cells[2], .val = 0,
+      .operation = BASEP_CQS_WAIT_OPERATION_GT,
+      .data_type = BASEP_CQS_DATA_TYPE_U64,
+   };
    struct cqs_set_object objects[2] = {
       {.addr = (uintptr_t)&cells[0], .val = 1, .operation = 1,
        .data_type = BASEP_CQS_DATA_TYPE_U64},
@@ -450,6 +476,14 @@ main(int argc, char **argv)
       {.type = BASE_KCPU_COMMAND_TYPE_CQS_SET_OPERATION},
       {.type = BASE_KCPU_COMMAND_TYPE_CQS_SET_OPERATION},
    };
+   if (cqs_input) {
+      commands[0] = (struct base_kcpu_command){
+         .type = BASE_KCPU_COMMAND_TYPE_CQS_WAIT_OPERATION,
+         .info.cqs_wait_operation = {
+            .objs = (uintptr_t)&input, .nr_objs = 1, .inherit_err_flags = 1,
+         },
+      };
+   }
    for (unsigned i = 0; i < 2; i++) {
       const struct cqs_set_payload payload = {
          .objs = (uintptr_t)&objects[i], .nr_objs = 1,
@@ -466,8 +500,9 @@ main(int argc, char **argv)
          goto cleanup;
       }
    }
-   if (hold_pending(mali, cells, needs_sync) ||
-       check_fd(producer.fence, 0, "KCPU fence held 20 ms"))
+   if (hold_pending(mali, cells, needs_sync))
+      goto cleanup;
+   if (!cqs_input && check_fd(producer.fence, 0, "KCPU fence held 20 ms"))
       goto cleanup;
    if (delete_pending) {
       if (delete_queue(mali, queue.id))
@@ -482,7 +517,10 @@ main(int argc, char **argv)
       }
       printf("PASS KCPU_DELETE_DRAIN (not successful dependency completion)\n");
    } else {
-      if (kcpu_producer) {
+      if (cqs_input) {
+         if (signal_cqs_producer(mali, cells, needs_sync))
+            goto cleanup;
+      } else if (kcpu_producer) {
          if (release_kcpu_producer(mali, cells, needs_sync, &producer))
             goto cleanup;
       } else if (error_case) {
@@ -495,9 +533,11 @@ main(int argc, char **argv)
             goto cleanup;
          }
       }
-      result = check_fd(producer.fence, error_case ? -1 : 1, "producer release");
-      if (result)
-         goto cleanup;
+      if (!cqs_input) {
+         result = check_fd(producer.fence, error_case ? -1 : 1, "producer release");
+         if (result)
+            goto cleanup;
+      }
       result = 1;
       if (wait_publication(mali, cells, needs_sync))
          goto cleanup;
@@ -508,7 +548,8 @@ main(int argc, char **argv)
                  cells[0].value, cells[1].value, cells[0].error, error_case);
          goto cleanup;
       }
-      printf("PASS KCPU_PUBLISH %s A=%" PRIu64 " B=%" PRIu64 " A.error=%u\n",
+      printf("PASS %s %s A=%" PRIu64 " B=%" PRIu64 " A.error=%u\n",
+             cqs_input ? "KCPU_CQS_INHERIT" : "KCPU_PUBLISH",
              argv[2], cells[0].value, cells[1].value, cells[0].error);
    }
    result = 0;

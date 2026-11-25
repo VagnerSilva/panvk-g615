@@ -63,108 +63,22 @@ preserved input fd ownership. It requires a host C compiler and pthreads;
 without Mesa 27 headers it reports a skip. It does not validate GPU completion
 or KCPU fence behavior; those still require the device tests in `sync/`.
 
-## KCPU fence import and PanVK integration tests (host)
+## Discarded KCPU GPU fence-import draft
 
-The inactive draft 006 bridge and snapshot tests compile code extracted from
-the patch with deterministic stubs:
-
-```sh
-PYTHONPATH=tests python3 -m unittest \
-  test_kbase_gpu_fence_wait.GPUFenceImportTests \
-  test_kbase_gpu_fence_wait.PanVKSyncFileSnapshotTests test_kbase_wait_any -v
-```
-
-The additional PanVK integration cases require an explicitly selected,
-already-prepared Mesa tree at the revision in `sources.lock`:
-
-```sh
-PANVK_KBASE_TEST_MESA=/path/to/prepared/mesa PYTHONPATH=tests \
-  python3 -m unittest \
-  test_kbase_gpu_fence_wait.PanVKFenceIntegrationTests -v
-```
-
-These tests read the tree without applying patches or changing its files.
-They extract queue emission, completion, submission, output-sync callback
-registration and destruction functions, then compile them with
-`kbase_gpu_fence_wait_panvk.c`. A symbolic interpreter records builder calls
-and models pending waits, payload cache state and aliased registers; kernel,
-allocation and queue-publication operations are stubbed. Compilation requires
-a host C compiler. Without `PANVK_KBASE_TEST_MESA`, prepared-source
-cases are skipped, explicitly; the bridge and snapshot cases still execute.
-
-On 2026-11-24, the selected post-002--005 snapshot executed all 20 integration
-cases: 15 expected behavioral RED failures and five existing-path controls
-passed. The bridge/snapshot/WAIT_ANY suite passed 29 tests. RED failures cover
-the absent fence-import submission path and GPU error guard, error-before-
-completion, output callback errors, teardown order and retained resources.
-Some subsequent fault-injection assertions cannot be reached until import
-acceptance is implemented. The symbolic model is not ISA encoding, actual
-CPU/GPU publication ordering, kernel termination, a Mesa build or device proof;
-it does not close the implementation gate in the Task 3 plan.
-
-The checked-teardown revision of 006 adds `CheckedFenceTeardownTests`.
-Unlike the symbolic group's stub, these tests compile the actual
-`kbase_kmod_csf_queue_term`, `kbase_kmod_csf_group_destroy`,
-`kbase_destroy_group` and queue lifecycle functions from the selected tree,
-with syscall and resource mocks. They check TERM/unmap/DELETE failures,
-partial initialization, preserved causal errors, ordered event-BO release and
-fatal resource retention. Failed cleanup must also mark the Vulkan queue lost
-and detach it from device cleanup without freeing kernel-visible resources.
-Actual `init_queue` error handling is extracted too, not replaced with a
-stub. Resource mocks reject cleanup while CSF consumers remain alive,
-including when the completion wait fails before TERM/unmap fails. Nine
-scenarios reproduced premature cleanup before the correction; all eight
-methods passed after deferring cleanup to successful consumer termination.
-
-```sh
-PANVK_KBASE_TEST_MESA=/path/to/prepared/mesa PYTHONPATH=tests \
-  python3 -m unittest \
-  test_kbase_gpu_fence_wait.CheckedFenceTeardownTests -v
-```
-
-On 2026-11-24, all eight checked-teardown methods passed. Together with the
-three existing teardown cases and bridge/snapshot/WAIT_ANY regressions, the
-focused suite passed 40 tests. The full Task 3 integration suite still has
-12 RED cases and eight PASS controls/teardown cases; submission, GPU error
-guard and output-error completion are not implemented. Syscall mocks cannot
-confirm actual kernel/firmware termination. Full Mesa builds and device tests
-of that teardown-only revision were not executed; the 006 safety gate remained
-BLOCKED.
-
-The subsequent inactive-integration revision resolves the twelve remaining
-RED cases and expands `PanVKFenceIntegrationTests` to 38 methods. The source
-fixture now extracts the real publication/kick helper as well. Added checks
-cover lazy CREATE and FD ownership, first/third enqueue failure, transactional
-staging across multiple waits, imported semaphore-owner errors, persistent
-guards on later entries, CPU cache refresh and zero-target error callbacks.
-Two cases generate the real v11 pack header and compile Mesa's CS builder,
-ralloc and dynarray helpers; they encode six foreign waits plus the import
-guard on all three subqueues. Four export cases also extract the real
-`kbase_cpu_sync_export_sync_file`, covering pending negative/successful import,
-zero targets and ordinary non-import asynchronous export. Three failed
-before the review fix, then passed: imported outputs require the CPU callback
-before export, not just a raw CQS fence. The largest entries are 384 bytes normally
-and 432 bytes with diagnostics, within the unchanged 512-byte limit.
-This proves encoding/size, not execution of those instructions.
-
-```sh
-PANVK_KBASE_TEST_MESA=/path/to/prepared/mesa PYTHONPATH=tests \
-  python3 -m unittest test_kbase_gpu_fence_wait test_kbase_wait_any \
-  test_kbase_native_fence_wait -v
-```
-
-On 2026-11-24 this combined command passed 95 tests. The selected tree must
-contain the revised inactive 006 preparation, not just 002-005. Full Mesa
-Android/glibc builds and hardware tests of the revision remain NOT EXECUTED;
-the publication/termination safety gate remains BLOCKED. No device access
-or patch application is performed by this command.
+The inactive draft 006 and its exclusive host integration suite were removed
+at the user's request on 2026-11-24. Historical results remain in the
+[archived plan](../docs/superpowers/plans/2026-11-24-kbase-kcpu-gpu-fence-wait.md);
+its old test commands and proposed build flags are not available.
+The default series remains 002-005. The independent native KCPU tests below
+and the active WAIT_ANY regressions remain available.
 
 ## Native KCPU publication and controlled sync_file error
 
 `sync/kcpu_fence_wait_test.c` is a standalone, single-import KCPU/CPU gate,
 not a GPU command-stream or PanVK integration test. It does not load an ICD,
-create CSF groups, apply draft 006 or submit GPU work. It uses the repository's
-base UAPI header and private SET payload layouts matching draft 006.
+create CSF groups or submit GPU work. It uses the repository's
+base UAPI header and private SET payload layouts independently of the discarded
+GPU fence-import draft.
 
 The producer uses an explicitly selected, already accessible `sw_sync` endpoint.
 It creates its own timeline and a fence at point 1. `SW_SYNC_IOC_INC` releases
@@ -191,7 +105,7 @@ producer fence pending, before producer cleanup.
 `--kcpu error` returns BLOCKED (77) before opening Mali: normal KCPU
 FENCE_SIGNAL does not inject a negative fence status. Producer DELETE is
 cleanup, not an error-fence substitute. This mode cannot close the negative
-fence, GPU guard or PanVK teardown gates and does not activate patch 006.
+fence, GPU guard or PanVK teardown gates.
 
 On 2026-11-24, both `--kcpu success` and `--kcpu pending-delete` passed once
 on the Moto G86/Mali-G615 MC2, Android 16, CSF UAPI 1.21, 4 KiB pages, in the
@@ -202,8 +116,8 @@ drained A/B while the producer fence remained pending.
 The tested API35 binary SHA-256 was
 `04c900ce04e1b664d82b30c756d4cf142835470091bc24dcaefd3e8715992cd5`.
 This is only the KCPU/CPU gate: negative-fence, cached-device, GPU-ordering and
-PanVK/CSF-termination tests were not executed, and the 006 safety gate remains
-BLOCKED. Shell results do not qualify an app UID or glibc chroot.
+PanVK/CSF-termination tests were not executed. Shell results do not qualify an
+app UID or glibc chroot.
 
 The harness requires a 64-bit process, 4 KiB pages and CSF UAPI 1.21. It creates
 one SAME_VA/CSF_EVENT page with two distinct 64-byte cells, zeroes it, then issues

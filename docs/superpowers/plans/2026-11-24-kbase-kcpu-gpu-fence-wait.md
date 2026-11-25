@@ -1,6 +1,6 @@
 # Plano de implementação corrigido: sync_file via KCPU e CQS64 (006-kbase-kcpu-gpu-fence-wait.patch)
 
-> **Para execução por agentes:** usar a skill instalada `executing-plans`, tarefa por tarefa. Este documento não autoriza aplicação de patches Mesa, alterações de contratos/perfis, testes no dispositivo, commits ou publicação sem aprovação explícita.
+> **DESCARTADO em 2026-11-24 por decisão do usuário.** O draft 006 e sua suíte exclusiva de integração foram removidos. Este plano permanece apenas como histórico: as tarefas, comandos, flags e resultados abaixo não representam uma implementação disponível nem autorizam retomada. A série padrão continua 002–005. Os testes nativos de KCPU e suas alterações locais foram preservados.
 
 **Objetivo:** permitir que submissões PanVK elegíveis aguardem `sync_file` sem bloquear a thread de submit, preservando dependências, propagação de erros e vida útil dos recursos.
 
@@ -8,7 +8,7 @@
 
 **Tecnologias:** Mesa 27 (`13baeb70c066a9f82d2bcfb29f06e4865212affa`), PanVK v11, Kbase CSF 1.21 (`mali_kbase_mt6878_r44` / `mali-r44p1`), C, Meson/Ninja, Android/Bionic, Linux/glibc e `unittest` com mocks C.
 
-**Estado:** preparação inativa de submissão, guarda e conclusão da Tarefa 3 autorizada separadamente pelo usuário em 2026-11-24, com 95 testes host PASS. O patch 006 inclui essa integração, mas não tem seleção de build; o knob de runtime tem default false. Gate de segurança 1.3 continua `BLOCKED`: mocks e encoding não qualificam publicação CPU/GPU, término real CSF, builds ou hardware.
+**Estado:** descartado, sem seleção de build ou implementação entregue. Antes do descarte, a preparação inativa tinha 95 testes host PASS; o gate de segurança 1.3 permanecia `BLOCKED`. Esses resultados históricos não qualificam publicação CPU/GPU, término real CSF, builds ou hardware.
 
 ---
 
