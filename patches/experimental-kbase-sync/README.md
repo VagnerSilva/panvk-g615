@@ -5,7 +5,7 @@
 The user discarded the inactive GPU fence-wait draft on 2026-11-24.
 Its patch and exclusive bridge/snapshot/PanVK integration tests were removed.
 It was never selected by a build or qualified for release; the default series
-remains 002-005. No Mesa source tree was modified as part of the removal.
+remained 002-005 at removal. No Mesa source tree was modified as part of the removal.
 
 The [archived plan](../../docs/superpowers/plans/2026-11-24-kbase-kcpu-gpu-fence-wait.md)
 preserves the investigation and historical results, not executable acceptance
@@ -17,7 +17,8 @@ in [the test guide](../../tests/README.md#native-kcpu-publication-and-controlled
 The user approved promotion of the complete 002-005 series after reporting
 the Nyushu comparison below. G615 Mesa 27 preparation now applies the main
 series followed by 002, 003, 004, and 005 by default, in the same fixed order
-as the previously built opt-in candidate. The directory name is historical.
+as the previously built opt-in candidate. Patch 007 now follows that series,
+as separately approved below. The directory name is historical.
 Use a fresh checkout at the pinned Mesa commit:
 
 ```sh
@@ -36,7 +37,7 @@ hunk coordinates were refreshed for strict replay.
 
 The prior G615-only candidate replay applied all 196 patches without offsets
 or fuzz and passed the Android build and focused backoff/provenance tests.
-Selection tests now expect the same 002-005 inputs with and without
+At promotion, selection tests expected the same 002-005 inputs with and without
 `--with-kbase-sync`; unsupported profiles still fail explicitly. No build,
 test suite or device run was repeated for this promotion, as requested.
 
@@ -70,11 +71,11 @@ independently captured device gate.
 
 The legacy variant label `kbase-sync-002-004` is retained for compatibility.
 The legacy flag is optional and selects that label with the same ordered
-inputs as `default`. Both manifests include 002-005 and their SHA-256 hashes;
+inputs as `default`. Both manifests now include 002-005 and 007 with their SHA-256 hashes;
 old manifests are not valid provenance for this candidate. The Android build consumes the prepared
 tree and does not accept `--with-kbase-sync`.
 
-All four patches are included in the default G615 patch series. Do not apply
+All five selected patches are included in the default G615 patch series. Do not apply
 them again to a tree prepared by `scripts/apply-patches.sh`.
 For historical manual preparation, verify the base, then check and apply:
 
@@ -85,7 +86,74 @@ git -C /path/to/mesa apply /path/to/002-android-release-queue-mesa27.patch
 
 The historical Mesa 26 patch 001 has been removed to avoid confusion with
 the active Mesa 27 series. The remaining patches retain their numbering and
-application order: 002, 003, 004, then 005.
+application order: 002, 003, 004, 005, then 007.
+
+### Sync_file poll correction (007, approved 2026-11-24)
+
+The user approved `007-kbase-sync-file-poll-deadlines.patch` as the next
+default patch after 005. The active order is 002, 003, 004, 005, then 007;
+the removed 001 and discarded 006 are not dependencies. Both `default` and
+the legacy `kbase-sync-002-004` variant select the same five patches.
+
+007 requires `POLLIN` for success, rejects `POLLNVAL` as an invalid external
+handle, and preserves the existing device-lost result for `POLLERR`/`POLLHUP`.
+Invalid descriptors, unexpected events and poll failures are logged.
+Every retry recomputes the remaining monotonic deadline, including after
+`EINTR`, `EAGAIN`, and an elapsed `INT_MAX`-millisecond chunk. Positive
+sub-millisecond budgets round up instead of becoming immediate timeouts;
+large finite budgets clamp to `INT_MAX` instead of becoming infinite waits.
+Zero/expired deadlines still perform one nonblocking readiness check.
+Rounding and scheduling can delay the return; this is not a hard real-time
+deadline guarantee. The 005 backoff and 004 ownership rules are unchanged.
+
+`tests/test_kbase_sync_file_wait.py` compiles the callback with deterministic
+poll/clock/log stubs and covers 23 scenarios. These host tests do not prove
+device fence behavior; see the separately scoped Android result below.
+The exact candidate has not been validated on glibc.
+
+### Scoped Android device validation of 003 and 007 (2026-11-25)
+
+The tested Android/Bionic ICD was built for `g615-v11-csf` from Mesa
+`13baeb70c066a9f82d2bcfb29f06e4865212affa`, with 197 applied patches and
+series ID
+`sha256:92c214e1029cd20cdb45cc40c423589cc4ee8f1139527e26820b3bbbbf78b71b`.
+Its SHA-256 was
+`69f9f7badbd490437d9539110665d57a2ddfab5bc3dac62a0aed3f17564fdc7b`;
+the corresponding development ADPKG SHA-256 was
+`82f6709f90d1745d5c547fbe24f2fa99dc77ed424098c1e1295786dabaab9726`.
+The isolated tests verified the copied ICD hash and ran under an Android app
+UID on a Moto G86, Mali-G615 MC2, Kbase CSF 1.21, with 4 KiB pages.
+
+- **003 ordering: PASS, scoped kernel path.** An isolated process set
+  `PANVK_KBASE_USER_CACHE_SYNC=0`; this did not change the default or the
+  Nyushu environment. The tracer recorded 17 successful `MEM_SYNC` ioctls.
+  An overlapping flush and invalidate emitted `MSYNC` before `CSYNC`.
+  Two adjacent flush ranges were combined into one `MSYNC`, followed by
+  `CSYNC`. Both CPU readbacks passed. The test did not establish GPU-visible
+  coherency, the number of ioctls saved in a game, or which cache path
+  Nyushu uses.
+- **007 imported sync_file: PASS, normal device path.** The Android-built
+  `tests/sync/sync_file_test.c` produced a pending KCPU `sync_file` and
+  imported it as a Vulkan fence in each of 12 cycles. Each pending wait
+  returned `VK_TIMEOUT`; after the producer signal the external FD completed.
+  Four cycles each exercised re-waiting, reset, and destruction; FD counts
+  stayed at the baseline and the test exited 0. This test did not measure
+  deadline accuracy or inject `EINTR`, `EAGAIN`, `POLLNVAL`, `POLLERR`,
+  or `POLLHUP` on the device.
+- **Host regressions: PASS.** The 003 coalescing/ordering harness passed
+  against the prepared source, and the 007 callback passed 23 deterministic
+  poll/clock scenarios. The latter exercises error and retry cases with
+  stubs, not real device faults.
+- **Remaining gates:** full device error injection, long-duration stability,
+  Nyushu's effective sync paths, and an isolated performance comparison are
+  not established. The observed Nyushu memory and IRQ measurements and their
+  limitations are recorded in the
+  [investigation report](../../worklogs/g615-dxvk/nyushu-moto-memory-irq-2026-11-25.md).
+
+The `Tested GPU` and `Validation test` fields in the patch headers describe
+the earlier preparation-time state. They remain unchanged so the tested patch
+bytes and series ID stay identical; this section records the later results.
+These scoped passes do not certify every path or a release.
 
 ### User-reported Nyushu comparison and release approval
 
@@ -288,16 +356,19 @@ remains opt-in; it has not recovered the historical 15 FPS minimum at 1X.
 Unsignaled external sync-file imports, wait-list overflow stress, broader
 games, and long-duration stability remain outside this validation.
 
-## Experimental 003: deferred MEM_SYNC coalescing
+## 003: deferred MEM_SYNC coalescing
 
-Apply `003-kbase-coalesce-mem-sync.patch` after the updated 002. It is
-opt-in and is **not approved as regression-free**. It sorts pending
-operations by BO and start, then coalesces overlapping or adjacent ranges
-of the same operation type. Coherent BOs still bypass MEM_SYNC.
+Apply `003-kbase-coalesce-mem-sync.patch` after the updated 002. The original
+revision sorted pending operations by BO and range, which could reorder
+`MSYNC` and `CSYNC` on overlapping ranges. The corrected revision preserves
+submission order and coalesces only adjacent operations with the same BO and
+type whose ranges overlap or touch. Coherent BOs still bypass `MEM_SYNC`;
+allocation failure retains the original uncoalesced order.
 
 The supplied patch required corrected hunk lengths, a final newline,
 and the `util/stack_array.h` include. Integration also frees the temporary
-array on success and ioctl failure, and logs allocation failure. To avoid
+array on success and ioctl failure, falls back to the original order on
+allocation failure, and logs ioctl failures. To avoid
 widening invalidations into gaps or changing operation types, this version
 does not merge across a 4096-byte gap or promote mixed operations to
 flush-and-invalidate. The read-only attachment was not modified.
@@ -310,7 +381,7 @@ the local build and package identity:
 dbd9dd2cb9a6b0f194964c4250f96a468f8b5114c3e6f3ed91454d244848f661
 ```
 
-Validation on 2026-11-18:
+Historical validation of the original sorted revision on 2026-11-18:
 
 - Android build/static validation: PASS.
 - Host coalescing harness: PASS. Covers empty/single batches, coherent BO
@@ -337,6 +408,12 @@ Validation on 2026-11-18:
   The similar hang existed before 003, so these captures do not prove
   that coalescing caused it. Nevertheless this fails the acceptance gate;
   002-r2-safe had completed the previous exit test.
+
+The original host test also failed to compile because its source extraction
+included the beginning of the following eviction-hints comment. The corrected
+test bounds extraction at that comment and checks stable ordering for mixed
+operation types and BOs, as well as range coalescing. Passing this host model
+does not establish the target kernel's cache semantics or device correctness.
 
 With user authorization, the stuck process was force-stopped and the
 previous 002-r2-safe ADPKG was selected again through Eden. Launch verified

@@ -49,7 +49,7 @@ esac
         b = json.loads(sync_manifest.read_text())
         patches = [x["path"] for x in b["inputs"] if x["path"].endswith(".patch")]
         ids = [Path(p).name[:3] for p in patches]
-        self.assertEqual(ids[-4:], ["002", "003", "004", "005"])
+        self.assertEqual(ids[-5:], ["002", "003", "004", "005", "007"])
         self.assertFalse(any("/jm-" in p for p in patches))
         self.assertEqual(a["inputs"], b["inputs"])
         self.assertFalse(any("/experimental-kbase-sync/001" in p for p in patches))

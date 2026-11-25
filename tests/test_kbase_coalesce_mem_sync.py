@@ -20,8 +20,11 @@ class KbaseCoalesceMemSyncTests(unittest.TestCase):
             line[1:] for line in patch.splitlines()
             if line.startswith((" ", "+")) and not line.startswith("+++")
         )
-        start = postimage.index("static int\nkbase_deferred_bo_sync_cmp")
-        implementation = postimage[start:]
+        start = postimage.find("static int\nkbase_deferred_bo_sync_cmp")
+        if start < 0:
+            start = postimage.index("static int\nkbase_kmod_emit_mem_sync")
+        end = postimage.index("/* Eviction hints", start)
+        implementation = postimage[start:end].rstrip()
         prepared = (mesa / "src/panfrost/lib/kmod/kbase_kmod.c").read_text()
         self.assertIn(implementation, prepared)
         harness = r"""
@@ -120,8 +123,19 @@ int main(void) {
    ops[1] = OP(1, 128, 128, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
    assert(run(ops, 2) == 0 && calls == 2);
    assert(emitted[0].handle != emitted[1].handle);
+   ops[0] = OP(0, 128, 128, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
+   ops[1] = OP(0, 0, 256, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH_AND_INVALIDATE);
+   assert(run(ops, 2) == 0 && calls == 2);
+   assert(emitted[0].type == BASE_SYNCSET_OP_MSYNC);
+   assert(emitted[1].type == BASE_SYNCSET_OP_CSYNC);
+   assert(emitted[0].user_addr == 0x10080 && emitted[0].size == 128);
+   assert(emitted[1].user_addr == 0x10000 && emitted[1].size == 256);
+   ops[0] = OP(1, 128, 128, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
+   ops[1] = OP(0, 0, 128, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
+   assert(run(ops, 2) == 0 && calls == 2);
+   assert(emitted[0].handle == 0x2000 && emitted[1].handle == 0x1000);
    for (unsigned i = 0; i < 64; i++)
-      ops[i] = OP(0, (63 - i) * 64, 64, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
+      ops[i] = OP(0, i * 64, 64, PAN_KMOD_BO_SYNC_CPU_CACHE_FLUSH);
    assert(run(ops, 64) == 0 && calls == 1 && allocated == 0);
    assert(emitted[0].size == 64 * 64);
    for (unsigned i = 0; i < 4096; i++)

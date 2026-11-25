@@ -29,6 +29,9 @@ The 38 downstream JM patches have been removed. Patches 235-240 preserve the
 shared model/budget API, viewport varying architecture, EXEC/JIT page sizing,
 ION fallback, XCB symbols and draw-chunk instance cap. Kbase sync
 002-005 is included by default following user approval on 2026-11-24.
+The separately approved sync_file poll correction 007 follows 005; it
+validates poll events and recomputes finite deadlines without changing
+the WAIT_ANY backoff or sync ownership.
 Historical app binaries and runtime evidence are not
 relabelled as this candidate.
 

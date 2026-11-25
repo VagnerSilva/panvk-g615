@@ -69,8 +69,21 @@ The inactive draft 006 and its exclusive host integration suite were removed
 at the user's request on 2026-11-24. Historical results remain in the
 [archived plan](../docs/superpowers/plans/2026-11-24-kbase-kcpu-gpu-fence-wait.md);
 its old test commands and proposed build flags are not available.
-The default series remains 002-005. The independent native KCPU tests below
+The default series now selects 002-005 followed by poll correction 007,
+without depending on the discarded draft. The independent native KCPU tests below
 and the active WAIT_ANY regressions remain available.
+
+## Host sync_file poll regressions
+
+Run `python3 -m unittest discover -s tests -p test_kbase_sync_file_wait.py -v`.
+The test compiles the 007 callback with recording poll, monotonic-clock and
+logging stubs. Its 23 scenarios cover readiness/error events, invalid FDs,
+zero/expired deadlines, EINTR/EAGAIN retries, positive sub-millisecond
+budgets, long finite timeout chunks and infinite waits.
+Set `PANVK_SYNC_FILE_WAIT_SOURCE` to a prepared `panvk_physical_device.c`
+to test its callback instead of the patch postimage. No patches are applied
+by the test. This is host evidence only, not device fence or target-build
+validation, and does not validate the unchanged 004 concurrent teardown.
 
 ## Native KCPU publication and controlled sync_file error
 
@@ -314,7 +327,8 @@ sequence used by the runtime's fallback, but does **not** call
 
 `test_kbase_coalesce_mem_sync.py` compiles the implementation in experimental
 003 with a recording ioctl and checks its postimage against the prepared
-Mesa source. After applying 003, run
+Mesa source. It checks that compatible adjacent operations coalesce without
+reordering different BOs or `MSYNC`/`CSYNC` operations. After applying 003, run
 `python3 -m unittest discover -s tests -p test_kbase_coalesce_mem_sync.py -v`.
 It checks range coalescing, preservation of operation types and gaps,
 coherent BO bypass, input preservation, stack-buffered coalescing up to 64
@@ -360,6 +374,12 @@ iterations each exercise waiting again without reimport, resetting the
 imported fence, and destroying it without another Vulkan wait. Exit 77 means
 a prerequisite is unavailable (`BLOCKED`), not a pass. Other nonzero exits
 are failures. This gate does not exercise Android release callbacks or WSI.
+
+On 2026-11-25 the same source was also cross-compiled for Android and run
+under an isolated app UID against the identified `003fix` ICD: all 12
+cycles passed. This is Android/Bionic evidence, not a glibc result or a
+device test of interrupted waits or poll error events. See the
+[scoped validation record](../patches/experimental-kbase-sync/README.md#scoped-android-device-validation-of-003-and-007-2026-11-25).
 
 `ahb/anb_release.c` is a separate shell diagnostic for the private Android
 native-buffer driver entrypoints. It allocates an AHardwareBuffer, creates a
