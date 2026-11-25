@@ -26,8 +26,8 @@ Directories:
 - `wsi/` — swapchain/acquire/present/resize, acquire-present sync.
 - `experimental-kbase-sync/` — historical directory name for the Mesa 27 G615
   sync updates promoted to the default series on 2026-11-24. Preparation
-  appends exactly 002, 003, 004 and 005 after `csf-v11/`; historical 001 and
-  any unlisted patches remain excluded. `--with-kbase-sync` is retained for
+  appends exactly 002, 003, 004 and 005 after `csf-v11/`; historical 001 has
+  been removed and any unlisted patches remain excluded. `--with-kbase-sync` is retained for
   compatibility, not required. See the family README for user approval,
   validation results and the unresolved shutdown limitation.
   Draft 006 contains the inactive UAPI/Kmod import bridge and a

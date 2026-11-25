@@ -29,7 +29,7 @@ MESA=/path/to/clean/mesa ./scripts/build-android.sh \
 
 The build command consumes the prepared tree; it does not apply patches
 itself. Do not apply the preparation command to an already patched tree.
-Preparation rejects other profiles, excludes historical 001, and retains
+Preparation rejects other profiles and retains
 the offset/fuzz rejection gate. New experimental patches are not included
 automatically. Both supplied patches match the consolidated code; only
 hunk coordinates were refreshed for strict replay.
@@ -48,8 +48,8 @@ No device selection or resolution is changed by this consolidation.
 
 For the Mesa 27 profile at `13baeb70c0`, apply
 `002-android-release-queue-mesa27.patch` after the profile patches, including
-Android 018 (the port of historical 0178). Patch 002 is an alternative to
-001; do not apply both. Its updated revision retains backend-specific
+Android 018 (the port of historical 0178). Patch 002 replaces the removed
+historical patch 001. Its updated revision retains backend-specific
 callback selection, adds address-based cross-queue GPU waits, rejects
 external sync-file/non-CSF payloads during peek, skips already-retired
 producer seqnos, and stages per-subqueue wait updates transactionally. Patch
@@ -83,13 +83,9 @@ git -C /path/to/mesa apply --check /path/to/002-android-release-queue-mesa27.pat
 git -C /path/to/mesa apply /path/to/002-android-release-queue-mesa27.patch
 ```
 
-For the historical Mesa 26 tree, use an isolated prepared tree with the G615
-Kraid experimental overlay instead:
-
-```sh
-git -C /path/to/mesa apply --check /path/to/001-android-release-queue.patch
-git -C /path/to/mesa apply /path/to/001-android-release-queue.patch
-```
+The historical Mesa 26 patch 001 has been removed to avoid confusion with
+the active Mesa 27 series. The remaining patches retain their numbering and
+application order: 002, 003, 004, then 005.
 
 ### User-reported Nyushu comparison and release approval
 
