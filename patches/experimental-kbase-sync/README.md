@@ -145,8 +145,9 @@ Moto G86, Mali-G615 MC2, as reported by the user on 2026-11-26:
   the logs do not report them.
 - **Image and background resume: PASS, user-observed.** Resume shows the
   application's normal pause.
-- **Application exit: intermittent hang** observed in Eden and not reproduced
-  afterwards; the cause is unknown.
+- **Application exit: PASS, user-reported in the follow-up.** The earlier
+  diagnostic Eden run had an intermittent hang; on 2026-11-26 the user
+  reported normal app closure without hangs with the new driver.
 - **IRQ reduction: observed, not causally isolated.** The baselines are
   different sessions and, for Nyushu, another driver and scene. No same-scene
   A/B or synchronized collection was run.
@@ -157,8 +158,22 @@ the Android API 29 build with NDK r30, and Android ELF validation. Series ID
 `sha256:5869c7cabae89c8be67dc853f178e31c4a59d979593ab801d55f9b4ecde38087`;
 ICD SHA-256
 `33541f082e052912223c51776ed1194dcd50e54e50d4286f3ca845efa0092a96`, Build ID
-`5353721bbc991d710d147be6f94af6516fb914a3`. Its own device run is pending.
-Rebuild packages from this series; earlier manifests are not valid provenance.
+`5353721bbc991d710d147be6f94af6516fb914a3`. These identifiers belong to that
+build checkpoint and are not assigned to the later user report.
+
+On 2026-11-26 the user explicitly confirmed that tests with patch 008 applied
+were performed and passed. This supersedes the pending device-test status
+for the reported run. The follow-up also reported IRQ 436 at approximately
+343/s, zero Vulkan failures or Tiler OOM, normal app closure without hangs,
+and that the previously perceived device heating was no longer apparent.
+The new-driver report includes the series containing 008 and 241; it does
+not isolate either patch's effect. No exact follow-up binary hash, raw logs
+or temperature measurements were supplied, and no glibc result is claimed.
+See the [patch 241 comparison and follow-ups](../README.md#patch-241-user-reported-approval-2026-11-26).
+
+The metadata update does not change the patch's source diff. Refresh the
+series ID for the changed patch file, but preserve existing package manifests,
+binary hashes and historical build evidence.
 
 ### Scoped Android device validation of 003 and 007 (2026-11-25)
 

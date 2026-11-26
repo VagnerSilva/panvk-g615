@@ -76,6 +76,12 @@ The user also reported IRQ 436 at approximately 343/s versus more than 15000/s
 before, with zero Vulkan failures or Tiler OOM in the observed run. The IRQ
 comparison does not establish an isolated effect of patch 241.
 
+In follow-ups on the same date, the user reported that the app closes normally
+with the new driver, without hangs, and that the previously perceived heating
+was no longer apparent. These observations are scoped to the reported run;
+no temperature measurements were supplied, and they do not establish that
+patch 241 alone fixed shutdown or reduced device temperature.
+
 Trade-off: lower reported resident-memory demand, but more swap. Additional
 paging can affect latency; no FPS or latency improvement was measured here.
 Raw logs, exact device/kernel identity and binary hashes were not supplied
