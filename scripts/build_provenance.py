@@ -37,6 +37,7 @@ def series_manifest(root, profile, variant):
                 "004-kbase-sync-file-waiter-lifetime.patch",
                 "005-kbase-avoid-wait-any-spin.patch",
                 "007-kbase-sync-file-poll-deadlines.patch",
+                "008-kbase-shared-group-csg-sync.patch",
             }:
                 continue
             inputs.append(path)

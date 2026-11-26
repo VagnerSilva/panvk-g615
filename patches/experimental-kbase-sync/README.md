@@ -71,11 +71,11 @@ independently captured device gate.
 
 The legacy variant label `kbase-sync-002-004` is retained for compatibility.
 The legacy flag is optional and selects that label with the same ordered
-inputs as `default`. Both manifests now include 002-005 and 007 with their SHA-256 hashes;
+inputs as `default`. Both manifests now include 002-005, 007 and 008 with their SHA-256 hashes;
 old manifests are not valid provenance for this candidate. The Android build consumes the prepared
 tree and does not accept `--with-kbase-sync`.
 
-All five selected patches are included in the default G615 patch series. Do not apply
+All six selected patches are included in the default G615 patch series. Do not apply
 them again to a tree prepared by `scripts/apply-patches.sh`.
 For historical manual preparation, verify the base, then check and apply:
 
@@ -86,7 +86,7 @@ git -C /path/to/mesa apply /path/to/002-android-release-queue-mesa27.patch
 
 The historical Mesa 26 patch 001 has been removed to avoid confusion with
 the active Mesa 27 series. The remaining patches retain their numbering and
-application order: 002, 003, 004, 005, then 007.
+application order: 002, 003, 004, 005, 007, then 008.
 
 ### Sync_file poll correction (007, approved 2026-11-24)
 
@@ -110,6 +110,55 @@ deadline guarantee. The 005 backoff and 004 ownership rules are unchanged.
 poll/clock/log stubs and covers 23 scenarios. These host tests do not prove
 device fence behavior; see the separately scoped Android result below.
 The exact candidate has not been validated on glibc.
+
+### Shared kbase group and CSG-scoped signals (008, approved 2026-11-26)
+
+The user approved `008-kbase-shared-group-csg-sync.patch` as the next default
+patch after 007. It replaces an untracked ring-buffer CSG-scope draft that
+used the same number and was never selected by a build. Both `default` and
+`kbase-sync-002-004` now select 002, 003, 004, 005, 007 and 008.
+
+008 binds the vertex/tiler, fragment and compute subqueues to CSI 0, 1 and 2
+of one Kbase group (`cs_min=1`) instead of one group per subqueue at CSI 0,
+and stops `PANVK_INSTR_SYNC_OPS` from promoting CSG-scoped signals to
+`SYSTEM`. Direct `SYSTEM` signals (job completion, render-descriptor ring
+buffer, pre-rasterization, tessellation and events) are unchanged. Kbase
+rejects CSI indices at or above the group's `stream_num`; queue creation then
+fails explicitly, without a per-subqueue fallback. This supersedes the CSI0
+layout and its compatibility note from
+`kbase-common/006-device-queue-wsi-kbase.patch` on this profile.
+
+Evidence comes from a diagnostic build of the same change plus per-second
+counters (ICD SHA-256
+`09006f33a7c286ad13a5899fc06a4e3bc255bbc6bc86136e052c81d9fe2688ea`) on the
+Moto G86, Mali-G615 MC2, as reported by the user on 2026-11-26:
+
+| Measurement | 002-005 + 007 | Diagnostic 008 |
+|---|---|---|
+| IRQ 436 (`SYNC_UPDATE`), Eden | 15,270/s | 274/s and 522/s |
+| IRQ 436, Nyushu | 6,785-8,256/s (earlier `003fix`, heavy scene) | 405/s |
+| Promoted `panvk_instr` signals | ~4,000-16,000/s | 0/s |
+
+- **Signals and progress: PASS, scoped.** Logs from both games showed
+  `instrSysRec=0` with 4,000-18,000 CSG signals/s executed, and all three
+  subqueues advanced for about 100 s. CSI numbers are inferred from the code;
+  the logs do not report them.
+- **Image and background resume: PASS, user-observed.** Resume shows the
+  application's normal pause.
+- **Application exit: intermittent hang** observed in Eden and not reproduced
+  afterwards; the cause is unknown.
+- **IRQ reduction: observed, not causally isolated.** The baselines are
+  different sessions and, for Nyushu, another driver and scene. No same-scene
+  A/B or synchronized collection was run.
+- **Performance: inconclusive.** About 20 FPS, without a matching baseline.
+
+The counter-free patch passed strict replay (198 patches, no offset or fuzz),
+the Android API 29 build with NDK r30, and Android ELF validation. Series ID
+`sha256:5869c7cabae89c8be67dc853f178e31c4a59d979593ab801d55f9b4ecde38087`;
+ICD SHA-256
+`33541f082e052912223c51776ed1194dcd50e54e50d4286f3ca845efa0092a96`, Build ID
+`5353721bbc991d710d147be6f94af6516fb914a3`. Its own device run is pending.
+Rebuild packages from this series; earlier manifests are not valid provenance.
 
 ### Scoped Android device validation of 003 and 007 (2026-11-25)
 
