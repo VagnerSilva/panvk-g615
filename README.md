@@ -138,6 +138,8 @@ depends on the app.
 Release packaging is separate from compilation and requires the provenance and runtime gates described in [`docs/RELEASE.md`](docs/RELEASE.md). The canonical Android release packager is `scripts/package-android-adpkg.sh`; the lightweight import package above is for development only.
 
 For Linux/glibc userspace on the G615 Android device, follow the [glibc build guide](docs/BUILD-POCO-X6-PRO.md#glibc-cross-build-on-wsl-or-linux) and use `scripts/build-glibc.sh --profile g615-v11-csf`. Android and glibc binaries are not interchangeable.
+The glibc ZIP from `scripts/package-glibc.sh` also places `meta.json` first,
+before the ICD manifest, for importers that read the first JSON as metadata.
 
 The Mesa commit is pinned in [`sources.lock`](sources.lock). Upstream compiler and GPU model infrastructure is preserved, but the driver and release scope remains G615 CSF v11 only.
 

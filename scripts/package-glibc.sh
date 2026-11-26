@@ -65,6 +65,6 @@ cp "$ROOT/dist/extension-gap.json" "$STAGE/extension-gap.json"
 set -- --profile "$PROFILE" --abi linux-aarch64-glibc --stage "$STAGE"
 [ "$PUBLISHED" = false ] || set -- "$@" --published
 python3 "$ROOT/scripts/generate-release-manifest.py" "$@"
-(cd "$STAGE" && zip -q "$OUT" libvulkan_panfrost.so panfrost_icd.aarch64.json meta.json MANIFEST.json series-manifest.json SHA256SUMS.txt SOURCE.json VALIDATION.json runtime-feature-matrix.json extension-gap.json)
+(cd "$STAGE" && zip -q "$OUT" meta.json libvulkan_panfrost.so panfrost_icd.aarch64.json MANIFEST.json series-manifest.json SHA256SUMS.txt SOURCE.json VALIDATION.json runtime-feature-matrix.json extension-gap.json)
 "$ROOT/scripts/validate-package.sh" "$OUT"
 echo "OK $OUT"
