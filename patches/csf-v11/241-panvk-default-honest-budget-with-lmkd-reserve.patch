@@ -1,0 +1,99 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH 241/241] panvk: default to honest memory budget with a system reserve
+
+Purpose: Include tracked private BOs in the default memory budget and leave
+ a configurable margin in the available system memory estimate.
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and csf-v11/229.
+Tested GPU: not executed for this patch (target: Mali-G615).
+Tested Kbase UAPI: not executed for this patch (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: csf-v11/223, 229, 235 and the preceding G615 profile series.
+Validation test: strict G615 series replay and memory-budget arithmetic checks;
+ Android/glibc builds and device A/B validation remain separate gates.
+
+Rationale: Report VkDeviceMemory plus the private BOs tracked by patch 223.
+Subtract PANVK_MEM_RESERVE_MB (512 MiB on Android, 256 MiB otherwise), then
+use 85% of the remainder as additional budget. These defaults are estimates,
+not measured LMKD watermarks or evidence of fewer kills. Kernel-managed
+tiler heap growth is not included in the private BO counters.
+
+PANVK_MEM_BUDGET=legacy restores the previous 90% calculation without the
+reserve or private BO accounting. The existing HEADROOM_MB opt-in is retained
+and can raise the budget above the reserve-based estimate. Clamp conversions
+and headroom to prevent overflow, and keep a non-zero budget for the heap.
+
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -1806,42 +1806,54 @@ panvk_GetPhysicalDeviceMemoryProperties2(
+          p->heapUsage[0] = used;
+
+-         /* Set the budget at 90% of available to avoid thrashing */
+-         p->heapBudget[0] = vk_physical_device_heap_budget(
+-            panvk_available_system_memory(physical_device), 0.9f, heap_size,
+-            used);
+-
+-         /* csf-v11 229, opt-in (default: the two lines above).
++         /* Private BO counters exclude kernel-managed tiler heap growth.
+           * PANVK_MEM_BUDGET=honest: heapUsage also counts the driver's
+-          * private BOs (tiler heap chunks are not visible), and the budget
+-          * is computed from that usage. PANVK_MEM_BUDGET_HEADROOM_MB=<n>:
+-          * the budget is at least usage + n MiB (capped at the heap), so it
+-          * never reads 100 % just because MemAvailable is near 0. */
++          * private BOs (default); legacy restores the previous calculation.
++          * PANVK_MEM_RESERVE_MB is subtracted before the 85% estimate.
++          * HEADROOM_MB is an opt-in floor that can override this estimate. */
+          static int honest = -1;
+          static int64_t headroom_mb = -1;
++         static int64_t reserve_mb = -1;
+          if (p_atomic_read(&honest) < 0) {
+             const char *m = os_get_option("PANVK_MEM_BUDGET");
++#ifdef __ANDROID__
++            const int64_t default_reserve = 512;
++#else
++            const int64_t default_reserve = 256;
++#endif
++            p_atomic_set(&reserve_mb,
++                         MAX2(debug_get_num_option(
++                                 "PANVK_MEM_RESERVE_MB", default_reserve), 0));
+             p_atomic_set(&headroom_mb,
+                          MAX2(debug_get_num_option(
+                                  "PANVK_MEM_BUDGET_HEADROOM_MB", 0), 0));
+-            p_atomic_set(&honest, m && !strcmp(m, "honest"));
++            p_atomic_set(&honest, !(m && !strcmp(m, "legacy")));
+          }
++
++         uint64_t avail_sys = panvk_available_system_memory(physical_device);
+          if (p_atomic_read(&honest)) {
++            const uint64_t reserve_bytes =
++               MIN2((uint64_t)p_atomic_read(&reserve_mb), UINT64_MAX >> 20) << 20;
++            avail_sys -= MIN2(avail_sys, reserve_bytes);
+             uint64_t priv = 0;
+             for (unsigned k = 0; k < PANVK_MEM_KIND_COUNT; k++)
+                priv += p_atomic_read_relaxed(&panvk_mem_stats.bytes[k]);
+             p->heapUsage[0] = used + priv;
+             p->heapBudget[0] = vk_physical_device_heap_budget(
+-               panvk_available_system_memory(physical_device), 0.9f,
++               avail_sys, 0.85f, heap_size, used + priv);
+-               heap_size, used + priv);
++         } else {
++            p->heapBudget[0] = vk_physical_device_heap_budget(
++               avail_sys, 0.9f, heap_size, used);
+          }
+          if (p_atomic_read(&headroom_mb) > 0) {
+-            const uint64_t floor =
+-               MIN2(heap_size, p->heapUsage[0] +
+-                                  (uint64_t)p_atomic_read(&headroom_mb) *
+-                                     1024 * 1024);
++            const uint64_t headroom =
++               MIN2((uint64_t)p_atomic_read(&headroom_mb), UINT64_MAX >> 20) << 20;
++            const uint64_t usage = MIN2(heap_size, p->heapUsage[0]);
++            const uint64_t floor = usage + MIN2(heap_size - usage, headroom);
+             p->heapBudget[0] = MAX2(p->heapBudget[0], floor);
+          }
++         p->heapBudget[0] =
++            MAX2(p->heapBudget[0], MIN2(heap_size, 1ull << 20));
+
+          /* From the Vulkan 1.3.278 spec:
+           *
+           *    "The heapBudget and heapUsage values must be zero for array

@@ -42,12 +42,45 @@ The remaining 38 `jm-v9`/`jm-v7` patches have also been retired. Their
 dependencies extracted into 235-240 and the evidence for dropping each
 legacy implementation. Other architecture families are not selected.
 
-The G615-only series contains 197 patches by default, including sync
-002-005 and 007. PanVK builds only v11 and checks the actual Kbase CSF context in
+The G615-only series contains 199 patches by default, including sync
+002-005, 007 and 008. PanVK builds only v11 and checks the actual Kbase CSF context in
 addition to the G615 product ID. The six replacement patches follow their
 late v11 prerequisites: Kbase/model APIs (235), varying architecture (236),
 EXEC/JIT and ION (237), build/discovery policy (238), XCB symbols (239), and
 the shared draw-chunk instance cap (240).
+
+Patch 241 enables private BO accounting in the default memory budget and
+subtracts a configurable reserve before using 85% of the remaining available
+system memory. `PANVK_MEM_RESERVE_MB` defaults to 512 MiB on Android and 256 MiB
+otherwise. `PANVK_MEM_BUDGET=legacy` restores the previous 90% estimate without
+the reserve or private BO accounting. `PANVK_MEM_BUDGET_HEADROOM_MB` remains
+opt-in and can override the reserve-based estimate. The counters do not include
+kernel-managed tiler heap growth; the reserve is not an LMKD configuration or
+a proven reduction in kills. Strict replay and arithmetic checks do not replace
+device validation.
+
+### Patch 241: user-reported approval (2026-11-26)
+
+The user approved keeping patch 241 in the default series after reporting this
+`2_PICO_CARGA` comparison. Values are in MB as reported, not converted to MiB.
+
+| Metric | Before (`legacy`) | Patch 241 (`honest`, 512 MiB reserve) | Change |
+|---|---:|---:|---:|
+| Peak MMAP | 2003 | 1550 | -453 (-22.6%) |
+| Peak NATIVE | 131 | 96 | -35 (-26.7%) |
+| Peak TOTAL PSS | 4218 | 3824 | -394 (-9.3%) |
+| Peak SWAP PSS | 381 | 493 | +112 |
+| Post-idle memory above baseline | -1 | 0 | Reported return to baseline |
+
+The user also reported IRQ 436 at approximately 343/s versus more than 15000/s
+before, with zero Vulkan failures or Tiler OOM in the observed run. The IRQ
+comparison does not establish an isolated effect of patch 241.
+
+Trade-off: lower reported resident-memory demand, but more swap. Additional
+paging can affect latency; no FPS or latency improvement was measured here.
+Raw logs, exact device/kernel identity and binary hashes were not supplied
+with this report, so these observations are user-reported evidence, not
+agent-executed validation or release qualification.
 
 `kbase-common/018` supersedes the unconditional physical backend build in
 `kbase-common/002`: `panfrost-kmds` now controls both compilation and
