@@ -127,7 +127,8 @@ jobs:
             libwayland-dev:arm64 wayland-protocols \
             libxcb1-dev:arm64 libxcb-randr0-dev:arm64 libxcb-dri3-dev:arm64 \
             libxcb-present-dev:arm64 libxcb-shm0-dev:arm64 libxcb-sync-dev:arm64 \
-            libxcb-xfixes0-dev:arm64 libx11-xcb-dev:arm64 libxshmfence-dev:arm64
+            libxcb-xfixes0-dev:arm64 libx11-xcb-dev:arm64 libxshmfence-dev:arm64 \
+            libxrandr-dev:arm64
       - name: Build Android Bionic ICD
         if: matrix.abi == 'android'
         run: |

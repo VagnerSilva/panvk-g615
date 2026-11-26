@@ -59,8 +59,10 @@ pinned source's wrap files.
 
 Android target libraries are built using the NDK prefix, not host pkg-config
 paths. The glibc job uses the existing Debian cross file with AArch64
-development libraries from Ubuntu ports and retains X11/Wayland WSI. Its
-glibc/library baseline is the runner's target sysroot, not a promise of
+development libraries from Ubuntu ports and retains X11/Wayland WSI. The
+X11 dependency set includes `libxrandr-dev:arm64` for Mesa's Xlib display
+lease support; `libxcb-randr0-dev:arm64` does not provide `xrandr.pc`.
+Its glibc/library baseline is the runner's target sysroot, not a promise of
 compatibility with every chroot on a G615 device.
 
 The uploaded `CI-BUILD.json` and checksums identify the output; inspect and

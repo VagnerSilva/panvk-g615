@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -40,6 +41,28 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("validate-release-candidate.py", commands)
         self.assertLess(commands.index("validate-release-candidate.py"), commands.index("gh release create"))
         self.assertNotIn("./scripts/build-", commands)
+
+    def test_glibc_installs_target_xrandr_for_x11_wsi(self):
+        steps = self.workflow("build.yml")["jobs"]["build"]["steps"]
+        step = next(step for step in steps
+                    if step.get("name") == "Prepare glibc AArch64 dependencies")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sudo = root / "sudo"
+            sudo.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$APT_LOG"\n')
+            sudo.chmod(0o755)
+            log = root / "apt.log"
+            result = subprocess.run(
+                ["bash", "-e", "-o", "pipefail", "-c", step["run"]],
+                cwd=root, env=dict(os.environ, PATH=f"{root}:{os.environ['PATH']}",
+                                   APT_LOG=str(log)),
+                text=True, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            packages = next(shlex.split(line)[3:] for line in log.read_text().splitlines()
+                            if line.startswith("apt-get install -y "))
+            self.assertIn("libxrandr-dev:arm64", packages)
+            self.assertNotIn("libxrandr-dev", packages)
 
     def test_native_spirv_tools_checks_installed_linker_api(self):
         steps = self.workflow("build.yml")["jobs"]["build"]["steps"]
