@@ -83,17 +83,26 @@ jobs:
           mkdir -p work
           git init work/ci-spirv-tools
           git -C work/ci-spirv-tools remote add origin https://github.com/KhronosGroup/SPIRV-Tools.git
-          git -C work/ci-spirv-tools fetch --depth 1 origin 04896c462d9f3f504c99a4698605b6524af813c1
+          git -C work/ci-spirv-tools fetch --depth 1 origin 4d2f0b40bfe290dea6c6904dafdf7fd8328ba346
           git -C work/ci-spirv-tools checkout --detach FETCH_HEAD
           git init work/ci-spirv-tools/external/spirv-headers
           git -C work/ci-spirv-tools/external/spirv-headers remote add origin https://github.com/KhronosGroup/SPIRV-Headers.git
-          git -C work/ci-spirv-tools/external/spirv-headers fetch --depth 1 origin 8b246ff75c6615ba4532fe4fde20f1be090c3764
+          git -C work/ci-spirv-tools/external/spirv-headers fetch --depth 1 origin 3f17b2af6784bfa2c5aa5dbb8e0e74a607dd8b3b
           git -C work/ci-spirv-tools/external/spirv-headers checkout --detach FETCH_HEAD
           cmake -S work/ci-spirv-tools -B build/ci-spirv-tools -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/work/ci-host-deps" \
             -DCMAKE_INSTALL_LIBDIR=lib -DSPIRV_SKIP_TESTS=ON -DSPIRV_SKIP_EXECUTABLES=ON
           cmake --build build/ci-spirv-tools --parallel "$PANVK_JOBS"
           cmake --install build/ci-spirv-tools
+          export PKG_CONFIG_PATH="$PWD/work/ci-host-deps/lib/pkgconfig"
+          SPIRV_CFLAGS="$(pkg-config --cflags SPIRV-Tools)"
+          c++ -x c++ -fsyntax-only $SPIRV_CFLAGS - <<'EOF'
+          #include <spirv-tools/linker.hpp>
+          int main() {
+            spvtools::LinkerOptions options;
+            options.SetAllowPtrTypeMismatch(true);
+          }
+          EOF
       - name: Prepare Android NDK
         if: matrix.abi == 'android'
         run: |

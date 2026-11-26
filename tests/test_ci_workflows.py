@@ -1,4 +1,7 @@
 from pathlib import Path
+import os
+import subprocess
+import tempfile
 import unittest
 
 import yaml
@@ -37,6 +40,46 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("validate-release-candidate.py", commands)
         self.assertLess(commands.index("validate-release-candidate.py"), commands.index("gh release create"))
         self.assertNotIn("./scripts/build-", commands)
+
+    def test_native_spirv_tools_checks_installed_linker_api(self):
+        steps = self.workflow("build.yml")["jobs"]["build"]["steps"]
+        command = next(step["run"] for step in steps
+                       if step.get("name") == "Build pinned native SPIRV-Tools")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            binaries = root / "bin"
+            binaries.mkdir()
+            stubs = {
+                "git": "exit 0",
+                "cmake": "exit 0",
+                "pkg-config": '[ "$PKG_CONFIG_STATUS" = 0 ] || exit "$PKG_CONFIG_STATUS"\n'
+                              'printf "%s\\n" "-I$PWD/work/ci-host-deps/include"',
+                "c++": 'cat > "$PROBE_SOURCE"; exit "$PROBE_STATUS"',
+            }
+            for name, body in stubs.items():
+                path = binaries / name
+                path.write_text("#!/bin/sh\nset -eu\n" + body + "\n")
+                path.chmod(0o755)
+            source = root / "probe.cpp"
+            environment = dict(os.environ, PATH=f"{binaries}:{os.environ['PATH']}",
+                               PANVK_JOBS="2", PROBE_SOURCE=str(source))
+            for status, pkg_status in (("0", "0"), ("47", "0"), ("0", "48")):
+                with self.subTest(compiler_status=status, pkg_config_status=pkg_status):
+                    source.unlink(missing_ok=True)
+                    result = subprocess.run(
+                        ["bash", "-e", "-o", "pipefail", "-c", command],
+                        cwd=root, env=dict(environment, PROBE_STATUS=status,
+                                           PKG_CONFIG_STATUS=pkg_status),
+                        text=True, capture_output=True,
+                    )
+                    expected_status = pkg_status if pkg_status != "0" else status
+                    self.assertEqual(result.returncode, int(expected_status), result.stderr)
+                    if pkg_status != "0":
+                        self.assertFalse(source.exists())
+                        continue
+                    self.assertTrue(source.exists(), "installed API was not checked")
+                    self.assertIn("#include <spirv-tools/linker.hpp>", source.read_text())
+                    self.assertIn("SetAllowPtrTypeMismatch(true)", source.read_text())
 
 
 if __name__ == "__main__":

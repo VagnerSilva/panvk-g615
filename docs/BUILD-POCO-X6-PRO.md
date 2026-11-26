@@ -48,10 +48,14 @@ parallel compiler jobs per ABI. It selects NDK `30.0.16248370` and Android API
 35 explicitly; this does not qualify API 29. Meson 1.9.1, Rust 1.85.1 and
 bindgen 0.71.1 are selected explicitly. LLVM/Clang 18 and a matching
 SPIRV-LLVM translator come from the runner's Ubuntu packages. Native
-SPIRV-Tools v2024.1 (`04896c462d9f3f504c99a4698605b6524af813c1`) and its
-matching headers (`8b246ff75c6615ba4532fe4fde20f1be090c3764`) are built in a
+SPIRV-Tools v2024.4 (`4d2f0b40bfe290dea6c6904dafdf7fd8328ba346`) and its
+matching headers (`3f17b2af6784bfa2c5aa5dbb8e0e74a607dd8b3b`) are built in a
 separate host prefix because Mesa's host code generators require SPIRV-Tools
-2024.1 or newer. Mesa Rust dependencies use the pinned source's wrap files.
+with `spvtools::LinkerOptions::SetAllowPtrTypeMismatch` when using LLVM 17 or
+newer (upstream SPIRV-Tools PR 5534). Version 2024.1 lacks that API despite
+satisfying Mesa's version floor. CI compiles a probe against the installed
+headers before building Mesa's host tools. Mesa Rust dependencies use the
+pinned source's wrap files.
 
 Android target libraries are built using the NDK prefix, not host pkg-config
 paths. The glibc job uses the existing Debian cross file with AArch64
