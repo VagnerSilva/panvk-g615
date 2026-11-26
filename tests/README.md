@@ -31,6 +31,23 @@
 - `dxvk/` — DXVK-only profile, Vulkan semantic, and DXVK Native validation.
   Kept separate from historical combined `dxvk-vkd3d/` evidence.
 
+## Render descriptor ring stress
+
+`dxvk/vulkan/submit_stress/submit_stress.c` accepts a final command-buffer mode:
+`one-time` (default), `replay` (no usage flags), or `simultaneous`
+(`VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT`). The latter exercises PanVK's
+render descriptor ring with draws. Each submit is still fence-waited before
+re-recording, so this is not a test of concurrent command-buffer reuse or of
+an evicted queue group's wakeup.
+
+For a bounded comparison with the same ICD and scene parameters, run the
+`replay` and `simultaneous` modes separately under the device's test procedure,
+for example `timeout 30 submit_stress <icd> 1000000 32 10 replay` and then the
+same command with `simultaneous`. The inner 10-second limit is checked after
+each submit; the outer timeout also bounds setup and fence waits. Compare
+actual completed render passes, not the requested maximum. IRQ counts include
+other GPU clients and are not an attribution to a specific signal.
+
 ## G615-only device filter (host)
 
 Run against a Mesa 27 source tree containing the Kbase physical-device path.
