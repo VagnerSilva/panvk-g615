@@ -1,19 +1,35 @@
-name: source-drift
+name: source-drift (pinned-series applicability)
 on:
   schedule: [{cron: '0 6 * * 1'}]
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   drift:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Check pinned Mesa vs upstream main + patch applicability
+      - name: Report upstream revision; validate patches only on pinned Mesa
         run: |
-          set -eu
+          set -euo pipefail
           PIN=$(python3 -c "import json;print(json.load(open('sources.lock'))['mesaCommit'])")
           HEAD=$(git ls-remote https://gitlab.freedesktop.org/mesa/mesa.git HEAD | cut -f1)
+          test -n "$HEAD"
           echo "pinned=$PIN upstream=$HEAD"
+          expected=$(python3 -c "import json;print(json.load(open('sources.lock'))['patchSeriesId'])")
+          test "$(python3 scripts/compute-patch-series-id.py --profile g615-v11-csf)" = "$expected"
           ./scripts/fetch-mesa.sh
-          ./scripts/apply-patches.sh --profile g615-v11-csf
+          mkdir -p dist
+          ./scripts/apply-patches.sh --profile g615-v11-csf --series-manifest dist/series-manifest.json
           PANVK_MESA_SOURCE=work/mesa python3 -m unittest discover -s tests -p 'test_g615_*.py'
-          echo "PATCHES-APPLY-CLEAN"
+          {
+            echo "Pinned G615 series: PASS ($PIN)"
+            echo "Observed upstream HEAD: $HEAD"
+            echo "Applicability on upstream HEAD: NOT EXECUTED"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pinned-g615-series
+          path: dist/series-manifest.json
+          if-no-files-found: error

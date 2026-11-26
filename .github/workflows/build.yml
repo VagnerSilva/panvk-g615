@@ -1,27 +1,156 @@
 name: build
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Verify sources.lock pinned
-        run: python3 -c "import json;d=json.load(open('sources.lock'));assert len(d['mesaCommit'])==40,d"
+      - name: Verify pinned source and patch inventory
+        run: |
+          python3 -c "import json,re; d=json.load(open('sources.lock')); assert re.fullmatch('[0-9a-f]{40}',d['mesaCommit']),d"
+          expected=$(python3 -c "import json; print(json.load(open('sources.lock'))['patchSeriesId'])")
+          test "$(python3 scripts/compute-patch-series-id.py --profile g615-v11-csf)" = "$expected"
+      - name: Install host test dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-yaml
       - name: Fetch exact Mesa
         run: ./scripts/fetch-mesa.sh
       - name: Verify patch applicability (g615-v11-csf)
         run: |
           mkdir -p dist
           ./scripts/apply-patches.sh --profile g615-v11-csf --series-manifest dist/series-manifest.json
-      - name: Verify G615-only policy and shared regressions
+      - name: Verify G615 policy, workflows and packaging regressions
         env:
           PANVK_MESA_SOURCE: work/mesa
-        run: python3 -m unittest discover -s tests -p 'test_g615_*.py'
+        run: |
+          python3 -m unittest discover -s tests -p 'test_g615_*.py'
+          python3 -m unittest discover -s tests -p 'test_ci_*.py'
+          python3 -m unittest discover -s tests -p 'test_build_glibc_cross.py'
+          python3 -m unittest discover -s tests -p 'test_package_*.py'
+          python3 tests/validate-package-selfcheck.py
+          git diff --check
       - name: Capture upstream matrix
         run: python3 scripts/capture-matrix.py --mesa work/mesa --out dist/matrix-g615-v11-csf
-      - name: Static validate later (device gates run on Poco)
-        run: echo "CI produces dev artifact only; hardware validation on Poco required for beta+"
       - uses: actions/upload-artifact@v4
         with:
-          name: matrix
+          name: matrix-g615-v11-csf
           path: dist/matrix-g615-v11-csf/
+          if-no-files-found: error
+
+  build:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [android, glibc]
+    env:
+      PANVK_JOBS: '2'
+      ANDROID_API: '35'
+      LIBCLANG_PATH: /usr/lib/llvm-18/lib
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bison flex cmake ninja-build pkg-config python3-venv \
+            llvm-18-dev clang-18 libclang-18-dev libclang-cpp18-dev libllvmspirvlib-18-dev \
+            libdrm-dev libelf-dev libexpat1-dev zlib1g-dev \
+            libxcb1-dev libxcb-randr0-dev libxcb-dri3-dev libxcb-present-dev \
+            libxcb-shm0-dev libxcb-sync-dev libxcb-xfixes0-dev libx11-xcb-dev libxshmfence-dev
+          python3 -m venv "$RUNNER_TEMP/panvk-python"
+          "$RUNNER_TEMP/panvk-python/bin/pip" install \
+            'meson==1.9.1' 'Mako==1.3.10' 'PyYAML==6.0.3' 'packaging==25.0'
+          echo "$RUNNER_TEMP/panvk-python/bin" >> "$GITHUB_PATH"
+          echo /usr/lib/llvm-18/bin >> "$GITHUB_PATH"
+      - name: Prepare Rust and bindgen
+        run: |
+          rustup toolchain install 1.85.1 --profile minimal
+          rustup default 1.85.1
+          rustup target add aarch64-linux-android aarch64-unknown-linux-gnu
+          cargo install bindgen-cli --version 0.71.1 --locked
+      - name: Build pinned native SPIRV-Tools
+        run: |
+          mkdir -p work
+          git init work/ci-spirv-tools
+          git -C work/ci-spirv-tools remote add origin https://github.com/KhronosGroup/SPIRV-Tools.git
+          git -C work/ci-spirv-tools fetch --depth 1 origin 04896c462d9f3f504c99a4698605b6524af813c1
+          git -C work/ci-spirv-tools checkout --detach FETCH_HEAD
+          git init work/ci-spirv-tools/external/spirv-headers
+          git -C work/ci-spirv-tools/external/spirv-headers remote add origin https://github.com/KhronosGroup/SPIRV-Headers.git
+          git -C work/ci-spirv-tools/external/spirv-headers fetch --depth 1 origin 8b246ff75c6615ba4532fe4fde20f1be090c3764
+          git -C work/ci-spirv-tools/external/spirv-headers checkout --detach FETCH_HEAD
+          cmake -S work/ci-spirv-tools -B build/ci-spirv-tools -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$PWD/work/ci-host-deps" \
+            -DCMAKE_INSTALL_LIBDIR=lib -DSPIRV_SKIP_TESTS=ON -DSPIRV_SKIP_EXECUTABLES=ON
+          cmake --build build/ci-spirv-tools --parallel "$PANVK_JOBS"
+          cmake --install build/ci-spirv-tools
+      - name: Prepare Android NDK
+        if: matrix.abi == 'android'
+        run: |
+          ./scripts/fetch-ndk.sh
+          echo "ANDROID_NDK_ROOT=$PWD/work/ndk/30.0.16248370" >> "$GITHUB_ENV"
+      - name: Prepare glibc AArch64 dependencies
+        if: matrix.abi == 'glibc'
+        run: |
+          sudo sed -i '/^Components:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+          sudo dpkg --add-architecture arm64
+          sudo tee /etc/apt/sources.list.d/panvk-arm64.sources > /dev/null <<'EOF'
+          Types: deb
+          URIs: http://ports.ubuntu.com/ubuntu-ports
+          Suites: noble noble-updates noble-security
+          Components: main universe
+          Architectures: arm64
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+            libdrm-dev:arm64 libelf-dev:arm64 libexpat1-dev:arm64 zlib1g-dev:arm64 \
+            libwayland-dev:arm64 wayland-protocols \
+            libxcb1-dev:arm64 libxcb-randr0-dev:arm64 libxcb-dri3-dev:arm64 \
+            libxcb-present-dev:arm64 libxcb-shm0-dev:arm64 libxcb-sync-dev:arm64 \
+            libxcb-xfixes0-dev:arm64 libx11-xcb-dev:arm64 libxshmfence-dev:arm64
+      - name: Build Android Bionic ICD
+        if: matrix.abi == 'android'
+        run: |
+          ./scripts/fetch-mesa.sh
+          mkdir -p dist/android-g615-v11-csf
+          ./scripts/apply-patches.sh --profile g615-v11-csf \
+            --series-manifest dist/android-g615-v11-csf/series-manifest.json
+          PKG_CONFIG_PATH="$PWD/work/ci-host-deps/lib/pkgconfig" ./scripts/bootstrap-host-tools.sh
+          HOST_TOOLS="$PWD/build/host-tools/bin" ./scripts/build-android.sh \
+            --profile g615-v11-csf --api "$ANDROID_API" --ndk "$ANDROID_NDK_ROOT"
+          ./scripts/validate-binary.sh --abi android dist/android-g615-v11-csf/libvulkan_panfrost.so
+          python3 scripts/record-ci-build.py --abi android --stage dist/android-g615-v11-csf
+      - name: Build glibc AArch64 ICD with X11 and Wayland
+        if: matrix.abi == 'glibc'
+        run: |
+          PKG_CONFIG_PATH="$PWD/work/ci-host-deps/lib/pkgconfig" ./scripts/build-glibc.sh \
+            --profile g615-v11-csf --jobs "$PANVK_JOBS" \
+            --cross-file "$PWD/meson/linux-aarch64-debian-cross.ini"
+          ./scripts/validate-binary.sh --abi glibc dist/glibc-g615-v11-csf/libvulkan_panfrost.so
+          python3 scripts/record-ci-build.py --abi glibc --stage dist/glibc-g615-v11-csf
+      - name: Upload development ICD and build identity
+        uses: actions/upload-artifact@v4
+        with:
+          name: g615-dev-${{ matrix.abi }}-${{ github.sha }}
+          path: dist/${{ matrix.abi }}-g615-v11-csf/
+          if-no-files-found: error
+      - name: Preserve build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g615-build-logs-${{ matrix.abi }}-${{ github.run_id }}
+          path: |
+            build/**/*.log
+            build/host-tools/meson-logs/
+          if-no-files-found: ignore

@@ -41,6 +41,28 @@ locally -> static validate -> loader-test APK -> bounded Vulkan tests ->
 save logs -> Samba S3 (Android gates pass) / NativeCode (glibc gates pass) ->
 release candidate only after full gate set.
 
+## GitHub Actions toolchain
+
+Development CI builds both ABIs on isolated Ubuntu 24.04 runners, with two
+parallel compiler jobs per ABI. It selects NDK `30.0.16248370` and Android API
+35 explicitly; this does not qualify API 29. Meson 1.9.1, Rust 1.85.1 and
+bindgen 0.71.1 are selected explicitly. LLVM/Clang 18 and a matching
+SPIRV-LLVM translator come from the runner's Ubuntu packages. Native
+SPIRV-Tools v2024.1 (`04896c462d9f3f504c99a4698605b6524af813c1`) and its
+matching headers (`8b246ff75c6615ba4532fe4fde20f1be090c3764`) are built in a
+separate host prefix because Mesa's host code generators require SPIRV-Tools
+2024.1 or newer. Mesa Rust dependencies use the pinned source's wrap files.
+
+Android target libraries are built using the NDK prefix, not host pkg-config
+paths. The glibc job uses the existing Debian cross file with AArch64
+development libraries from Ubuntu ports and retains X11/Wayland WSI. Its
+glibc/library baseline is the runner's target sysroot, not a promise of
+compatibility with every chroot on a G615 device.
+
+The uploaded `CI-BUILD.json` and checksums identify the output; inspect and
+test that exact ICD on the intended device. See [Release](RELEASE.md#github-actions)
+for the separate manual publication and hardware evidence requirements.
+
 ## glibc series identity
 
 The default glibc build retains `dist/glibc-<profile>/`, as required by
