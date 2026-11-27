@@ -140,6 +140,69 @@ def download_artifact(repository, artifact, path):
         )
 
 
+def package_drivers(stage, lock, tag, commit):
+    version = re.fullmatch(
+        r"(?:panvk-g615-v11-csf-)?v?([0-9]+\.[0-9]+\.[0-9]+)(?:-[A-Za-z0-9.-]+)?", tag
+    )
+    if version is None:
+        raise ValueError("driver packages require a versioned release tag, such as 1.0.0")
+    version = f"v{version[1]}-dev.{commit}"
+    lock_path = stage / "sources.lock"
+    lock_path.write_text(json.dumps(lock))
+    output = stage / "drivers"
+    subprocess.run([
+        str(ROOT / "scripts/package-launcher-zips.sh"),
+        "--so", str(stage / "android/libvulkan_panfrost.so"),
+        "--ci-android-stage", str(stage / "android"),
+        "--ci-glibc-stage", str(stage / "glibc"),
+        "--source-lock", str(lock_path), "--outdir", str(output), "--version", version,
+    ], check=True)
+    expected_names = set()
+    for abi in ("android", "glibc"):
+        identity = identity_for_pin((stage / abi / "libvulkan_panfrost.so").read_bytes(), lock)
+        stem = "Mesa-PanVK" if identity["style"] == "upstream" else "PanVK-Kbase"
+        if abi == "android":
+            stem += "-Android"
+        stem = f"{stem}-{version}-{identity['sha8']}"
+        if abi == "glibc":
+            expected_names.add(f"{stem}-EMULATOR.zip")
+        else:
+            expected_names.add(f"{stem}.adpkg.zip")
+            expected_names.update(f"{stem}-{launcher}.zip" for launcher in (
+                "adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub",
+            ))
+    packages = sorted(output.glob("*.zip"))
+    if {path.name for path in packages} != expected_names:
+        raise ValueError("packager did not generate all eight expected driver imports")
+    for path in packages:
+        abi = "glibc" if path.name.endswith("-EMULATOR.zip") else "android"
+        binary = (stage / abi / "libvulkan_panfrost.so").read_bytes()
+        with zipfile.ZipFile(path) as archive:
+            names = archive.namelist()
+            if not names or names[0] != "meta.json" or len(names) != len(set(names)) \
+                    or any("/" in name for name in names) or archive.testzip() is not None:
+                raise ValueError(f"invalid flat import layout: {path.name}")
+            meta = json.loads(archive.read("meta.json"))
+            record_bytes = (stage / abi / "CI-BUILD.json").read_bytes()
+            record = json.loads(record_bytes)
+            library = "libvulkan_freedreno.so" if path.name.endswith("-gamehub.zip") \
+                else "libvulkan_panfrost.so"
+            if meta.get("libraryName") != library or archive.read(library) != binary \
+                    or meta.get("abi") != record["abi"] or meta.get("releaseTier") != "dev" \
+                    or meta.get("packageVersion") != version.removeprefix("v"):
+                raise ValueError(f"incorrect driver metadata or ABI payload: {path.name}")
+            if archive.read("CI-BUILD.json") != record_bytes \
+                    or archive.read("series-manifest.json") != \
+                    (stage / abi / "series-manifest.json").read_bytes():
+                raise ValueError(f"package changed CI provenance: {path.name}")
+            if abi == "android" and meta.get("minApi") != record["androidApi"]:
+                raise ValueError(f"package does not advertise its built Android API: {path.name}")
+            checksum = f"{hashlib.sha256(binary).hexdigest()}  {library}\n"
+            if archive.read("SHA256SUMS.txt").decode() != checksum:
+                raise ValueError(f"import package checksum mismatch: {path.name}")
+    return packages
+
+
 def upload_assets(repository, tag):
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) or not tag:
         raise ValueError("repository and release tag are required")
@@ -164,29 +227,42 @@ def upload_assets(repository, tag):
             archive = stage / f"{artifact['name']}.zip"
             download_artifact(repository, artifact, archive)
             binary = validate_bundle(archive, abi, commit, run["id"], lock)
+            abi_stage = stage / abi
+            abi_stage.mkdir()
+            with zipfile.ZipFile(archive) as bundle:
+                for name in bundle.namelist():
+                    (abi_stage / name).write_bytes(bundle.read(name))
             raw = stage / f"libvulkan_panfrost-g615-v11-csf-dev-{abi}-aarch64-{commit}.so"
             raw.write_bytes(binary)
             subprocess.run(
                 [str(ROOT / "scripts/validate-binary.sh"), "--abi", abi, str(raw)], check=True
             )
-            assets.extend((archive, raw))
-        sums = stage / f"g615-dev-{commit}-SHA256SUMS.txt"
+            assets.append(raw)
+        assets.extend(package_drivers(stage, lock, tag, commit))
+        sums = stage / f"g615-dev-{commit}-drivers-SHA256SUMS.txt"
         sums.write_text("".join(
             f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n" for path in assets
         ))
         assets.append(sums)
         pages = api(f"{prefix}/releases/{release['id']}/assets?per_page=100", paginate=True)
-        existing = {asset["name"] for page in pages for asset in page}
-        conflicts = existing.intersection(path.name for path in assets)
-        if conflicts:
-            raise ValueError(f"refusing to overwrite existing assets: {', '.join(sorted(conflicts))}")
+        existing = {asset["name"]: asset for page in pages for asset in page}
+        missing = []
+        for path in assets:
+            if path.name not in existing:
+                missing.append(path)
+            elif existing[path.name].get("digest") != \
+                    "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest():
+                raise ValueError(f"refusing to overwrite existing asset: {path.name}")
         if api(f"{prefix}/commits/{quote(tag, safe='')}")["sha"] != commit:
             raise ValueError("release tag moved while preparing development assets")
+        if not missing:
+            print(f"All {len(assets)} verified development assets are already attached")
+            return
         subprocess.run(
-            ["gh", "release", "upload", tag, "--repo", repository, *map(str, assets)],
+            ["gh", "release", "upload", tag, "--repo", repository, *map(str, missing)],
             check=True,
         )
-        print(f"Attached {len(assets)} development assets from run {run['id']} ({commit})")
+        print(f"Attached {len(missing)} development assets from run {run['id']} ({commit})")
 
 
 def main():

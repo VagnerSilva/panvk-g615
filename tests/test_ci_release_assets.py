@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import call, patch
@@ -50,6 +51,7 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
             "profile": "g615-v11-csf", "panArch": 11, "frontend": "CSF",
             "abi": "android-aarch64-bionic", "projectCommit": self.commit,
             "githubRunId": "42", "releaseTier": "dev",
+            "androidApi": 35,
             "mesaCommit": self.lock["mesaCommit"], "patchSeriesId": self.lock["patchSeriesId"],
             "binarySha256": hashlib.sha256(self.binary).hexdigest(),
             "seriesManifestSha256": hashlib.sha256(series).hexdigest(),
@@ -162,6 +164,7 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
                 self.files = original
 
     def publish(self, existing=(), invalid_glibc=False, moved_tag=False):
+        real_run = subprocess.run
         artifacts = [
             {"id": number, "name": f"g615-dev-{abi}-{self.commit}", "expired": False}
             for number, abi in enumerate(("android", "glibc"), 1)
@@ -182,6 +185,9 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
             if "/contents/" in endpoint:
                 return {"content": base64.b64encode(json.dumps(self.lock).encode()).decode()}
             if "/releases/8/assets" in endpoint:
+                if isinstance(existing, dict):
+                    return [[{"name": name, "digest": digest}
+                             for name, digest in existing.items()]]
                 return [[{"name": name} for name in existing]]
             self.fail(f"unexpected API call: {endpoint}")
 
@@ -190,6 +196,7 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
             record = dict(self.record)
             if "glibc" in artifact["name"]:
                 record["abi"] = "linux-aarch64-glibc"
+                record["androidApi"] = None
                 if invalid_glibc:
                     record["githubRunId"] = "wrong"
                 files["panfrost_icd.aarch64.json"] = json.dumps({
@@ -203,6 +210,8 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
         self.uploads = []
 
         def command(arguments, **kwargs):
+            if arguments[0].endswith("package-launcher-zips.sh"):
+                return real_run(arguments, **kwargs, capture_output=True, text=True)
             if arguments[:3] == ["gh", "release", "upload"]:
                 self.assertNotIn("--clobber", arguments)
                 self.uploads.append({Path(path).name: Path(path).read_bytes()
@@ -218,11 +227,13 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
         self.publish()
         self.assertEqual(len(self.uploads), 1)
         assets = self.uploads[0]
-        self.assertEqual(len(assets), 5)
+        self.assertEqual(len(assets), 11)
         self.assertEqual(sum(name.endswith(".so") for name in assets), 2)
-        self.assertEqual(sum(name.endswith(".zip") for name in assets), 2)
+        self.assertEqual(sum(name.endswith(".zip") for name in assets), 8)
+        self.assertEqual(sum(name.endswith(".adpkg.zip") for name in assets), 1)
+        self.assertEqual(sum(name.endswith("-EMULATOR.zip") for name in assets), 1)
         self.assertTrue(all("dev" in name and self.commit in name for name in assets))
-        checksum_name = f"g615-dev-{self.commit}-SHA256SUMS.txt"
+        checksum_name = f"g615-dev-{self.commit}-drivers-SHA256SUMS.txt"
         checksums = dict((name, digest) for digest, name in (
             line.split("  ") for line in assets[checksum_name].decode().splitlines()
         ))
@@ -230,10 +241,29 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
         for name, digest in checksums.items():
             self.assertEqual(digest, hashlib.sha256(assets[name]).hexdigest())
 
+    def test_existing_identical_assets_are_preserved_and_missing_drivers_are_added(self):
+        self.publish()
+        assets = self.uploads[0]
+        digests = {name: "sha256:" + hashlib.sha256(content).hexdigest()
+                   for name, content in assets.items()}
+        self.publish(existing=digests)
+        self.assertEqual(self.uploads, [])
+        raw_assets = {name: digest for name, digest in digests.items() if name.endswith(".so")}
+        self.publish(existing=raw_assets)
+        self.assertEqual(len(self.uploads), 1)
+        self.assertEqual(len(self.uploads[0]), 9)
+        self.assertFalse(any(name.endswith(".so") for name in self.uploads[0]))
+        name = next(iter(digests))
+        with self.assertRaisesRegex(ValueError, "overwrite"):
+            self.publish(existing={name: "sha256:wrong"})
+        self.assertEqual(self.uploads, [])
+
     def test_no_upload_if_second_abi_fails_assets_exist_or_tag_moves(self):
         for options in (
             {"invalid_glibc": True},
-            {"existing": (f"g615-dev-android-{self.commit}.zip",)},
+            {"existing": (
+                f"libvulkan_panfrost-g615-v11-csf-dev-android-aarch64-{self.commit}.so",
+            )},
             {"moved_tag": True},
         ):
             with self.subTest(options=options), self.assertRaises(ValueError):
