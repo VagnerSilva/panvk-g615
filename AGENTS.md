@@ -114,6 +114,8 @@ delivery/application step; other approval and workspace-safety rules still apply
 - `.agents/`: specialized agent skills and their supporting documentation.
 - `.github/workflows/`: CI automation.
 - `work/`, `build/`, and `dist/`: local sources and dependencies, build directories, and artifacts, respectively. Do not commit them.
+- Project dependencies live in `work/`: the pinned Mesa tree (`work/mesa/`), `work/libdrm/`, the NDK-built Android dependency prefixes (`work/android-deps/`, `work/android-deps-x11/`), the Android NDK (`work/ndk/`) and the Kbase kernel sources (`work/mali_kbase/`). Look for dependencies there before fetching or installing them elsewhere, and keep new dependencies in `work/` as well.
+- `logs/`: the project's standard log-collection scripts that verify and validate data on the device via adb (for example `logs/audit_panvk_targets.sh` and `logs/check_panvk_pressure.sh`). Create new device collection and verification scripts here and reuse the existing ones before writing ad hoc adb commands.
 
 Consult the relevant skill in `.agents/skills/` before performing specialized work. Existing skills are authoritative for their documented procedures unless they conflict with this file or an approved architectural decision.
 
