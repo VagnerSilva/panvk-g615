@@ -199,10 +199,30 @@ Both non-expired `g615-dev-android-<commit>` and `g615-dev-glibc-<commit>` artif
 must be available.
 
 The workflow verifies the binary hashes, Build IDs, build records, ABI, pinned
-Mesa identity and ELF gates before attaching either ABI. Assets are the two
-original CI ZIPs, two standalone development `.so` files and a development
-`SHA256SUMS.txt` covering all four files. Existing assets are never overwritten;
-release titles, notes and pre-release status are not changed.
+Mesa identity and ELF gates before attaching either ABI. It then uses
+`package-launcher-zips.sh` in CI-development mode to generate eight flat import
+packages: Android `.adpkg.zip`, glibc `-EMULATOR.zip`, and the six launcher ZIPs
+(adrenotools, winlator, bannerlator, cmod, ludashi and gamehub). `meta.json` is
+the first entry at the ZIP root. GameHub receives the Android binary under its
+required `libvulkan_freedreno.so` name; the glibc package carries the actual glibc
+binary and adjacent-library ICD, never an Android payload renamed as glibc.
+Android packages advertise the API recorded in the CI build, not historical
+API 28/29 launcher defaults.
+
+Package versions are `<tag-version>-dev.<project-commit>`, independent of the
+Mesa driver version stored in `driverVersion`. Each package preserves the
+original `CI-BUILD.json`, ordered series manifest and truthful CI gate evidence.
+These import packages are not canonical homologated release packages and do
+not bypass the manual release collector or its hardware gates.
+
+Assets are these eight ZIPs, the two standalone development `.so` files, and
+`g615-dev-<commit>-drivers-SHA256SUMS.txt` covering all ten driver files.
+Raw `g615-dev-<abi>-<commit>.zip` CI artifacts are no longer attached as driver
+imports. Existing older debug assets are left in place. Assets with identical
+GitHub SHA-256 digests are preserved and only missing files are uploaded, so
+the manual trigger can add import packages to an existing release. Conflicting
+or unknown digests fail explicitly; files are never overwritten. Release
+titles, notes and pre-release status are not changed.
 
 If a matching build is queued or running, the workflow polls every 30 seconds
 for up to 90 minutes and attaches the assets once that build succeeds. The job
