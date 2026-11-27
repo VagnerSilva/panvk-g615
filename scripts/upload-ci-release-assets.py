@@ -140,13 +140,17 @@ def download_artifact(repository, artifact, path):
         )
 
 
-def package_drivers(stage, lock, tag, commit):
+def development_version(tag):
     version = re.fullmatch(
         r"(?:panvk-g615-v11-csf-)?v?([0-9]+\.[0-9]+\.[0-9]+)(?:-[A-Za-z0-9.-]+)?", tag
     )
     if version is None:
         raise ValueError("driver packages require a versioned release tag, such as 1.0.0")
-    version = f"v{version[1]}-dev.{commit}"
+    return f"v{version[1]}-dev"
+
+
+def package_drivers(stage, lock, tag):
+    version = development_version(tag)
     lock_path = stage / "sources.lock"
     lock_path.write_text(json.dumps(lock))
     output = stage / "drivers"
@@ -157,20 +161,11 @@ def package_drivers(stage, lock, tag, commit):
         "--ci-glibc-stage", str(stage / "glibc"),
         "--source-lock", str(lock_path), "--outdir", str(output), "--version", version,
     ], check=True)
-    expected_names = set()
-    for abi in ("android", "glibc"):
-        identity = identity_for_pin((stage / abi / "libvulkan_panfrost.so").read_bytes(), lock)
-        stem = "Mesa-PanVK" if identity["style"] == "upstream" else "PanVK-Kbase"
-        if abi == "android":
-            stem += "-Android"
-        stem = f"{stem}-{version}-{identity['sha8']}"
-        if abi == "glibc":
-            expected_names.add(f"{stem}-EMULATOR.zip")
-        else:
-            expected_names.add(f"{stem}.adpkg.zip")
-            expected_names.update(f"{stem}-{launcher}.zip" for launcher in (
-                "adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub",
-            ))
+    stem = f"Pankv-G615-{version.removesuffix('-dev')}"
+    expected_names = {f"{stem}.adpkg.zip", f"{stem}-EMULATOR.zip"}
+    expected_names.update(f"{stem}-{launcher}.zip" for launcher in (
+        "adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub",
+    ))
     packages = sorted(output.glob("*.zip"))
     if {path.name for path in packages} != expected_names:
         raise ValueError("packager did not generate all eight expected driver imports")
@@ -206,6 +201,7 @@ def package_drivers(stage, lock, tag, commit):
 def upload_assets(repository, tag):
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) or not tag:
         raise ValueError("repository and release tag are required")
+    version = development_version(tag).removesuffix("-dev")
     prefix = f"repos/{repository}"
     release = api(f"{prefix}/releases/tags/{quote(tag, safe='')}")
     if release.get("draft") is not False:
@@ -232,14 +228,14 @@ def upload_assets(repository, tag):
             with zipfile.ZipFile(archive) as bundle:
                 for name in bundle.namelist():
                     (abi_stage / name).write_bytes(bundle.read(name))
-            raw = stage / f"libvulkan_panfrost-g615-v11-csf-dev-{abi}-aarch64-{commit}.so"
+            raw = stage / f"libvulkan_panfrost-{version}-{abi}-aarch64.so"
             raw.write_bytes(binary)
             subprocess.run(
                 [str(ROOT / "scripts/validate-binary.sh"), "--abi", abi, str(raw)], check=True
             )
             assets.append(raw)
-        assets.extend(package_drivers(stage, lock, tag, commit))
-        sums = stage / f"g615-dev-{commit}-drivers-SHA256SUMS.txt"
+        assets.extend(package_drivers(stage, lock, tag))
+        sums = stage / f"g615-{version}-drivers-SHA256SUMS.txt"
         sums.write_text("".join(
             f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n" for path in assets
         ))

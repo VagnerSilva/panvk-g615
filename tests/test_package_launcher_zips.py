@@ -49,13 +49,19 @@ class PackageLauncherZipsTest(unittest.TestCase):
                 "--ci-android-stage", str(stages["android"]),
                 "--ci-glibc-stage", str(stages["glibc"]),
                 "--source-lock", str(ROOT / "sources.lock"), "--outdir", str(root / "output"),
-                "--version", "v1.0.0-dev." + "a" * 40,
+                "--version", "v1.0.0-dev",
             ]
             subprocess.run(command, check=True, capture_output=True, text=True)
             archives = list((root / "output").glob("*.zip"))
             self.assertEqual(len(archives), 8)
             self.assertEqual(sum(p.name.endswith(".adpkg.zip") for p in archives), 1)
             self.assertEqual(sum(p.name.endswith("-EMULATOR.zip") for p in archives), 1)
+            stem = "Pankv-G615-v1.0.0"
+            self.assertEqual({p.name for p in archives}, {
+                f"{stem}-{launcher}.zip" for launcher in (
+                    "adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub"
+                )
+            } | {f"{stem}.adpkg.zip", "Pankv-G615-v1.0.0-EMULATOR.zip"})
             for path in archives:
                 abi = "glibc" if path.name.endswith("-EMULATOR.zip") else "android"
                 with zipfile.ZipFile(path) as archive:
@@ -66,6 +72,7 @@ class PackageLauncherZipsTest(unittest.TestCase):
                         else "libvulkan_panfrost.so"
                     self.assertEqual(meta["libraryName"], library)
                     self.assertEqual(meta["driverVersion"], driver_info)
+                    self.assertEqual(meta["packageVersion"], "1.0.0-dev")
                     self.assertEqual(meta["abi"], records[abi]["abi"])
                     self.assertEqual(archive.read(library), payloads[abi])
                     self.assertEqual(json.loads(archive.read("CI-BUILD.json")), records[abi])
@@ -102,7 +109,7 @@ class PackageLauncherZipsTest(unittest.TestCase):
                 text=True,
             )
             archives = list(out.iterdir())
-            self.assertEqual([p.name for p in archives], ["Mesa-PanVK-Android-v0.0.0-dev-13baeb70.adpkg.zip"])
+            self.assertEqual([p.name for p in archives], ["Pankv-G615-v0.0.0.adpkg.zip"])
             with zipfile.ZipFile(archives[0]) as package:
                 self.assertEqual(set(package.namelist()), {
                     "libvulkan_panfrost.so", "meta.json", "SHA256SUMS.txt", "VALIDATION.json"
@@ -132,7 +139,7 @@ class PackageLauncherZipsTest(unittest.TestCase):
             subprocess.run([str(SCRIPT), "--so", str(so), "--outdir", str(out)],
                            check=True, capture_output=True, text=True)
             names = {p.name for p in out.iterdir()}
-            stem = "Mesa-PanVK-Android-v0.0.0-dev-13baeb70"
+            stem = "Pankv-G615-v0.0.0"
             self.assertEqual(names, {f"{stem}-{name}.zip" for name in (
                 "adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub"
             )} | {f"{stem}.adpkg.zip"})

@@ -232,8 +232,17 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
         self.assertEqual(sum(name.endswith(".zip") for name in assets), 8)
         self.assertEqual(sum(name.endswith(".adpkg.zip") for name in assets), 1)
         self.assertEqual(sum(name.endswith("-EMULATOR.zip") for name in assets), 1)
-        self.assertTrue(all("dev" in name and self.commit in name for name in assets))
-        checksum_name = f"g615-dev-{self.commit}-drivers-SHA256SUMS.txt"
+        stem = "Pankv-G615-v27.0.0"
+        checksum_name = "g615-v27.0.0-drivers-SHA256SUMS.txt"
+        self.assertEqual(set(assets), {
+            f"{stem}-{launcher}.zip" for launcher in (
+                "adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub"
+            )
+        } | {
+            f"{stem}.adpkg.zip", "Pankv-G615-v27.0.0-EMULATOR.zip",
+            "libvulkan_panfrost-v27.0.0-android-aarch64.so",
+            "libvulkan_panfrost-v27.0.0-glibc-aarch64.so", checksum_name,
+        })
         checksums = dict((name, digest) for digest, name in (
             line.split("  ") for line in assets[checksum_name].decode().splitlines()
         ))
@@ -262,7 +271,7 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
         for options in (
             {"invalid_glibc": True},
             {"existing": (
-                f"libvulkan_panfrost-g615-v11-csf-dev-android-aarch64-{self.commit}.so",
+                "libvulkan_panfrost-v27.0.0-android-aarch64.so",
             )},
             {"moved_tag": True},
         ):
