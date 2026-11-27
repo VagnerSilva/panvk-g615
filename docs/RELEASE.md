@@ -180,6 +180,38 @@ release or publish all files in the downloaded artifact. Package gates remain
 mandatory for beta/rc/stable. Provenance and passing recorded gates are not
 Vulkan conformance or proof of unrecorded game compatibility.
 
+### Automatic development assets on release publication
+
+The separate `release-assets.yml` workflow attaches CI development assets when
+you click **Publish release**, for both regular releases and pre-releases.
+This is not promotion or homologation: every attached filename includes `dev`
+and the complete source commit, and the unchanged `CI-BUILD.json` records retain
+their development tier and actual gate results. Qualified packages still use
+the manual `release` workflow and all its existing gates.
+
+Merge the workflow and its helper into the repository's default branch before
+publishing a release. For tags that predate this workflow, use the manual trigger
+below. The helper runs from the default branch so manual attachment also works
+with older tags. It resolves the release tag to its exact commit and requires
+a successful `build.yml` push/manual run for that commit, in the same repository.
+It never substitutes the latest branch build or a PR run, and does not rebuild.
+Both non-expired `g615-dev-android-<commit>` and `g615-dev-glibc-<commit>` artifacts
+must be available.
+
+The workflow verifies the binary hashes, Build IDs, build records, ABI, pinned
+Mesa identity and ELF gates before attaching either ABI. Assets are the two
+original CI ZIPs, two standalone development `.so` files and a development
+`SHA256SUMS.txt` covering all four files. Existing assets are never overwritten;
+release titles, notes and pre-release status are not changed.
+
+If the build is unfinished, artifacts have expired, or validation fails, the
+workflow fails explicitly without starting the upload. Finish a build of the
+same commit and use **Actions -> release-assets -> Run workflow**, supplying the
+published tag, to retry. Partial upload failures are reported by GitHub CLI;
+existing conflicting assets require explicit human resolution before retrying.
+Releases created by another workflow using `GITHUB_TOKEN` do not trigger this
+event automatically; use the manual retry for their optional dev attachments.
+
 `source-drift.yml` reports the upstream revision but validates applicability
 only on the pinned Mesa commit. Testing patches against upstream HEAD is
 `NOT EXECUTED`; it never updates the pin automatically.
