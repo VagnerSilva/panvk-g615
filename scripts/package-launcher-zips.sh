@@ -1,10 +1,8 @@
 #!/bin/sh
 # package-launcher-zips.sh — build Android launcher driver zips and a development adpkg
 # (adrenotools, winlator, bannerlator, cmod, ludashi, gamehub). Layouts reproduce the RC4 zips.
-# Names follow the driverInfo the .so reports (scripts/driver_identity.py): builds that report it like upstream
-# Mesa ("Mesa 26.3.0-devel (git-6a5d4e2756)") get meta name "Mesa-PanVK-26.3.0-devel-6a5d4e27", that driverInfo
-# as driverVersion and Mesa-PanVK-Android-<version>-<git sha8>-<launcher>.zip; older "PanVK-kbase <release>"
-# builds keep the RC4 names (PanVK-kbase-<label>, PanVK-Kbase-Android-<version>-<mesa8>-<launcher>.zip).
+# Metadata follows driverInfo (scripts/driver_identity.py); ZIP filenames use
+# Pankv-G615-<version>-<launcher>.zip, without the development suffix or commit hashes.
 # Usage: ./scripts/package-launcher-zips.sh --so path/libvulkan_panfrost.so [--version v0.1.0-rc4]
 #        [--label RC4] [--tag g615-v11-csf] [--mesa-sha 5a07217f (or 10+ chars to set the driverVersion git id)] [--outdir dist] [--only adpkg] [--dev-name NAME]
 # CI imports: --source-lock FILE --ci-android-stage DIR --ci-glibc-stage DIR
@@ -116,13 +114,12 @@ if upstream:
     drvver = ident["driverInfo"]
     title = f"{ident['displayName']} (git-{ident['gitSha']})"
     base = f"{title}: Mali-G615 CSF v11 Kbase Vulkan ICD, package {pkgver}."
-    zipstem = f"Mesa-PanVK-Android-{ver}-{ident['sha8']}"
 else:
     name = f"PanVK-kbase-{label}"
     drvver = ident["driverInfo"]
     title = f"PanVK-kbase {label}"
     base = f"PanVK (Mesa) Mali-G615 CSF v11 Kbase Vulkan ICD, {label} build."
-    zipstem = f"PanVK-Kbase-Android-{ver}-{mesa8}"
+zipstem = f"Pankv-G615-{ver.removesuffix('-dev')}"
 if dev_name:
     name = dev_name
 check = drvver if upstream or android_record else f"PanVK-kbase {label}"
@@ -198,8 +195,7 @@ Check: wine log / logcat shows driverInfo "{check}"; .so sha256 {sha}
 """).encode()
     out = outdir / (f"{zipstem}.adpkg.zip" if key == "adpkg" else f"{zipstem}-{key}.zip")
     if is_glibc:
-        stem = "Mesa-PanVK" if glibc_ident["style"] == "upstream" else "PanVK-Kbase"
-        out = outdir / f"{stem}-{ver}-{glibc_ident['sha8']}-EMULATOR.zip"
+        out = outdir / f"{zipstem}-EMULATOR.zip"
     if out.exists(): out.unlink()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for n in files:

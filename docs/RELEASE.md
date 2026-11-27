@@ -184,8 +184,8 @@ Vulkan conformance or proof of unrecorded game compatibility.
 
 The separate `release-assets.yml` workflow attaches CI development assets when
 you click **Publish release**, for both regular releases and pre-releases.
-This is not promotion or homologation: every attached filename includes `dev`
-and the complete source commit, and the unchanged `CI-BUILD.json` records retain
+This is not promotion or homologation: filenames use the release version,
+without `dev` or commit hashes. The unchanged `CI-BUILD.json` records retain
 their development tier and actual gate results. Qualified packages still use
 the manual `release` workflow and all its existing gates.
 
@@ -209,14 +209,19 @@ binary and adjacent-library ICD, never an Android payload renamed as glibc.
 Android packages advertise the API recorded in the CI build, not historical
 API 28/29 launcher defaults.
 
-Package versions are `<tag-version>-dev.<project-commit>`, independent of the
-Mesa driver version stored in `driverVersion`. Each package preserves the
+Package versions are `<tag-version>-dev`, independent of the
+Mesa driver version stored in `driverVersion`. ZIP filenames use the
+`Pankv-G615` prefix and release version, without `dev`, project or Mesa
+commit suffixes (for example, `Pankv-G615-v1.0.0-winlator.zip` and
+`Pankv-G615-v1.0.0-EMULATOR.zip`), regardless of the binary's identity style.
+Each package preserves the
 original `CI-BUILD.json`, ordered series manifest and truthful CI gate evidence.
 These import packages are not canonical homologated release packages and do
 not bypass the manual release collector or its hardware gates.
 
-Assets are these eight ZIPs, the two standalone development `.so` files, and
-`g615-dev-<commit>-drivers-SHA256SUMS.txt` covering all ten driver files.
+Assets are these eight ZIPs, the two standalone development
+`libvulkan_panfrost-v<tag-version>-<abi>-aarch64.so` files, and
+`g615-v<tag-version>-drivers-SHA256SUMS.txt` covering all ten driver files.
 Raw `g615-dev-<abi>-<commit>.zip` CI artifacts are no longer attached as driver
 imports. Existing older debug assets are left in place. Assets with identical
 GitHub SHA-256 digests are preserved and only missing files are uploaded, so
