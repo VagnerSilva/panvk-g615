@@ -204,10 +204,13 @@ original CI ZIPs, two standalone development `.so` files and a development
 `SHA256SUMS.txt` covering all four files. Existing assets are never overwritten;
 release titles, notes and pre-release status are not changed.
 
-If the build is unfinished, artifacts have expired, or validation fails, the
-workflow fails explicitly without starting the upload. Finish a build of the
-same commit and use **Actions -> release-assets -> Run workflow**, supplying the
-published tag, to retry. Partial upload failures are reported by GitHub CLI;
+If a matching build is queued or running, the workflow polls every 30 seconds
+for up to 90 minutes and attaches the assets once that build succeeds. The job
+allows 95 minutes to include validation and upload. Missing or failed builds,
+expired artifacts, a wait timeout or validation errors fail explicitly without
+starting the upload. Finish a build of the same commit and use
+**Actions -> release-assets -> Run workflow**, supplying the published tag,
+to retry an already failed attempt. Partial upload failures are reported by GitHub CLI;
 existing conflicting assets require explicit human resolution before retrying.
 Releases created by another workflow using `GITHUB_TOKEN` do not trigger this
 event automatically; use the manual retry for their optional dev attachments.

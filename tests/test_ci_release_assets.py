@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 import zipfile
 
 
@@ -89,6 +89,40 @@ class DevelopmentReleaseAssetsTests(unittest.TestCase):
         for invalid in (artifacts[:1], [artifacts[0], {**artifacts[1], "expired": True}]):
             with self.subTest(artifacts=invalid), self.assertRaises(ValueError):
                 self.module.select_artifacts(invalid, self.commit)
+
+    def test_waits_for_same_commit_build_then_returns_success(self):
+        queued = {**self.run, "status": "queued", "conclusion": None}
+        running = {**self.run, "status": "in_progress", "conclusion": None}
+        pages = [[{"workflow_runs": [run]}] for run in (queued, running, self.run)]
+        with patch.object(self.module, "api", side_effect=pages) as api, \
+                patch.object(self.module.time, "sleep") as sleep, \
+                patch.object(self.module.time, "monotonic", side_effect=[0, 0, 30]):
+            result = self.module.wait_for_run("owner/project", self.commit)
+        self.assertEqual(result, self.run)
+        self.assertEqual(sleep.call_args_list, [call(30), call(30)])
+        self.assertTrue(all("status=success" not in call.args[0] for call in api.call_args_list))
+
+    def test_wait_fails_promptly_for_failed_missing_or_unrelated_build(self):
+        for runs in (
+            [], [{**self.run, "conclusion": "failure"}],
+            [{**self.run, "status": "in_progress", "event": "pull_request"}],
+            [{**self.run, "status": "queued", "head_sha": "b" * 40}],
+        ):
+            with self.subTest(runs=runs), \
+                    patch.object(self.module, "api", return_value=[{"workflow_runs": runs}]), \
+                    patch.object(self.module.time, "sleep") as sleep:
+                with self.assertRaisesRegex(ValueError, "successful"):
+                    self.module.wait_for_run("owner/project", self.commit)
+                sleep.assert_not_called()
+
+    def test_wait_timeout_is_bounded_without_an_extra_sleep(self):
+        running = {**self.run, "status": "in_progress", "conclusion": None}
+        with patch.object(self.module, "api", return_value=[{"workflow_runs": [running]}]), \
+                patch.object(self.module.time, "monotonic", side_effect=[0, 5399, 5400]), \
+                patch.object(self.module.time, "sleep") as sleep:
+            with self.assertRaisesRegex(ValueError, "timed out"):
+                self.module.wait_for_run("owner/project", self.commit)
+        sleep.assert_called_once_with(1)
 
     def test_valid_bundle_keeps_binary_bytes_and_rejects_wrong_provenance(self):
         with patch.object(self.module, "binary_build_id", return_value="1234"):
