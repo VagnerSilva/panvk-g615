@@ -11,6 +11,7 @@ from urllib.parse import quote
 import zipfile
 
 from driver_identity import identity_for_pin
+from build_provenance import validate_source_run
 
 
 LAUNCHERS = ("adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub")
@@ -26,17 +27,6 @@ def release_tag(tag):
         raise ValueError("only versioned panvk-g615-v11-csf-v tags are supported")
     tier = match[2] or "stable"
     return {"tag": tag, "version": match[1], "tier": tier, "prerelease": tier != "stable"}
-
-
-def validate_source_run(run, repository, commit):
-    if (run.get("status"), run.get("conclusion")) != ("completed", "success"):
-        raise ValueError("source run must have completed successfully")
-    if run.get("head_sha") != commit:
-        raise ValueError("source run commit does not match the release tag")
-    if run.get("event") not in ("push", "workflow_dispatch"):
-        raise ValueError("source run must be a push or manual run, not a PR")
-    if (run.get("head_repository") or {}).get("full_name") != repository:
-        raise ValueError("source run must belong to this repository, not a fork")
 
 
 def validate_canonical_package(root, package, abi, raw):

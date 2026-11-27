@@ -1,0 +1,31 @@
+name: release-assets
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing published release tag to attach same-commit CI dev assets
+        required: true
+        type: string
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: release-assets-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Attach same-commit development ICDs, bundles and checksums
+        run: |
+          python3 scripts/upload-ci-release-assets.py \
+            --repository "$GITHUB_REPOSITORY" --tag "$TAG"

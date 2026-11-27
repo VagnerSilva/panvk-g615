@@ -42,6 +42,19 @@ class WorkflowTests(unittest.TestCase):
         self.assertLess(commands.index("validate-release-candidate.py"), commands.index("gh release create"))
         self.assertNotIn("./scripts/build-", commands)
 
+    def test_release_assets_attach_dev_builds_on_publish_without_rebuilding(self):
+        workflow = self.workflow("release-assets.yml")
+        self.assertEqual(workflow["on"]["release"]["types"], ["published"])
+        self.assertIn("workflow_dispatch", workflow["on"])
+        job = workflow["jobs"]["assets"]
+        self.assertEqual(job["steps"][0]["with"]["ref"],
+                         "${{ github.event.repository.default_branch }}")
+        commands = "\n".join(step.get("run", "") for step in job["steps"])
+        self.assertIn("upload-ci-release-assets.py", commands)
+        self.assertNotIn("./scripts/build-", commands)
+        self.assertEqual(workflow["permissions"]["contents"], "write")
+        self.assertEqual(workflow["permissions"]["actions"], "read")
+
     def test_glibc_installs_target_xrandr_for_x11_wsi(self):
         steps = self.workflow("build.yml")["jobs"]["build"]["steps"]
         step = next(step for step in steps

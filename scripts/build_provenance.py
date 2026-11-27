@@ -10,6 +10,17 @@ from pathlib import Path
 PASS_GATE_STATUSES = ("pass", "passed", "ok", "true")
 
 
+def validate_source_run(run, repository, commit):
+    if (run.get("status"), run.get("conclusion")) != ("completed", "success"):
+        raise ValueError("source run must have completed successfully")
+    if run.get("head_sha") != commit:
+        raise ValueError("source run commit does not match the release tag")
+    if run.get("event") not in ("push", "workflow_dispatch"):
+        raise ValueError("source run must be a push or manual run, not a PR")
+    if (run.get("head_repository") or {}).get("full_name") != repository:
+        raise ValueError("source run must belong to this repository, not a fork")
+
+
 def gate_status(evidence):
     if isinstance(evidence, dict):
         evidence = evidence.get("result") or evidence.get("status") or evidence.get("state") or "untested"
