@@ -9,6 +9,7 @@ import re
 import stat
 import subprocess
 import tempfile
+import time
 from urllib.parse import quote
 import zipfile
 
@@ -17,6 +18,7 @@ from driver_identity import identity_for_pin
 
 
 ROOT = Path(__file__).resolve().parents[1]
+BUILD_WAIT_SECONDS = 90 * 60
 
 
 def api(endpoint, paginate=False):
@@ -26,13 +28,19 @@ def api(endpoint, paginate=False):
     return json.loads(subprocess.check_output(command, text=True))
 
 
+def matches_source(run, repository, commit):
+    return (
+        run.get("head_sha") == commit
+        and run.get("event") in ("push", "workflow_dispatch")
+        and (run.get("head_repository") or {}).get("full_name") == repository
+    )
+
+
 def select_run(runs, repository, commit):
     for run in runs:
         if (
             (run.get("status"), run.get("conclusion")) == ("completed", "success")
-            and run.get("head_sha") == commit
-            and run.get("event") in ("push", "workflow_dispatch")
-            and (run.get("head_repository") or {}).get("full_name") == repository
+            and matches_source(run, repository, commit)
         ):
             validate_source_run(run, repository, commit)
             return run
@@ -40,6 +48,34 @@ def select_run(runs, repository, commit):
         f"no successful push/manual build for tag commit {commit}; "
         "finish the build, then rerun release-assets"
     )
+
+
+def wait_for_run(repository, commit):
+    deadline = time.monotonic() + BUILD_WAIT_SECONDS
+    while True:
+        pages = api(
+            f"repos/{repository}/actions/workflows/build.yml/runs?head_sha={commit}&per_page=100",
+            paginate=True,
+        )
+        runs = [
+            run for page in pages for run in page["workflow_runs"]
+            if matches_source(run, repository, commit)
+        ]
+        if any((run.get("status"), run.get("conclusion")) == ("completed", "success")
+               for run in runs):
+            return select_run(runs, repository, commit)
+        active = [
+            run for run in runs
+            if run.get("status") in ("queued", "in_progress", "waiting", "pending", "requested")
+        ]
+        if not active:
+            return select_run(runs, repository, commit)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError(f"timed out waiting for build of tag commit {commit}")
+        ids = ", ".join(str(run["id"]) for run in active)
+        print(f"Waiting for build of {commit}: active runs {ids}", flush=True)
+        time.sleep(min(30, remaining))
 
 
 def select_artifacts(artifacts, commit):
@@ -114,13 +150,7 @@ def upload_assets(repository, tag):
     commit = api(f"{prefix}/commits/{quote(tag, safe='')}")["sha"]
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("release tag did not resolve to a Git commit")
-    pages = api(
-        f"{prefix}/actions/workflows/build.yml/runs?head_sha={commit}&status=success&per_page=100",
-        paginate=True,
-    )
-    run = select_run(
-        [run for page in pages for run in page["workflow_runs"]], repository, commit
-    )
+    run = wait_for_run(repository, commit)
     pages = api(f"{prefix}/actions/runs/{run['id']}/artifacts?per_page=100", paginate=True)
     artifacts = select_artifacts(
         [artifact for page in pages for artifact in page["artifacts"]], commit

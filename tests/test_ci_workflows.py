@@ -47,6 +47,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(workflow["on"]["release"]["types"], ["published"])
         self.assertIn("workflow_dispatch", workflow["on"])
         job = workflow["jobs"]["assets"]
+        self.assertGreater(int(job["timeout-minutes"]), 90)
         self.assertEqual(job["steps"][0]["with"]["ref"],
                          "${{ github.event.repository.default_branch }}")
         commands = "\n".join(step.get("run", "") for step in job["steps"])
