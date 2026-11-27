@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 04fe0b7241f..909b2584fec 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -2894,7 +2894,8 @@ static void
+@@ -2896,7 +2896,8 @@ static void
  set_tiler_idvs_flags(struct cs_builder *b, struct panvk_cmd_buffer *cmdbuf,
                       const struct panvk_draw_info *draw)
  {

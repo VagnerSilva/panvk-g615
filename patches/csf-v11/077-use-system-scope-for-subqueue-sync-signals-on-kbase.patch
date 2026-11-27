@@ -53,7 +53,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 201919746a5..56f40199713 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3655,7 +3655,7 @@ gpu_prerast_release_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
+@@ -3657,7 +3657,7 @@ gpu_prerast_release_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
     cs_move64_to(b, addr, arena + offsetof(struct panvk_gpu_prerast_arena,
                                            available));
     cs_move32_to(b, one, 1);
@@ -62,7 +62,7 @@ index 201919746a5..56f40199713 100644
  }
  
  static void
-@@ -4399,7 +4399,7 @@ gpu_prerast_sync32_give(struct panvk_cmd_buffer *cmdbuf,
+@@ -4401,7 +4401,7 @@ gpu_prerast_sync32_give(struct panvk_cmd_buffer *cmdbuf,
     cs_wait_slots(b, dev->csf.sb.all_iters_mask);
     cs_move64_to(b, addr, sync);
     cs_move32_to(b, value, 1);
@@ -71,7 +71,7 @@ index 201919746a5..56f40199713 100644
  }
  
  /* Loads a 32-bit flag into scratch register 0 for a loop exit test. */
-@@ -6243,7 +6243,7 @@ issue_fragment_jobs(struct panvk_cmd_buffer *cmdbuf)
+@@ -6265,7 +6265,7 @@ issue_fragment_jobs(struct panvk_cmd_buffer *cmdbuf)
  #endif
  
        if (free_render_descs) {

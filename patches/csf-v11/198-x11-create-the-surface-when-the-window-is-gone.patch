@@ -28,7 +28,7 @@ diff --git a/src/vulkan/wsi/wsi_common_x11.c b/src/vulkan/wsi/wsi_common_x11.c
 index eb1801f..25d2619 100644
 --- a/src/vulkan/wsi/wsi_common_x11.c
 +++ b/src/vulkan/wsi/wsi_common_x11.c
-@@ -793,8 +793,10 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
+@@ -824,8 +824,10 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
     geom_cookie = xcb_get_geometry(conn, window);
  
     geom = xcb_get_geometry_reply(conn, geom_cookie, &err);
@@ -40,7 +40,7 @@ index eb1801f..25d2619 100644
     {
        VkExtent2D extent = { geom->width, geom->height };
        caps->surfaceCapabilities.currentExtent = extent;
-@@ -1173,8 +1175,11 @@ wsi_CreateXcbSurfaceKHR(VkInstance _instance,
+@@ -1204,8 +1206,11 @@ wsi_CreateXcbSurfaceKHR(VkInstance _instance,
     unsigned visual_depth;
     xcb_visualtype_t *visual =
        get_visualtype_for_window(pCreateInfo->connection, pCreateInfo->window, &visual_depth, NULL);
@@ -54,16 +54,18 @@ index eb1801f..25d2619 100644
  
     surface = vk_alloc2(&instance->alloc, pAllocator, sizeof(struct wsi_x11_vk_surface), 8,
                         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-@@ -1185,7 +1190,7 @@ wsi_CreateXcbSurfaceKHR(VkInstance _instance,
+@@ -1216,9 +1221,9 @@ wsi_CreateXcbSurfaceKHR(VkInstance _instance,
     surface->xcb.connection = pCreateInfo->connection;
     surface->xcb.window = pCreateInfo->window;
  
 -   surface->has_alpha = visual_has_alpha(visual, visual_depth);
 +   surface->has_alpha = visual && visual_has_alpha(visual, visual_depth);
+    surface->event_wsi = NULL;
+    surface->event_wsi_conn = NULL;
  
     *pSurface = VkIcdSurfaceBase_to_handle(&surface->xcb.base);
     return VK_SUCCESS;
-@@ -1208,8 +1213,11 @@ wsi_CreateXlibSurfaceKHR(VkInstance _instance,
+@@ -1241,8 +1246,11 @@ wsi_CreateXlibSurfaceKHR(VkInstance _instance,
     unsigned visual_depth;
     xcb_visualtype_t *visual =
        get_visualtype_for_window(XGetXCBConnection(pCreateInfo->dpy), pCreateInfo->window, &visual_depth, NULL);
@@ -77,15 +79,16 @@ index eb1801f..25d2619 100644
  
     surface = vk_alloc2(&instance->alloc, pAllocator, sizeof(struct wsi_x11_vk_surface), 8,
                         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-@@ -1220,7 +1228,7 @@ wsi_CreateXlibSurfaceKHR(VkInstance _instance,
+@@ -1253,9 +1261,9 @@ wsi_CreateXlibSurfaceKHR(VkInstance _instance,
     surface->xlib.dpy = pCreateInfo->dpy;
     surface->xlib.window = pCreateInfo->window;
  
 -   surface->has_alpha = visual_has_alpha(visual, visual_depth);
 +   surface->has_alpha = visual && visual_has_alpha(visual, visual_depth);
+    surface->event_wsi = NULL;
+    surface->event_wsi_conn = NULL;
  
     *pSurface = VkIcdSurfaceBase_to_handle(&surface->xlib.base);
     return VK_SUCCESS;
 -- 
 2.55.0
-

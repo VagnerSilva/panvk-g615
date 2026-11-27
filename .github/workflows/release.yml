@@ -1,94 +1,75 @@
 name: release
 on:
-  push:
-    tags: ['*-v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing panvk-g615-v11-csf-v tag identifying the tested source
+        required: true
+        type: string
+      source_run_id:
+        description: Successful same-commit run containing g615-release-candidate
+        required: true
+        type: string
 permissions:
   contents: write
+  actions: read
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: g615-release
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ inputs.tag }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag }}
       - name: Classify tag
         id: meta
         run: |
-          set -eu
-          TAG="${GITHUB_REF_NAME}"
-          TIER=stable
-          PRE=false
-          case "$TAG" in
-            *-dev*)   TIER=dev;   PRE=true ;;
-            *-alpha*) TIER=alpha; PRE=true ;;
-            *-beta*)  TIER=beta;  PRE=true ;;
-            *-rc*)    TIER=rc;    PRE=true ;;
+          python3 scripts/validate-release-candidate.py tag --tag "$TAG" --github-output "$GITHUB_OUTPUT"
+      - name: Verify selected artifact run matches the tag
+        run: |
+          case "$SOURCE_RUN_ID" in
+            ''|*[!0-9]*) echo "FAIL: source_run_id must be numeric" >&2; exit 1 ;;
           esac
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "tier=$TIER" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$PRE" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG tier=$TIER prerelease=$PRE"
-      - name: Require evidence for beta/rc/stable
-        if: ${{ steps.meta.outputs.tier == 'beta' || steps.meta.outputs.tier == 'rc' || steps.meta.outputs.tier == 'stable' }}
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" > "$RUNNER_TEMP/source-run.json"
+          python3 scripts/validate-release-candidate.py run --file "$RUNNER_TEMP/source-run.json" \
+            --repository "$GITHUB_REPOSITORY" --commit "$(git rev-parse HEAD)"
+      - name: Download homologated packages, not CI development artifacts
         run: |
-          set -eu
-          missing=0
-          for f in VALIDATION.json SOURCE.json runtime-feature-matrix.json SHA256SUMS.txt; do
-            if [ ! -d dist ] || ! find dist -name "$f" -type f | grep -q .; then
-              echo "FAIL: beta/rc/stable release input lacks $f" >&2
-              missing=1
-            else
-              echo "OK $f"
-            fi
-          done
-          if [ "$missing" != 0 ]; then
-            echo "CI must not publish beta/rc/stable without provenance + validation evidence." >&2
-            exit 1
-          fi
-      - name: Require EMULATOR zip and launcher zips for beta/rc
-        if: ${{ steps.meta.outputs.tier == 'beta' || steps.meta.outputs.tier == 'rc' }}
+          test ! -e dist
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name g615-release-candidate --dir dist
+      - name: Validate packages, binaries, tier and committed screenshots
         run: |
-          set -eu
-          missing=0
-          for pat in '*-EMULATOR.zip' '*.adpkg.zip' 'libvulkan_panfrost-glibc-aarch64.so' \
-                     '*-adrenotools.zip' '*-winlator.zip' '*-bannerlator.zip' '*-cmod.zip' '*-ludashi.zip' '*-gamehub.zip'; do
-            if [ ! -d dist ] || ! find dist -maxdepth 1 -name "$pat" -type f | grep -q .; then
-              echo "FAIL: rc/beta release lacks $pat" >&2
-              missing=1
-            else
-              echo "OK $pat"
-            fi
-          done
-          [ "$missing" = 0 ] || exit 1
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.meta.outputs.tag }}
-          TIER: ${{ steps.meta.outputs.tier }}
-          PRE: ${{ steps.meta.outputs.prerelease }}
+          python3 scripts/validate-release-candidate.py packages --tag "$TAG" --dist dist \
+            --repository "$GITHUB_REPOSITORY" --out "$RUNNER_TEMP/release-assets.json"
+      - name: Publish only validated assets
         run: |
-          set -eu
-          PRE_FLAG=""
-          TITLE_EXTRA=""
-          if [ "$PRE" = "true" ]; then
-            PRE_FLAG="--prerelease"
-            TITLE_EXTRA=" (prerelease)"
-          fi
-          NOTES="$(mktemp)"
-          {
-            echo "Hardware-qualified on one Poco X6 Pro configuration."
-            echo "Not Vulkan-conformant."
-            echo "Not universal Mali support."
-            echo "Not validated yet in Samba S3/Bachata/Winlator/GameHub unless those tests are actually run."
-            echo
-            echo "tier=$TIER prerelease=$PRE"
-          } > "$NOTES"
-          ASSETS=()
-          if [ -d dist ]; then
-            while IFS= read -r f; do
-              [ -n "$f" ] && ASSETS+=("$f")
-            done < <(find dist -maxdepth 1 -type f || true)
-          fi
-          gh release create "$TAG" \
-            --title "Mesa PanVK ${TAG}${TITLE_EXTRA}" \
-            --notes-file "$NOTES" \
-            $PRE_FLAG \
-            "${ASSETS[@]}"
+          python3 - "$RUNNER_TEMP/release-assets.json" "$RUNNER_TEMP" <<'PY'
+          import json, pathlib, sys
+          data = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          root = pathlib.Path(sys.argv[2])
+          (root / "release-notes.txt").write_text(data["notes"])
+          (root / "release-images.txt").write_text("\n".join(data["imageUrls"]) + "\n")
+          PY
+          while IFS= read -r url; do
+            curl --fail --silent --show-error --head --location "$url"
+          done < "$RUNNER_TEMP/release-images.txt"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)" = "$(git rev-parse HEAD)"
+          ASSET_TEXT=$(python3 -c "import json,sys; print('\n'.join(json.load(open(sys.argv[1]))['assets']))" \
+            "$RUNNER_TEMP/release-assets.json")
+          mapfile -t ASSETS <<< "$ASSET_TEXT"
+          FLAGS=()
+          if [ '${{ steps.meta.outputs.prerelease }}' = true ]; then FLAGS+=(--prerelease); fi
+          gh release create "$TAG" --verify-tag --title "Mesa PanVK $TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.txt" "${FLAGS[@]}" "${ASSETS[@]}"
+          while IFS= read -r url; do
+            curl --fail --silent --show-error --head --location "$url"
+          done < "$RUNNER_TEMP/release-images.txt"

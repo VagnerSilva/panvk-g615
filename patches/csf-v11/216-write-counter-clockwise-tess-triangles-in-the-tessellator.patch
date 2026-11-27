@@ -56,7 +56,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index a6fe3208..e414ca91 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -5076,7 +5076,12 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5078,7 +5078,12 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
        .partitioning = spacing,
        .points_mode = points,
        .isolines = domain == 2,
@@ -70,7 +70,7 @@ index a6fe3208..e414ca91 100644
     };
     t->heap.base = l.heap;
     t->heap.size = l.heap_size;
-@@ -5332,8 +5337,9 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5334,8 +5339,9 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
           panlib_tess_draw(&ctx, panlib_1d(1), PANLIB_BARRIER_NONE, td.gpu,
                            c_invs, c_prims, prims_generated);
           cs_wait_slots(b, dev->csf.sb.all_iters_mask);
@@ -99,7 +99,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 0fc93ad3..c82bf4f7 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -704,6 +704,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -799,6 +799,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
        debug_get_num_option("PANVK_TESS_SETUP_STEP", 1) != 0;
     device->tess_opt.arenas =
        debug_get_num_option("PANVK_TESS_ARENAS", 2) >= 2 ? 2 : 1;

@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index ebfc59edda3..3a6534b4b76 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -595,11 +595,16 @@ panvk_per_arch(add_cs_deps)(struct panvk_cmd_buffer *cmdbuf,
+@@ -596,11 +596,16 @@ panvk_per_arch(add_cs_deps)(struct panvk_cmd_buffer *cmdbuf,
  
     for (uint32_t i = 0; i < in->bufferMemoryBarrierCount; i++) {
        const VkBufferMemoryBarrier2 *barrier = &in->pBufferMemoryBarriers[i];

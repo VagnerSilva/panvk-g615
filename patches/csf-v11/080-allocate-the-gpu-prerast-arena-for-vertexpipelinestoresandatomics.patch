@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index d098222d95f..28745813d87 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -587,7 +587,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -682,7 +682,8 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
  #if PAN_ARCH >= 10
     if (PANVK_DEBUG(GPU_PRERAST) || device->vk.enabled_features.fillModeNonSolid ||
         device->vk.enabled_features.geometryShader ||

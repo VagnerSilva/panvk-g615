@@ -195,7 +195,7 @@ diff --git a/src/panfrost/compiler/bifrost/bi_ra.c b/src/panfrost/compiler/bifro
     return best_node;
  }
  
-@@ -1422,17 +1453,37 @@ bi_register_allocate(bi_context *ctx)
+@@ -1427,17 +1458,37 @@ bi_register_allocate(bi_context *ctx)
        if (success) {
           ctx->info.work_reg_count = BI_MAX_REGS;
        } else {

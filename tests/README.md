@@ -31,6 +31,201 @@
 - `dxvk/` — DXVK-only profile, Vulkan semantic, and DXVK Native validation.
   Kept separate from historical combined `dxvk-vkd3d/` evidence.
 
+## Render descriptor ring stress
+
+`dxvk/vulkan/submit_stress/submit_stress.c` accepts a final command-buffer mode:
+`one-time` (default), `replay` (no usage flags), or `simultaneous`
+(`VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT`). The latter exercises PanVK's
+render descriptor ring with draws. Each submit is still fence-waited before
+re-recording, so this is not a test of concurrent command-buffer reuse or of
+an evicted queue group's wakeup.
+
+For a bounded comparison with the same ICD and scene parameters, run the
+`replay` and `simultaneous` modes separately under the device's test procedure,
+for example `timeout 30 submit_stress <icd> 1000000 32 10 replay` and then the
+same command with `simultaneous`. The inner 10-second limit is checked after
+each submit; the outer timeout also bounds setup and fence waits. Compare
+actual completed render passes, not the requested maximum. IRQ counts include
+other GPU clients and are not an attribution to a specific signal.
+
+## G615-only device filter (host)
+
+Run against a Mesa 27 source tree containing the Kbase physical-device path.
+Set `PANVK_MESA_SOURCE` to that tree; the test applies patch 234 only to a
+temporary copy when the helper is not already present:
+
+```sh
+PANVK_MESA_SOURCE=/path/to/mesa-27 \
+  python3 -m unittest discover -s tests -p test_g615_device_filter.py -v
+```
+
+The test compiles the helper from the patch against Mesa's real model table
+and resolver, including two raw G615 IDs with distinct revision bits. It also
+checks the Kbase-only build selection and DRM enumeration guards. This is a
+host policy test, not a build or hardware-runtime gate.
+
+## Mesa 27 Kbase sync provider (host)
+
+Run against the actual pinned Mesa 27 headers, using an isolated checkout:
+
+```sh
+MESA=/path/to/isolated/mesa-27 \
+  python3 -m unittest discover -s tests -p test_kbase_sync_provider.py -v
+```
+
+The test compiles the overlay provider against `util_sync_provider.h`, mocks
+only logging and allocation, and verifies allocation failure, concurrent
+clone/finalize lifetime, unsupported syncobj errors, unchanged outputs and
+preserved input fd ownership. It requires a host C compiler and pthreads;
+without Mesa 27 headers it reports a skip. It does not validate GPU completion
+or KCPU fence behavior; those still require the device tests in `sync/`.
+
+## Discarded KCPU GPU fence-import draft
+
+The inactive draft 006 and its exclusive host integration suite were removed
+at the user's request on 2026-11-24. Historical results remain in the
+[archived plan](../docs/superpowers/plans/2026-11-24-kbase-kcpu-gpu-fence-wait.md);
+its old test commands and proposed build flags are not available.
+The default series now selects 002-005 followed by poll correction 007,
+without depending on the discarded draft. The independent native KCPU tests below
+and the active WAIT_ANY regressions remain available.
+
+## Host sync_file poll regressions
+
+Run `python3 -m unittest discover -s tests -p test_kbase_sync_file_wait.py -v`.
+The test compiles the 007 callback with recording poll, monotonic-clock and
+logging stubs. Its 23 scenarios cover readiness/error events, invalid FDs,
+zero/expired deadlines, EINTR/EAGAIN retries, positive sub-millisecond
+budgets, long finite timeout chunks and infinite waits.
+Set `PANVK_SYNC_FILE_WAIT_SOURCE` to a prepared `panvk_physical_device.c`
+to test its callback instead of the patch postimage. No patches are applied
+by the test. This is host evidence only, not device fence or target-build
+validation, and does not validate the unchanged 004 concurrent teardown.
+
+## Native KCPU publication and controlled sync_file error
+
+`sync/kcpu_fence_wait_test.c` is a standalone, single-import KCPU/CPU gate,
+not a GPU command-stream or PanVK integration test. It does not load an ICD,
+create CSF groups or submit GPU work. It uses the repository's
+base UAPI header and private SET payload layouts independently of the discarded
+GPU fence-import draft.
+
+The producer uses an explicitly selected, already accessible `sw_sync` endpoint.
+It creates its own timeline and a fence at point 1. `SW_SYNC_IOC_INC` releases
+the success case; closing the private timeline releases the error case.
+[Linux v6.1's `sw_sync_debugfs_release`](https://github.com/torvalds/linux/blob/v6.1/drivers/dma-buf/sw_sync.c)
+sets `-ENOENT` and signals pending fences on close. This is a source-backed
+candidate provider, **not evidence that the handset enables `CONFIG_SW_SYNC`**.
+The error case first confirms `SYNC_IOC_FILE_INFO.status < 0` on a separate
+probe fence, before opening Mali. No watchdog, GPU fault or reset is used.
+There is no automatic fallback to pipe/eventfd, privilege escalation, device creation,
+debugfs mount or permission change.
+
+When `sw_sync` is unavailable, explicitly select `--kcpu` instead of a provider
+path for `success` or `pending-delete`. This mode uses a separate producer
+KCPU queue with `CQS_WAIT_OPERATION (U64 > 0) -> FENCE_SIGNAL`, following
+`sync/sync_file_test.c`. A third 64-byte cell in the same event page holds the
+producer point. An atomic release store, MEM_SYNC when required, and
+CS_EVENT_SIGNAL release it; a 2000 ms deadline bounds fence completion.
+The consumer queue is deleted before the producer queue, and both before the
+event page is unmapped. Failed DELETE retains the mapping and context until
+process exit. `pending-delete` checks that deleting the consumer leaves the
+producer fence pending, before producer cleanup.
+
+`--kcpu error` returns BLOCKED (77) before opening Mali: normal KCPU
+FENCE_SIGNAL does not inject a negative fence status. Producer DELETE is
+cleanup, not an error-fence substitute. This mode cannot close the negative
+fence, GPU guard or PanVK teardown gates.
+
+On 2026-11-24, both `--kcpu success` and `--kcpu pending-delete` passed once
+on the Moto G86/Mali-G615 MC2, Android 16, CSF UAPI 1.21, 4 KiB pages, in the
+existing root/ksu ADB Bionic context, with an uncached event allocation.
+Each used a 5 s timeout plus 3 s kill grace and exited 0. Success held the fence
+pending for 20 ms, then observed status=1, A=B=1 and A.error=0; consumer DELETE
+drained A/B while the producer fence remained pending.
+The tested API35 binary SHA-256 was
+`04c900ce04e1b664d82b30c756d4cf142835470091bc24dcaefd3e8715992cd5`.
+This is only the KCPU/CPU gate: negative-fence, cached-device, GPU-ordering and
+PanVK/CSF-termination tests were not executed. Shell results do not qualify an
+app UID or glibc chroot.
+
+The harness requires a 64-bit process, 4 KiB pages and CSF UAPI 1.21. It creates
+one SAME_VA/CSF_EVENT page with two distinct 64-byte cells, zeroes it, then issues
+three individual ENQUEUEs: FENCE_WAIT, U64 SET A, U64 SET B. It holds the producer
+pending for 20 ms and checks that neither cell publishes. After release, a
+monotonic 2000 ms deadline bounds observation of B=1; A=1 and A.error are checked
+afterward. `--cached` requires the returned CPU-cached flag; non-coherent cached
+memory uses MEM_SYNC, including a second CPU invalidation after observing B.
+System-coherent memory skips MEM_SYNC, matching the backend's contract.
+CPU observation is **not proof of L2/LSC or GPU LS ordering**.
+
+`pending-delete` deliberately leaves the fence pending. DELETE must drain both
+SETs without signaling that fence; this is not successful dependency completion.
+All paths delete the KCPU queue before unmapping its event page. A failed DELETE
+is fatal: no explicit event unmap or Mali close occurs before process exit.
+There are no CSF consumers here, so this does not prove CSF-before-KCPU teardown
+or kernel termination across those two kinds of queue.
+
+Offline tests compile the real native source with syscall mocks:
+
+```sh
+PYTHONPATH=tests python3 -m unittest test_kbase_native_fence_wait -v
+```
+
+They cover both producers, pending/success/error, stale CPU payload after B, pending DELETE,
+each partial-acceptance failure, retained resources on DELETE failure,
+unavailable/incompatible providers, ABI/cache prerequisites and timeout.
+They never access a real timeline or Mali device.
+
+Build from the repository root to **new, disposable output paths**:
+
+```sh
+cc -std=c11 -Wall -Wextra -Werror \
+  -I patches/kbase-common/files/include tests/sync/kcpu_fence_wait_test.c \
+  -o /new/disposable/output/kcpu-native-host
+
+aarch64-linux-gnu-gcc -std=c11 -Wall -Wextra -Werror \
+  -I patches/kbase-common/files/include tests/sync/kcpu_fence_wait_test.c \
+  -o /new/disposable/output/kcpu-native-glibc
+
+"$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android35-clang" \
+  -std=c11 -Wall -Wextra -Werror -I patches/kbase-common/files/include \
+  tests/sync/kcpu_fence_wait_test.c -o /new/disposable/output/kcpu-native-bionic
+```
+
+The glibc executable belongs only in an already approved glibc chroot; do not
+run it as a Bionic shell executable. The inspected AArch64/glibc build requires
+GLIBC_2.34 and `/lib/ld-linux-aarch64.so.1`; compatibility with the target chroot
+has not been checked. Bionic compilation with NDK r30/API35 and ELF inspection
+passed on 2026-11-24; this does not prove device execution.
+Before any device execution, obtain authorization for device,
+context, binary/hash, existing provider path, directory, timeout and collection.
+If `sw_sync` is absent or inaccessible, do not enable it. Use only an explicitly
+approved `--kcpu` run for the available success/pending-delete gates; the
+negative-fence gate remains `BLOCKED`.
+Confirm target `timeout` supports `-k`, then run **one case at a time**, stopping
+at the first unexpected failure, in the approved native process context:
+
+```sh
+sha256sum ./kcpu-native-test
+timeout -k 3s 5s ./kcpu-native-test /approved/existing/sw_sync success
+echo "exit=$?"
+```
+
+Substitute `error` or `pending-delete` for a subsequent authorized run.
+For an authorized KCPU producer run, replace the provider path with `--kcpu`:
+
+```sh
+timeout -k 3s 5s ./kcpu-native-test --kcpu success
+```
+
+An independently approved cached-memory run adds `--cached`. Exit 0 applies
+only to the reported KCPU gate; exit 1 is FAIL, 2 is usage error, 77 is BLOCKED.
+Timeout/nonzero exit is never PASS even if a preceding gate printed PASS.
+The program explicitly reports GPU guard, PanVK completion and CSF termination
+as NOT_EXECUTED. Closing gate 1.3 still requires the GPU consumer and immediate
+PanVK error propagation, plus matching-source audit and bounded device runs.
+
 ## Android `vkQueuePresentKHR` diagnostic
 
 The loader APK's default WSI run enables only the base swapchain path, so it
@@ -146,6 +341,62 @@ semaphore before validating the sync-file. It requires Vulkan 1.3 and
 `synchronization2`; otherwise it reports `SKIP`. This exercises the queue
 sequence used by the runtime's fallback, but does **not** call
 `vkQueueSignalReleaseImageANDROID` or verify the Android loader or Eden.
+
+`test_kbase_coalesce_mem_sync.py` compiles the implementation in experimental
+003 with a recording ioctl and checks its postimage against the prepared
+Mesa source. It checks that compatible adjacent operations coalesce without
+reordering different BOs or `MSYNC`/`CSYNC` operations. After applying 003, run
+`python3 -m unittest discover -s tests -p test_kbase_coalesce_mem_sync.py -v`.
+It checks range coalescing, preservation of operation types and gaps,
+coherent BO bypass, input preservation, stack-buffered coalescing up to 64
+operations, uncoalesced emission fallback on heap allocation failure, ioctl
+failure propagation, and temporary storage cleanup. It does not measure
+device ioctl counts or validate actual cache coherency on hardware.
+
+`sync/sync_test.c` accepts an optional `--cross-queue` argument. It requires
+two compute queues in one family and tests binary semaphore chains in both
+directions, including 20 chains with GPU work and 20 empty consumer submits.
+It also checks fence completion, queue/device idle, and compute readback.
+Compile with the NDK using `-O2 -I"$MESA/include" -ldl`, then run with the
+driver path followed by `--cross-queue`. This does not validate unsignaled
+external sync-file imports or visible presentation.
+
+### Standard glibc hardware gate: imported `sync_file` lifetime
+
+For the G615 glibc build with `--with-kbase-sync`, run `sync/sync_file_test.c`
+after the single- and cross-queue tests. It requires `/dev/mali0` with CSF UAPI
+1.21 and 4 KiB pages in the chroot. An independent Kbase KCPU queue produces
+the pending `sync_file`; no `sw_sync`, WSI, or change to the system ICD is needed.
+
+Build on the host with an AArch64 glibc compiler and Vulkan headers:
+
+```sh
+aarch64-linux-gnu-gcc -std=c11 -O2 -Wall -Wextra -Werror \
+  -Ipatches/kbase-common/files/include tests/sync/sync_file_test.c \
+  -ldl -o sync-file-test
+```
+
+Transfer the test binary and candidate ICD into an isolated directory in the
+chroot. Run from that directory:
+
+```sh
+sha256sum ./libvulkan_panfrost.so
+timeout -k 3s 20s ./sync-file-test ./libvulkan_panfrost.so
+```
+
+Record the hash with the log. `SYNC-FILE-PASS 12 cycles` and exit 0 require a
+real, pending FD before and after the initial `VK_TIMEOUT`, correct completion
+after the signal, and no growth in `/proc/self/fd` after each iteration. Four
+iterations each exercise waiting again without reimport, resetting the
+imported fence, and destroying it without another Vulkan wait. Exit 77 means
+a prerequisite is unavailable (`BLOCKED`), not a pass. Other nonzero exits
+are failures. This gate does not exercise Android release callbacks or WSI.
+
+On 2026-11-25 the same source was also cross-compiled for Android and run
+under an isolated app UID against the identified `003fix` ICD: all 12
+cycles passed. This is Android/Bionic evidence, not a glibc result or a
+device test of interrupted waits or poll error events. See the
+[scoped validation record](../patches/experimental-kbase-sync/README.md#scoped-android-device-validation-of-003-and-007-2026-11-25).
 
 `ahb/anb_release.c` is a separate shell diagnostic for the private Android
 native-buffer driver entrypoints. It allocates an AHardwareBuffer, creates a

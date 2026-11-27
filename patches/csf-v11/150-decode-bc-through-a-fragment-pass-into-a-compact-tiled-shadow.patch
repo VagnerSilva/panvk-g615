@@ -14151,8 +14151,8 @@ index a3facfb68ede2eee6b2a22e35ccd45dea3954da2..a67b7cc5c3a308cd22a2eeb2e5b65458
  
     /* Add any create/usage flags that might be needed for meta operations.
      * This is run before the modifier selection because some
-@@ -887,6 +940,15 @@ panvk_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
-        VK_IMAGE_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT)
+@@ -910,6 +963,15 @@ panvk_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+        VK_IMAGE_CREATE_2_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT)
        create_ms_images(dev, image, pCreateInfo, pAllocator);
  
 +   if (image->bc_gfx) {
@@ -14167,16 +14167,16 @@ index a3facfb68ede2eee6b2a22e35ccd45dea3954da2..a67b7cc5c3a308cd22a2eeb2e5b65458
     *pImage = panvk_image_to_handle(image);
     return VK_SUCCESS;
  
-@@ -910,6 +972,8 @@ panvk_DestroyImage(VkDevice _device, VkImage _image,
+@@ -933,6 +995,8 @@ panvk_DestroyImage(VkDevice _device, VkImage _image,
     if (!image)
        return;
  
 +   panvk_DestroyImage(_device, image->bc_shadow, pAllocator);
 +
     if (image->vk.create_flags &
-        VK_IMAGE_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT) {
+        VK_IMAGE_CREATE_2_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT) {
        for (uint32_t i = 0; i < ARRAY_SIZE(image->ms_imgs); ++i) {
-@@ -1446,8 +1510,16 @@ panvk_image_bind(struct panvk_device *dev,
+@@ -1466,8 +1530,16 @@ panvk_image_bind(struct panvk_device *dev,
     } else {
        for (unsigned plane = 0; plane < image->plane_count; plane++)
           panvk_image_plane_bind_mem(dev, &image->planes[plane], mem, offset);
@@ -14220,7 +14220,7 @@ index 9ff6de23b356bdead7f5c6fd63981ac43d253762..5bcac8124466e46ce0d85ed1d48de2ec
  };
  
  VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_image, vk.base, VkImage,
-@@ -112,6 +122,45 @@ panvk_bc_decoded_format(VkFormat format)
+@@ -98,6 +108,45 @@ panvk_bc_decoded_format(VkFormat format)
     }
  }
  
@@ -14263,9 +14263,9 @@ index 9ff6de23b356bdead7f5c6fd63981ac43d253762..5bcac8124466e46ce0d85ed1d48de2ec
 +   return vk_format_to_pipe_format(f);
 +}
 +
- static inline unsigned
- panvk_plane_index(const struct panvk_image *image,
-                   VkImageAspectFlags aspect_mask)
+ static inline void
+ panvk_image_set_compression_props(VkImageCompressionPropertiesEXT *props,
+                                   bool compressed)
 diff --git a/src/panfrost/vulkan/panvk_instance.c b/src/panfrost/vulkan/panvk_instance.c
 index e475174cc40ee8835485818b36503191ac6c8134..a0c9bd1d5a3c19c2bb55fdd344de84ccf85d88a6 100644
 --- a/src/panfrost/vulkan/panvk_instance.c
@@ -14323,7 +14323,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
  #include "bc/panvk_bc_s3tc_spv.h"
  
  #include "panvk_cmd_precomp.h"
-@@ -507,6 +511,8 @@ struct panvk_bc_decode_push {
+@@ -506,6 +510,8 @@ struct panvk_bc_decode_push {
     int32_t height;
     int32_t depth;
     int32_t format;
@@ -14332,7 +14332,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
  };
  
  struct panvk_bc_decode_key {
-@@ -514,6 +520,19 @@ struct panvk_bc_decode_key {
+@@ -513,6 +519,19 @@ struct panvk_bc_decode_key {
     uint32_t shader;
  };
  
@@ -14352,7 +14352,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
  static uint32_t
  bc_decode_shader_index(VkFormat format)
  {
-@@ -582,6 +601,197 @@ get_bc_decode_pipeline(struct panvk_device *dev, uint32_t shader,
+@@ -581,6 +600,197 @@ get_bc_decode_pipeline(struct panvk_device *dev, uint32_t shader,
                                            sizeof(key), pipeline_out);
  }
  
@@ -14550,7 +14550,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
  /* Decode raw BC blocks (planes[0]) of one copy region into bc_decoded. */
  static void
  bc_decode_region(struct panvk_cmd_buffer *cmdbuf, struct panvk_image *img,
-@@ -688,7 +898,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -687,7 +897,7 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
     struct panvk_cmd_buffer *cmdbuf, const VkDependencyInfo *dep_info)
  {
     struct panvk_cmd_meta_compute_save_ctx save = {0};
@@ -14559,7 +14559,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
  
     for (uint32_t i = 0; i < dep_info->imageMemoryBarrierCount; i++) {
        const VkImageMemoryBarrier2 *b = &dep_info->pImageMemoryBarriers[i];
-@@ -699,6 +909,11 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -698,6 +908,11 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
            !img->bc_emul)
           continue;
  
@@ -14571,7 +14571,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
        if (!started) {
           bc_decode_begin(cmdbuf, &save);
           started = true;
-@@ -721,12 +936,47 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
+@@ -720,12 +935,47 @@ panvk_per_arch(cmd_bc_decode_zero_initialized)(
        }
     }
  
@@ -14621,7 +14621,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
  }
  
  VKAPI_ATTR void VKAPI_CALL
-@@ -736,6 +986,37 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
+@@ -735,6 +985,37 @@ panvk_per_arch(CmdCopyMemoryToImageKHR)(
  {
     VK_FROM_HANDLE(panvk_image, bc_img, pCopyMemoryInfo->image);
  
@@ -14659,7 +14659,7 @@ index ed024c5ffe1bf4e649dd41f54d228f4ac2329675..76960e66dfcf1ba37479f5c2fdd1e0ac
     if (bc_img->bc_emul) {
        VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
        struct panvk_cmd_meta_compute_save_ctx save = {0};
-@@ -970,9 +1251,34 @@ panvk_per_arch(CmdCopyImage2)(VkCommandBuffer commandBuffer,
+@@ -969,9 +1250,34 @@ panvk_per_arch(CmdCopyImage2)(VkCommandBuffer commandBuffer,
        return;
  
     VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);

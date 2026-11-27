@@ -61,7 +61,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/cs
 index bdc295e..c2bcdca 100644
 --- a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 +++ b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
-@@ -608,6 +608,12 @@ struct panvk_cmd_buffer {
+@@ -609,6 +609,12 @@ struct panvk_cmd_buffer {
        /* CPU-side estimate used by the kbase queue to choose a conservative
         * tiler-heap renewal cadence. */
        uint64_t tiler_work_estimate;
@@ -78,7 +78,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 1733fa3..f4c1b7e 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4266,13 +4266,17 @@ gpu_prerast_vs(struct panvk_cmd_buffer *cmdbuf,
+@@ -4268,13 +4268,17 @@ gpu_prerast_vs(struct panvk_cmd_buffer *cmdbuf,
        cs_load32_to(compute, value, addr, 0);
        cs_load32_to(compute, first_index_reg, addr, 4);
        cs_wait_slot(compute, SB_ID(LS));
@@ -97,7 +97,7 @@ index 1733fa3..f4c1b7e 100644
     }
     if (poly_mode != PANVK_GPU_PRERAST_POLY_NONE) {
        const struct vk_dynamic_graphics_state *dyns =
-@@ -4321,20 +4325,31 @@ gpu_prerast_vs(struct panvk_cmd_buffer *cmdbuf,
+@@ -4323,20 +4327,31 @@ gpu_prerast_vs(struct panvk_cmd_buffer *cmdbuf,
     return true;
  }
  
@@ -135,7 +135,7 @@ index 1733fa3..f4c1b7e 100644
        return false;
  
     if (chunked) {
-@@ -5649,6 +5664,23 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
+@@ -5651,6 +5666,23 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
        vk_command_buffer_set_error(&cmdbuf->vk, VK_ERROR_OUT_OF_DEVICE_MEMORY);
  }
  
@@ -159,7 +159,7 @@ index 1733fa3..f4c1b7e 100644
  /* A triangle fan over the arena, as indexed fans of the hub and the next
   * window of vertices. Windows share one vertex, so each API triangle is drawn
   * once with its own vertices, winding and primitive ID. The 32-bit chunk
-@@ -5671,7 +5703,6 @@ gpu_prerast_split_fan(struct panvk_cmd_buffer *cmdbuf,
+@@ -5673,7 +5705,6 @@ gpu_prerast_split_fan(struct panvk_cmd_buffer *cmdbuf,
     chunk.instance.count = 1;
  
     for (uint32_t inst = 0; inst < draw->instance.count; inst++) {
@@ -167,7 +167,7 @@ index 1733fa3..f4c1b7e 100644
        for (uint32_t s = 1; s + 1 < draw->vertex.count; s += win - 1) {
           const uint32_t n = MIN2(win, draw->vertex.count - s);
           struct pan_ptr ib =
-@@ -5696,7 +5727,7 @@ gpu_prerast_split_fan(struct panvk_cmd_buffer *cmdbuf,
+@@ -5698,7 +5729,7 @@ gpu_prerast_split_fan(struct panvk_cmd_buffer *cmdbuf,
           chunk.index.buffer_size = (n + 1) * sizeof(uint32_t);
           chunk.vertex.count = n + 1;
           chunk.gpu_prerast_prim_base = s - 1;
@@ -176,7 +176,7 @@ index 1733fa3..f4c1b7e 100644
        }
     }
     return true;
-@@ -5746,9 +5777,8 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5748,9 +5779,8 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
           MIN2(max_verts / draw->vertex.count,
                fan ? PANLIB_CHUNK_MAX_INSTANCES : UINT32_MAX);
        for (uint32_t i = 0; i < draw->instance.count; i += step) {
@@ -187,7 +187,7 @@ index 1733fa3..f4c1b7e 100644
        }
        return true;
     }
-@@ -5787,7 +5817,6 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5789,7 +5819,6 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
  
     chunk.instance.count = 1;
     for (uint32_t inst = 0; inst < draw->instance.count; inst++) {
@@ -195,7 +195,7 @@ index 1733fa3..f4c1b7e 100644
        for (uint32_t i = 0; i + overlap < draw->vertex.count; i += step) {
           chunk.vertex.count = MIN2(step + overlap, draw->vertex.count - i);
           if (draw->index.index_size)
-@@ -5795,7 +5824,7 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5797,7 +5826,7 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
           else
              chunk.vertex.base = draw->vertex.base + i;
           chunk.gpu_prerast_prim_base = i / prim_div;
@@ -204,7 +204,7 @@ index 1733fa3..f4c1b7e 100644
        }
     }
     return true;
-@@ -5852,6 +5881,15 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
+@@ -5854,6 +5883,15 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
     if (gpu_prerast_wanted(cmdbuf, &draw) && gpu_prerast_split(cmdbuf, &draw))
        return;
  

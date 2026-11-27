@@ -1,0 +1,70 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] panvk: preserve Mesa 27 Kbase model selection and per-node memory budget
+
+Purpose: panvk: preserve Mesa 27 Kbase model selection and per-node memory budget
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+index e4b927e7d0021740857ebe8281eddb54cd0c47ed..758faab61eca8303ace9695a08cae1c622b278f6 100644
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -630,7 +630,19 @@
+    device->memory.max_supported_va =
+       pan_clamp_to_usable_va_range(device->kmod.dev, request_va);
+ 
+-   device->memory.budget = get_memory_budget(device->drm.render_rdev);
++   dev_t budget_rdev = device->drm.render_rdev;
++#if defined(HAVE_PAN_KMOD_KBASE)
++   if (device->kbase_node_path[0]) {
++      struct stat st;
++      if (fstat(device->kmod.dev->fd, &st) || !S_ISCHR(st.st_mode)) {
++         return vk_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
++                          "failed to identify kbase device node");
++      }
++      budget_rdev = st.st_rdev;
++   }
++#endif
++
++   device->memory.budget = get_memory_budget(budget_rdev);
+    if (!device->memory.budget)
+       return VK_ERROR_OUT_OF_HOST_MEMORY;
+ 
+@@ -1382,7 +1394,9 @@
+       return result;
+ 
+    device->model = pan_get_model(device->kmod.dev->props.gpu_id,
+-                                 device->kmod.dev->props.gpu_variant);
++                                 device->kmod.dev->props.gpu_variant,
++                                 pan_query_core_count(&device->kmod.dev->props),
++                                 device->kmod.dev->props.gpu_features);
+ 
+    unsigned arch = pan_arch(device->kmod.dev->props.gpu_id);
+ 
+@@ -1523,6 +1537,9 @@
+ 
+ fail_kbase:
+    free_disk_cache(device);
++
++   if (device->memory.budget)
++      release_memory_budget(device->memory.budget);
+ 
+    if (device->vk.instance)
+       vk_physical_device_finish(&device->vk);
+diff --git a/src/panfrost/vulkan/panvk_priv_bo.c b/src/panfrost/vulkan/panvk_priv_bo.c
+index fcefa22d3a2ff412ec482c56ad3bc510e6713752..577b0b0f20e41e1496c5de0b5e51f50b7901f086 100644
+--- a/src/panfrost/vulkan/panvk_priv_bo.c
++++ b/src/panfrost/vulkan/panvk_priv_bo.c
+@@ -377,7 +377,7 @@
+    const uint64_t prerast = panvk_priv_mem_size(dev->gpu_prerast_arena) +
+                             panvk_priv_mem_size(dev->gpu_prerast_tess_arena) +
+                             panvk_priv_mem_size(dev->gpu_prerast_tess_arena2);
+-   const uint64_t devmem = p_atomic_read_relaxed(&pdev->memory.heap_used);
++   const uint64_t devmem = p_atomic_read_relaxed(&pdev->memory.budget->heap_used);
+    const uint64_t heap_live = p_atomic_read_relaxed(&s->heap_ctx_live);
+    const uint64_t heap_init = p_atomic_read_relaxed(&s->heap_init_B);
+    uint64_t avail = 0, kb[4];

@@ -380,7 +380,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 1b63788..1e32e82 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -46,8 +46,10 @@
+@@ -46,9 +46,11 @@
  #include "pan_samples.h"
  #include "pan_shader.h"
  #include "libpan/draw_helper_vp.h"
@@ -388,10 +388,11 @@ index 1b63788..1e32e82 100644
  
  #include "util/bitscan.h"
 +#include "util/u_debug.h"
+ #include "vk_android.h"
  #include "vk_format.h"
  #include "vk_meta.h"
  #include "vk_pipeline_layout.h"
-@@ -5440,6 +5442,40 @@ gpu_prerast_chunkable(enum mesa_prim prim)
+@@ -5442,6 +5444,40 @@ gpu_prerast_chunkable(enum mesa_prim prim)
     }
  }
  
@@ -432,7 +433,7 @@ index 1b63788..1e32e82 100644
  /* Indirect draws have no vertex count when recording, and strips with
   * primitive restart need the restart positions to be cut: both run as a GPU
   * chunk loop.
-@@ -5451,6 +5487,9 @@ gpu_prerast_chunk_wanted(const struct panvk_cmd_buffer *cmdbuf,
+@@ -5453,6 +5489,9 @@ gpu_prerast_chunk_wanted(const struct panvk_cmd_buffer *cmdbuf,
     uint32_t align, overlap, div;
     const uint32_t max_verts = gpu_prerast_max_verts(cmdbuf);
  
@@ -442,7 +443,7 @@ index 1b63788..1e32e82 100644
     if (!gpu_prerast_chunkable(draw->prim))
        return false;
  
-@@ -5487,6 +5526,7 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
+@@ -5489,6 +5528,7 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
     const struct panvk_shader *gs = cmdbuf->state.gfx.gs.shader;
     const bool indirect = draw->indirect.buffer_dev_addr != 0;
     const bool indexed = draw->index.index_size != 0;
@@ -450,7 +451,7 @@ index 1b63788..1e32e82 100644
     const uint64_t arena = panvk_priv_mem_dev_addr(dev->gpu_prerast_arena);
  
     struct pan_ptr cd =
-@@ -5495,10 +5535,27 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
+@@ -5497,10 +5537,27 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
     struct pan_ptr direct = {0};
     if (!indirect)
        direct = panvk_cmd_alloc_dev_mem(cmdbuf, desc, 8 * sizeof(uint32_t), 16);
@@ -479,7 +480,7 @@ index 1b63788..1e32e82 100644
  
  #define CD(f) (cd.gpu + offsetof(struct panlib_chunk_draw, f))
     struct panlib_chunk_draw *c = cd.cpu;
-@@ -5548,6 +5605,17 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
+@@ -5550,6 +5607,17 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
     chunk.pstats_counted = true;
     chunk.prims_generated_counted = true;
     chunk.gpu_prerast_prim_base = 0;
@@ -497,7 +498,7 @@ index 1b63788..1e32e82 100644
  
     const enum panvk_gpu_prerast_poly_mode poly_mode =
        gs ? PANVK_GPU_PRERAST_POLY_NONE
-@@ -5605,7 +5673,15 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
+@@ -5607,7 +5675,15 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
        gpu_prerast_sync32_take(cmdbuf, PANVK_SUBQUEUE_COMPUTE,
                                PANVK_QUEUE_TESS_FREE_SYNC_OFFSET);
  
@@ -514,7 +515,7 @@ index 1b63788..1e32e82 100644
        cs_wait_slots(b, dev->csf.sb.all_iters_mask);
  
        ok &= gpu_prerast_vs(cmdbuf, &chunk, vs, arena, poly_mode, false,
-@@ -5806,6 +5882,10 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5808,6 +5884,10 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
         max_verts >= 3)
        return gpu_prerast_split_fan(cmdbuf, draw, max_verts);
  

@@ -36,7 +36,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index c9dc7a9..9c7bb5a 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -209,6 +209,7 @@ panlib_tess_step(global struct panlib_tess_draw *t, global uint32_t *tcs_stat)
+@@ -210,6 +210,7 @@ panlib_tess_step(global struct panlib_tess_draw *t, global uint32_t *tcs_stat)
     if (first == 0 && ppi <= t->max_patches) {
        per_inst = ppi;
        k = min(t->max_patches / ppi, t->instances - inst);
@@ -44,7 +44,7 @@ index c9dc7a9..9c7bb5a 100644
     } else {
        per_inst = min(t->max_patches, ppi - first);
        k = 1;
-@@ -550,6 +551,38 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -551,6 +552,38 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
     }
  }
  
@@ -87,7 +87,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index d01faed..b0d1156 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -5506,6 +5506,24 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
+@@ -5508,6 +5508,24 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
                        indirect ? draw->indirect.draw_index : 0);
     cs_wait_slots(b, dev->csf.sb.all_iters_mask);
  
@@ -112,7 +112,7 @@ index d01faed..b0d1156 100644
     /* No C-level exit from a cs_while body, it would leave the block open.
      * Allocation failures are recorded on the command buffer instead. */
     bool ok = true;
-@@ -5591,6 +5609,59 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
+@@ -5593,6 +5611,59 @@ gpu_prerast_chunk_loop(struct panvk_cmd_buffer *cmdbuf,
        vk_command_buffer_set_error(&cmdbuf->vk, VK_ERROR_OUT_OF_DEVICE_MEMORY);
  }
  
@@ -172,7 +172,7 @@ index d01faed..b0d1156 100644
  /* Returns true if the draw was split into draws that fit the arena. */
  static bool
  gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
-@@ -5620,12 +5691,20 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5622,12 +5693,20 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
     if (draw->prim == MESA_PRIM_PATCHES)
        return false;
  
@@ -195,7 +195,7 @@ index d01faed..b0d1156 100644
        for (uint32_t i = 0; i < draw->instance.count; i += step) {
           chunk.instance.base = draw->instance.base + i;
           chunk.instance.count = MIN2(step, draw->instance.count - i);
-@@ -5634,9 +5713,14 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5636,9 +5715,14 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
        return true;
     }
  

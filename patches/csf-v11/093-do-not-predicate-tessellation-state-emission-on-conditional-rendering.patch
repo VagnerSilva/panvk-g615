@@ -19,7 +19,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 5fe4d4d355e..7b99e028de3 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -5236,21 +5236,15 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -5238,21 +5238,15 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
        cmdbuf->state.gfx.vs.shader = tes;
        gfx_state_set_dirty(cmdbuf, VS);
        gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);

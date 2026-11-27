@@ -32,7 +32,7 @@ index 90ed3daa229..9eb316fa1b6 100644
  /* We reserve one ubo for push constant, one for sysvals and one per-set for the
   * descriptor metadata  */
  #define RESERVED_UBO_COUNT                   6
-@@ -1374,7 +1378,8 @@
+@@ -1414,7 +1418,8 @@
  
     snprintf(properties->driverName, VK_MAX_DRIVER_NAME_SIZE, "panvk");
     snprintf(properties->driverInfo, VK_MAX_DRIVER_INFO_SIZE,

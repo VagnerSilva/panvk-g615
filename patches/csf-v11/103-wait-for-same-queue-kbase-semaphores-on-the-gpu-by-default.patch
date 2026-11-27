@@ -26,7 +26,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 262b218..86ead3d 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -2718,10 +2718,16 @@ panvk_queue_submit_init_signals(struct panvk_queue_submit *submit,
+@@ -2732,10 +2732,16 @@ panvk_queue_submit_init_signals(struct panvk_queue_submit *submit,
  }
  
  #ifdef HAVE_PAN_KMOD_KBASE

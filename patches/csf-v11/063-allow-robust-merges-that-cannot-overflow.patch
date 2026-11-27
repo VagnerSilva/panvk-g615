@@ -14,7 +14,7 @@ diff --git a/src/compiler/nir/nir_opt_load_store_vectorize.c b/src/compiler/nir/
 index e71d43c9b28..42fdc2a6c24 100644
 --- a/src/compiler/nir/nir_opt_load_store_vectorize.c
 +++ b/src/compiler/nir/nir_opt_load_store_vectorize.c
-@@ -1441,6 +1441,15 @@ check_for_robustness(struct vectorize_ctx *ctx, struct entry *low, uint64_t high
+@@ -1445,6 +1445,15 @@ check_for_robustness(struct vectorize_ctx *ctx, struct entry *low, uint64_t high
     if (low->info->base_src < 0)
        return true;
  

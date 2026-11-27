@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 2dc8cd2bab2..86c7ab7847e 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -950,10 +950,24 @@ panvk_lower_tes(nir_shader *nir, struct panvk_gpu_prerast_tess_info *t)
+@@ -934,10 +934,24 @@ panvk_lower_tes(nir_shader *nir, struct panvk_gpu_prerast_tess_info *t)
     NIR_PASS(_, nir, nir_opt_constant_folding);
     NIR_PASS(_, nir, nir_remove_dead_variables, nir_var_shader_in, NULL);
     NIR_PASS(_, nir, panvk_tess_lower);

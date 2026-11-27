@@ -51,12 +51,12 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 8c3608d..8826aa7c 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -649,7 +649,7 @@ panvk_per_arch(get_physical_device_features)(
-
+@@ -665,7 +665,7 @@ panvk_per_arch(get_physical_device_features)(
+ 
        /* VK_KHR_robustness2 */
        .robustBufferAccess2 = PAN_ARCH >= 10,
 -      .robustImageAccess2 = false,
 +      .robustImageAccess2 = PAN_ARCH >= 10,
        .nullDescriptor = PAN_ARCH >= 10,
-
+ 
        /* VK_EXT_shader_tile_image */

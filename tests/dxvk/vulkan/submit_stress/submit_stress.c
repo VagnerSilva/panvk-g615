@@ -6,10 +6,12 @@
  * fixed amount of tiler work) seen in long dEQP-VK.api.copy_and_blit runs.
  *
  * usage: submit_stress <icd.so> [submits=50000] [render-passes-per-submit=1]
- *                      [seconds=0]
+ *                      [seconds=0] [one-time|replay|simultaneous]
  * seconds > 0 (or env SUBMIT_STRESS_SECONDS) stops the run after that much
  * wall time and lowers the fence timeout to 10 s, so a short PanProbe
  * stability run (no DEVICE_LOST within 30 s) fits the app's 60 s test limit.
+ * The simultaneous mode exercises the descriptor ring, but waits for each
+ * submit before re-recording; it does not test concurrent command-buffer use.
  * Ends with "RESULT PASS" or "RESULT FAIL".
  * build: gcc -O2 -Wall -o submit_stress submit_stress.c -ldl
  */
@@ -29,17 +31,33 @@ int
 main(int argc, char **argv)
 {
    if (argc < 2) {
-      printf("usage: %s <icd> [submits] [rps]\n", argv[0]);
+      printf("usage: %s <icd> [submits] [rps] [seconds] "
+             "[one-time|replay|simultaneous]\n", argv[0]);
       return 2;
    }
    long n = argc > 2 ? atol(argv[2]) : 50000;
    int rps = argc > 3 ? atoi(argv[3]) : 1;
    const char *sec_env = getenv("SUBMIT_STRESS_SECONDS");
    double secs = argc > 4 ? atof(argv[4]) : sec_env ? atof(sec_env) : 0;
+   const char *mode = argc > 5 ? argv[5] : "one-time";
+   VkCommandBufferUsageFlags usage_flags;
+   if (!strcmp(mode, "one-time")) {
+      usage_flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+   } else if (!strcmp(mode, "replay")) {
+      usage_flags = 0;
+   } else if (!strcmp(mode, "simultaneous")) {
+      usage_flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+   } else {
+      fprintf(stderr, "invalid mode: %s (expected one-time, replay or simultaneous)\n",
+              mode);
+      return 2;
+   }
    uint64_t wait_ns = (secs > 0 ? 10ull : 30ull) * 1000000000ull;
    struct dx7 t;
    VkPhysicalDeviceFeatures want = {0};
    dx7_init(&t, argv[1], &want);
+   if (argc > 5)
+      printf("SUBMIT_STRESS mode=%s\n", mode);
 
    /* a.z = red channel; one triangle covering the lower-left half. */
    const float tri[3][4] = {{-1, -1, 1, 1}, {1, -1, 1, 1}, {-1, 1, 1, 1}};
@@ -78,7 +96,7 @@ main(int argc, char **argv)
       CK(vkResetCommandBuffer(t.cmd, 0), "ResetCmd");
       VkCommandBufferBeginInfo bbi = {
          .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+         .flags = usage_flags};
       CK(vkBeginCommandBuffer(t.cmd, &bbi), "Begin");
       for (int r = 0; r < rps; r++) {
          vkCmdBeginRenderPass(t.cmd, &rpbi, VK_SUBPASS_CONTENTS_INLINE);

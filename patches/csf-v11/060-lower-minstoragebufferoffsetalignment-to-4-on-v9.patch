@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index f51d215217d..3df5506c693 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -976,8 +976,7 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1006,8 +1006,7 @@ panvk_per_arch(get_physical_device_properties)(
        .minTexelBufferOffsetAlignment = 16,
        /* Always aligned on a uniform slot (vec4). */
        .minUniformBufferOffsetAlignment = 16,
@@ -28,7 +28,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index ebfe1149b55..618228c33ec 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -426,7 +426,7 @@ panvk_get_spirv_options(UNUSED struct vk_physical_device *vk_pdev,
+@@ -398,7 +398,7 @@ panvk_get_spirv_options(UNUSED struct vk_physical_device *vk_pdev,
        .phys_ssbo_addr_format = nir_address_format_64bit_global,
        .shared_addr_format = nir_address_format_32bit_offset,
        .min_ubo_alignment = 16,

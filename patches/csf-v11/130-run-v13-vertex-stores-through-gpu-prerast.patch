@@ -44,7 +44,7 @@ the arena) still fall back to IDVS on v13+.
          (gs && (!gs->gpu_prerast.gs.kernel_compiled ||
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -5356,7 +5356,7 @@
+@@ -5358,6 +5358,6 @@
                     const struct panvk_draw_info *draw)
  {
     return gpu_prerast_needed(cmdbuf, draw) ||
@@ -55,7 +55,7 @@ the arena) still fall back to IDVS on v13+.
 
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -3402,7 +3402,7 @@
+@@ -3392,7 +3392,7 @@
           BITSET_TEST(state->dynamic, MESA_VK_DYNAMIC_RS_POLYGON_MODE);
        const bool want_prerast =
           PANVK_DEBUG(GPU_PRERAST) || info->nir->xfb_info ||

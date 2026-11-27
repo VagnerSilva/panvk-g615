@@ -31,7 +31,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 5f908d89b80..5fe4d4d355e 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -2609,6 +2609,12 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
+@@ -2611,6 +2611,12 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
     bool shader_modifies_coverage = false;
     uint8_t rt_mask = cmdbuf->state.gfx.render.bound_attachments &
                       MESA_VK_RP_ATTACHMENT_ANY_COLOR_BITS;
@@ -44,7 +44,7 @@ index 5f908d89b80..5fe4d4d355e 100644
  
     if (fs) {
        out->rt_written = color_attachment_written_mask(fs, &dyns->cal);
-@@ -2636,8 +2642,7 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
+@@ -2638,8 +2644,7 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
           enum pan_earlyzs_zs_tilebuf_read zs_read =
              PAN_EARLYZS_ZS_TILEBUF_NOT_READ;
  
@@ -54,7 +54,7 @@ index 5f908d89b80..5fe4d4d355e 100644
              if (writes_z || writes_s || PAN_ARCH != 10)
                 zs_read = PAN_EARLYZS_ZS_TILEBUF_READ_NO_OPT;
              else
-@@ -2739,7 +2744,7 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
+@@ -2741,7 +2746,7 @@ build_dcd_flags(struct panvk_cmd_buffer *cmdbuf,
        cfg.write_mask = out->rt_written;
  #if PAN_ARCH >= 11
        if (fs) {
@@ -63,7 +63,7 @@ index 5f908d89b80..5fe4d4d355e 100644
           cfg.no_shader_stencil_read = !s_attachment_read(fs, &dyns->ial);
        }
  #endif
-@@ -2809,7 +2814,9 @@ prepare_dcd(struct panvk_cmd_buffer *cmdbuf,
+@@ -2811,7 +2816,9 @@ prepare_dcd(struct panvk_cmd_buffer *cmdbuf,
        panvk_get_cs_builder(cmdbuf, PANVK_SUBQUEUE_VERTEX_TILER);
     bool dcd2_dirty = fs_user_dirty(cmdbuf) ||
                       dyn_gfx_state_dirty(cmdbuf, INPUT_ATTACHMENT_MAP) ||
@@ -157,7 +157,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/panvk
 index 3876d95e063..85c55639b4e 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_draw.c
-@@ -986,6 +986,24 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -1009,6 +1009,24 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
  
  #if PAN_ARCH >= 10
     panvk_upload_prerast_viewports(cmdbuf, dirty_sysvals);
@@ -186,7 +186,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 28b29f76836..2a4c78d5d4f 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -722,6 +722,10 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -817,6 +817,10 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
     if (result != VK_SUCCESS)
        goto err_free_draw_ctx;
  
@@ -197,7 +197,7 @@ index 28b29f76836..2a4c78d5d4f 100644
     for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
        const VkDeviceQueueCreateInfo *queue_create =
           &pCreateInfo->pQueueCreateInfos[i];
-@@ -755,6 +759,8 @@ err_finish_queues:
+@@ -850,6 +854,8 @@ err_finish_queues:
     vk_foreach_queue_safe(queue, &device->vk)
        panvk_queue_destroy(queue);
  
@@ -206,7 +206,7 @@ index 28b29f76836..2a4c78d5d4f 100644
     panvk_meta_cleanup(device);
  
  err_free_draw_ctx:
-@@ -820,6 +826,8 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
+@@ -911,6 +917,8 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
  #if PAN_ARCH >= 10 && PAN_ARCH < 14
     panvk_per_arch(device_draw_context_cleanup)(device);
  #endif
@@ -219,7 +219,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index c84d77f62f5..90ed3daa229 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -323,7 +323,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -330,7 +330,7 @@ panvk_per_arch(get_physical_device_features)(
        .depthClamp = true,
        .depthBiasClamp = true,
        .fillModeNonSolid = PAN_ARCH >= 10,
@@ -232,7 +232,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index e148369a18c..f3e2a370fca 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -2320,6 +2320,101 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
+@@ -2304,6 +2304,101 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
  #undef GS_PARAM
  #endif
  
@@ -334,7 +334,7 @@ index e148369a18c..f3e2a370fca 100644
  static void
  panvk_hash_state(struct vk_physical_device *device,
                   const struct vk_graphics_pipeline_state *state,
-@@ -2355,6 +2450,8 @@ panvk_hash_state(struct vk_physical_device *device,
+@@ -2339,6 +2434,8 @@ panvk_hash_state(struct vk_physical_device *device,
           _mesa_blake3_update(&blake3_ctx, state->ial, sizeof(*state->ial));
  
  #if PAN_ARCH >= 10
@@ -343,7 +343,7 @@ index e148369a18c..f3e2a370fca 100644
        bool non_solid = (stages & VK_SHADER_STAGE_VERTEX_BIT) && state->rs &&
                         state->rs->polygon_mode != VK_POLYGON_MODE_FILL;
        _mesa_blake3_update(&blake3_ctx, &non_solid, sizeof(non_solid));
-@@ -3720,6 +3817,13 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3709,6 +3806,13 @@ panvk_compile_shader(struct panvk_device *dev,
                 &variant->fs.tile_image_z_read,
                 &variant->fs.tile_image_s_read);
  
@@ -357,7 +357,7 @@ index e148369a18c..f3e2a370fca 100644
        /* Lower input intrinsics for fragment shaders early to get the max
         * number of varying loads, as this number is required during descriptor
         * lowering for v9+.
-@@ -4079,6 +4183,8 @@ panvk_deserialize_shader_variant(struct vk_device *vk_dev,
+@@ -4081,6 +4185,8 @@ panvk_deserialize_shader_variant(struct vk_device *vk_dev,
                        sizeof(shader->fs.tile_image_z_read));
        blob_copy_bytes(blob, &shader->fs.tile_image_s_read,
                        sizeof(shader->fs.tile_image_s_read));
@@ -366,7 +366,7 @@ index e148369a18c..f3e2a370fca 100644
        break;
  
     default:
-@@ -4246,6 +4352,8 @@ panvk_shader_serialize_variant(struct vk_device *vk_dev,
+@@ -4248,6 +4354,8 @@ panvk_shader_serialize_variant(struct vk_device *vk_dev,
                         sizeof(shader->fs.tile_image_z_read));
        blob_write_bytes(blob, &shader->fs.tile_image_s_read,
                         sizeof(shader->fs.tile_image_s_read));
@@ -375,7 +375,7 @@ index e148369a18c..f3e2a370fca 100644
        break;
  
     default:
-@@ -4696,6 +4804,38 @@ static const struct vk_shader_ops panvk_shader_ops = {
+@@ -4698,6 +4806,38 @@ static const struct vk_shader_ops panvk_shader_ops = {
        panvk_shader_get_executable_internal_representations,
  };
  
@@ -414,7 +414,7 @@ index e148369a18c..f3e2a370fca 100644
  static void
  panvk_cmd_bind_shader(struct panvk_cmd_buffer *cmd, const mesa_shader_stage stage,
                        struct panvk_shader *shader)
-@@ -4716,6 +4856,8 @@ panvk_cmd_bind_shader(struct panvk_cmd_buffer *cmd, const mesa_shader_stage stag
+@@ -4718,6 +4858,8 @@ panvk_cmd_bind_shader(struct panvk_cmd_buffer *cmd, const mesa_shader_stage stag
        }
        break;
     case MESA_SHADER_FRAGMENT:

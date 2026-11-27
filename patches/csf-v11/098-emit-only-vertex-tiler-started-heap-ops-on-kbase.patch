@@ -25,7 +25,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index da41abcabf9..8c905bdf464 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -54,6 +54,22 @@
+@@ -55,6 +55,22 @@
  #include "vk_render_pass.h"
  #include "poly/geometry.h"
  
@@ -48,7 +48,7 @@ index da41abcabf9..8c905bdf464 100644
  static bool
  render_needs_zs_crc_ext(struct panvk_cmd_buffer *cmdbuf)
  {
-@@ -6579,7 +6595,8 @@ flush_tiling(struct panvk_cmd_buffer *cmdbuf)
+@@ -6601,7 +6617,8 @@ flush_tiling(struct panvk_cmd_buffer *cmdbuf)
                  offsetof(struct panvk_cs_subqueue_context, syncobjs));
  
     cs_move64_to(b, add_val, 1);
@@ -58,7 +58,7 @@ index da41abcabf9..8c905bdf464 100644
     panvk_instr_sync64_add(cmdbuf, PANVK_SUBQUEUE_VERTEX_TILER, true,
                            MALI_CS_SYNC_SCOPE_CSG, add_val, sync_addr,
                            cs_defer_indirect());
-@@ -6596,7 +6613,8 @@ flush_tiling(struct panvk_cmd_buffer *cmdbuf)
+@@ -6618,7 +6635,8 @@ flush_tiling(struct panvk_cmd_buffer *cmdbuf)
     cs_move64_to(b, add_val, 1);
  
     cs_match_iter_sb(b, x, iter_sb, cmp_scratch) {
@@ -68,7 +68,7 @@ index da41abcabf9..8c905bdf464 100644
        panvk_instr_sync64_add(cmdbuf, PANVK_SUBQUEUE_VERTEX_TILER, true,
                               MALI_CS_SYNC_SCOPE_CSG, add_val, sync_addr,
                               cs_defer(SB_WAIT_ITER(x), SB_ID(DEFERRED_SYNC)));
-@@ -7008,7 +7026,9 @@ issue_fragment_jobs(struct panvk_cmd_buffer *cmdbuf)
+@@ -7030,7 +7048,9 @@ issue_fragment_jobs(struct panvk_cmd_buffer *cmdbuf)
           cs_defer(SB_WAIT_ITER(sb_upd_ctx.cur_sb), SB_ITER(sb_upd_ctx.next_sb));
  #endif
  

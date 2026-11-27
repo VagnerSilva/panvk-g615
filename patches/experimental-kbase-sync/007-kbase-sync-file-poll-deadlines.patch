@@ -1,0 +1,96 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] panvk/kbase: validate sync_file events and enforce poll deadlines
+
+Purpose: Reject invalid or unexpected poll events and recompute bounded, rounded-up millisecond waits against the absolute monotonic deadline after every retry.
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa; local sync_file polling investigation on 2026-11-24.
+Tested GPU: not executed for this correction (target: Mali-G615 CSF v11).
+Tested Kbase UAPI: not executed for this correction; no ioctl or ABI changes.
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: G615 profile series followed by experimental-kbase-sync/002 through 005; discarded draft 006 is not required.
+Validation test: tests/test_kbase_sync_file_wait.py, tests/test_kbase_wait_any.py, tests/test_g615_build_series.py; source application, target builds and hardware execution require separate validation.
+
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -16,6 +16,7 @@
+ #if defined(HAVE_PAN_KMOD_KBASE)
+ #include <errno.h>
+ #include <fcntl.h>
++#include <limits.h>
+ #include <poll.h>
+ #include <string.h>
+ #include <sys/ioctl.h>
+@@ -1057,37 +1058,57 @@
+ static VkResult
+ kbase_sync_file_wait_func(void *data, UNUSED const uint64_t *targets,
+                           uint64_t abs_timeout_ns)
+ {
+    struct kbase_sync_file_waiter *waiter = data;
+-   if (waiter->fd < 0)
++   if (waiter->fd < 0) {
++      mesa_loge("kbase: invalid sync_file fd: %d", waiter->fd);
+       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
++   }
+ 
+-   int timeout_ms;
+-   if (abs_timeout_ns == 0xFFFFFFFFFFFFFFFFULL) {
+-      timeout_ms = -1;
+-   } else {
+-      uint64_t now = os_time_get_nano();
+-      if (abs_timeout_ns <= now)
+-         timeout_ms = 0;
+-      else
+-         timeout_ms = (int)((abs_timeout_ns - now) / 1000000ull);
+-   }
+-
++   const bool infinite = abs_timeout_ns == UINT64_MAX;
+    struct pollfd pfd = {
+       .fd = waiter->fd,
+       .events = POLLIN | POLLERR | POLLHUP,
+    };
+ 
+    while (true) {
++      int timeout_ms = -1;
++      if (!infinite) {
++         uint64_t now = os_time_get_nano();
++         if (now >= abs_timeout_ns) {
++            timeout_ms = 0;
++         } else {
++            uint64_t remaining_ns = abs_timeout_ns - now;
++            timeout_ms = MIN2(
++               remaining_ns / 1000000ULL + (remaining_ns % 1000000ULL != 0),
++               (uint64_t)INT_MAX);
++         }
++      }
++
++      pfd.revents = 0;
+       int ret = poll(&pfd, 1, timeout_ms);
+       if (ret > 0) {
+-         if (pfd.revents & (POLLERR | POLLHUP))
++         if (pfd.revents & POLLNVAL) {
++            mesa_loge("kbase: invalid sync_file fd: %d", waiter->fd);
++            return VK_ERROR_INVALID_EXTERNAL_HANDLE;
++         }
++         if (pfd.revents & (POLLERR | POLLHUP)) {
++            mesa_loge("kbase: sync_file fd %d failed: revents=0x%x",
++                      waiter->fd, pfd.revents);
+             return VK_ERROR_DEVICE_LOST;
++         }
++         if (!(pfd.revents & POLLIN)) {
++            mesa_loge("kbase: unexpected sync_file events: fd=%d revents=0x%x",
++                      waiter->fd, pfd.revents);
++            return VK_ERROR_UNKNOWN;
++         }
+          return VK_SUCCESS;
+-      } else if (ret == 0) {
+-         return VK_TIMEOUT;
+-      } else if (errno != EINTR && errno != EAGAIN) {
++      }
++      if (ret < 0 && errno != EINTR && errno != EAGAIN) {
++         mesa_loge("kbase: sync_file poll failed: %s", strerror(errno));
+          return VK_ERROR_UNKNOWN;
+       }
++      if (!infinite && os_time_get_nano() >= abs_timeout_ns)
++         return VK_TIMEOUT;
+    }
+ }

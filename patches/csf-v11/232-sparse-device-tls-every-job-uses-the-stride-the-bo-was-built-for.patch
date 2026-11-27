@@ -50,7 +50,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/cs
 index fe562fee..9d8110e6 100644
 --- a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 +++ b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
-@@ -1133,6 +1133,11 @@ cs_emit_layer_fragment_state(struct cs_builder *b, struct cs_index fbd_ptr)
+@@ -1136,6 +1136,11 @@ cs_emit_layer_fragment_state(struct cs_builder *b, struct cs_index fbd_ptr)
  }
  #endif /* PAN_ARCH >= 14 */
  
@@ -66,7 +66,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index 53cf5d90..9bb47dc7 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -296,7 +296,8 @@ dev_tls_create(struct panvk_device *dev, const struct dev_tls_layout *l)
+@@ -299,7 +299,8 @@ dev_tls_create(struct panvk_device *dev, const struct dev_tls_layout *l)
  }
  
  static uint64_t
@@ -76,7 +76,7 @@ index 53cf5d90..9bb47dc7 100644
  {
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
     const bool free_old = dev_tls_free_old();
-@@ -348,6 +349,10 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, const struct dev_tls_layout *l)
+@@ -351,6 +352,10 @@ get_device_tls(struct panvk_cmd_buffer *cmdbuf, const struct dev_tls_layout *l)
  
     if (cur) {
        addr = cur->addr.dev;
@@ -87,7 +87,7 @@ index 53cf5d90..9bb47dc7 100644
        if (free_old) {
           bool held = false;
           util_dynarray_foreach(&cmdbuf->dev_tls_refs, struct panvk_priv_bo *,
-@@ -373,6 +378,7 @@ emit_tls(struct panvk_cmd_buffer *cmdbuf)
+@@ -376,6 +381,7 @@ emit_tls(struct panvk_cmd_buffer *cmdbuf)
     struct panvk_physical_device *phys_dev =
        to_panvk_physical_device(dev->vk.physical);
     unsigned core_id_range = pan_query_core_id_range(&phys_dev->kmod.dev->props);
@@ -95,7 +95,7 @@ index 53cf5d90..9bb47dc7 100644
  
     if (cmdbuf->state.tls.info.tls.size) {
        unsigned thread_tls_alloc =
-@@ -388,16 +394,49 @@ emit_tls(struct panvk_cmd_buffer *cmdbuf)
+@@ -391,16 +397,45 @@ emit_tls(struct panvk_cmd_buffer *cmdbuf)
           .threads = thread_tls_alloc,
        };
  
@@ -124,23 +124,19 @@ index 53cf5d90..9bb47dc7 100644
 +/* csf-v11 232: per-job TSDs (dispatch, precomp, the gpu_prerast and
 + * tessellation compute jobs) were written with their own shader's stack size
 + * and only took the TLS pointer from the command buffer's descriptor, which
-+ * is filled at EndCommandBuffer. With PANVK_TLS_SPARSE the stack size (word
-+ * 0, nothing else lives there) is copied too, so every job uses the stride
-+ * the sparse BO was built for. PANVK_TLS_SPARSE=0 = the 112 copy. */
++ * is filled at EndCommandBuffer. Copy the stack size (word 0, nothing else
++ * lives there) as well, preserving Mesa 27's dispatch contract and ensuring
++ * every job uses the stride the sparse BO was built for. */
 +void
 +panvk_per_arch(cmd_copy_tls_to_tsd)(struct panvk_cmd_buffer *cmdbuf,
 +                                    struct cs_builder *b, uint64_t tsd)
 +{
-+   const bool stride = dev_tls_sparse();
-+
 +   cs_move64_to(b, cs_scratch_reg64(b, 0), cmdbuf->state.tls.desc.gpu);
 +   cs_load64_to(b, cs_scratch_reg64(b, 2), cs_scratch_reg64(b, 0), 8);
-+   if (stride)
-+      cs_load32_to(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
++   cs_load32_to(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
 +   cs_move64_to(b, cs_scratch_reg64(b, 0), tsd);
 +   cs_store64(b, cs_scratch_reg64(b, 2), cs_scratch_reg64(b, 0), 8);
-+   if (stride)
-+      cs_store32(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
++   cs_store32(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
 +   cs_flush_stores(b);
 +}
 +
@@ -151,13 +147,15 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_dispatch.c b/src/panfrost/vulk
 index 3586e17b..978f4213 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_dispatch.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_dispatch.c
-@@ -412,11 +412,7 @@ cmd_dispatch(struct panvk_cmd_buffer *cmdbuf, struct panvk_dispatch_info *info)
+@@ -416,13 +416,7 @@ cmd_dispatch(struct panvk_cmd_buffer *cmdbuf, struct panvk_dispatch_info *info)
  
-    /* Copy the global TLS pointer to the per-job TSD. */
+    /* Copy the global TLS pointer and size to the per-job TSD. */
     if (cs->info.tls_size) {
 -      cs_move64_to(b, cs_scratch_reg64(b, 0), cmdbuf->state.tls.desc.gpu);
+-      cs_load32_to(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
 -      cs_load64_to(b, cs_scratch_reg64(b, 2), cs_scratch_reg64(b, 0), 8);
 -      cs_move64_to(b, cs_scratch_reg64(b, 0), tsd);
+-      cs_store32(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
 -      cs_store64(b, cs_scratch_reg64(b, 2), cs_scratch_reg64(b, 0), 8);
 -      cs_flush_stores(b);
 +      panvk_per_arch(cmd_copy_tls_to_tsd)(cmdbuf, b, tsd);
@@ -168,7 +166,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 00c5c5f3..078158f6 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3751,11 +3751,7 @@ gpu_prerast_launch_cs_desc(struct panvk_cmd_buffer *cmdbuf,
+@@ -3753,11 +3753,7 @@ gpu_prerast_launch_cs_desc(struct panvk_cmd_buffer *cmdbuf,
     if (cs->info.tls_size) {
        struct cs_builder *b =
           panvk_get_cs_builder(cmdbuf, PANVK_SUBQUEUE_COMPUTE);
@@ -185,13 +183,15 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_precomp.c b/src/panfrost/vulka
 index a3be5176..cae3a7b0 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_precomp.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_precomp.c
-@@ -66,11 +66,7 @@ panvk_per_arch(dispatch_precomp)(struct panvk_precomp_ctx *ctx,
+@@ -66,13 +66,7 @@ panvk_per_arch(dispatch_precomp)(struct panvk_precomp_ctx *ctx,
  
-    /* Copy the global TLS pointer to the per-job TSD. */
+    /* Copy the global TLS pointer and size to the per-job TSD. */
     if (shader->info.tls_size) {
 -      cs_move64_to(b, cs_scratch_reg64(b, 0), cmdbuf->state.tls.desc.gpu);
+-      cs_load32_to(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
 -      cs_load64_to(b, cs_scratch_reg64(b, 2), cs_scratch_reg64(b, 0), 8);
 -      cs_move64_to(b, cs_scratch_reg64(b, 0), tsd);
+-      cs_store32(b, cs_scratch_reg32(b, 4), cs_scratch_reg64(b, 0), 0);
 -      cs_store64(b, cs_scratch_reg64(b, 2), cs_scratch_reg64(b, 0), 8);
 -      cs_flush_stores(b);
 +      panvk_per_arch(cmd_copy_tls_to_tsd)(cmdbuf, b, tsd);
@@ -200,4 +200,3 @@ index a3be5176..cae3a7b0 100644
     cs_update_compute_ctx(b) {
 -- 
 2.55.0
-

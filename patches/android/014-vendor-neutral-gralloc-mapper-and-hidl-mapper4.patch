@@ -54,7 +54,7 @@ Tested GPU: Lenovo TB336FU (MT8755 Mali-G57, vendor API 33, Arm gralloc4)
  (AFBC modifier 0x0800000000000351) and OnePlus CPH2691 (SM8650, QTI
  mapper4: linear), as shell and as run-as.
 Tested Kbase UAPI: n/a (gralloc path)
-Mesa base range: 5a07217f034b (26.3.0-devel)
+Mesa base range: 13baeb70c066 (27.0.0-devel)
 Dependencies: android/013-vendor-mapper-metadata.patch; caller hook in
  wsi/017-android-swapchain-owned-ahb.patch
 Validation test: PanProbe/panvk-test swapchain_lifecycle on a stock ROM;
@@ -434,7 +434,7 @@ diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
 index 0944f5e..97637ed 100644
 --- a/src/vulkan/runtime/vk_android.c
 +++ b/src/vulkan/runtime/vk_android.c
-@@ -52,7 +52,10 @@
+@@ -53,7 +53,10 @@
  #endif
  
  #include <unistd.h>
@@ -445,7 +445,7 @@ index 0944f5e..97637ed 100644
  
  static struct u_gralloc *_gralloc;
  
-@@ -666,6 +669,109 @@ vk_common_GetSwapchainGrallocUsage2ANDROID(
+@@ -667,6 +670,109 @@ vk_common_GetSwapchainGrallocUsage2ANDROID(
     return VK_SUCCESS;
  }
  
@@ -555,7 +555,7 @@ index 0944f5e..97637ed 100644
  VkResult
  vk_android_get_ahb_layout(
     struct AHardwareBuffer *ahardware_buffer,
-@@ -684,8 +790,12 @@ vk_android_get_ahb_layout(
+@@ -685,8 +791,12 @@ vk_android_get_ahb_layout(
        .hal_format = description.format,
     };
  
@@ -574,7 +574,7 @@ diff --git a/src/vulkan/runtime/vk_android.h b/src/vulkan/runtime/vk_android.h
 index 8f1843d..ed20e97 100644
 --- a/src/vulkan/runtime/vk_android.h
 +++ b/src/vulkan/runtime/vk_android.h
-@@ -120,6 +120,8 @@ VkResult vk_android_get_ahb_layout(
+@@ -123,6 +123,8 @@ VkResult vk_android_get_ahb_layout(
     VkImageDrmFormatModifierExplicitCreateInfoEXT *out,
     VkSubresourceLayout *out_layouts, int max_planes);
  
@@ -583,7 +583,7 @@ index 8f1843d..ed20e97 100644
  VkResult vk_android_get_ahb_image_properties(
     VkPhysicalDevice pdev_handle,
     const VkPhysicalDeviceImageFormatInfo2 *info,
-@@ -179,6 +181,11 @@ vk_android_get_ahb_layout(
+@@ -227,6 +229,11 @@ vk_android_get_ahb_layout(
     return VK_ERROR_FEATURE_NOT_PRESENT;
  }
  

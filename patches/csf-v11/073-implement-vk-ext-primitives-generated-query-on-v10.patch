@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index f32f331e9dc..07c08a40601 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -2988,11 +2988,15 @@ update_prims_generated_query(struct panvk_cmd_buffer *cmdbuf,
+@@ -2990,11 +2990,15 @@ update_prims_generated_query(struct panvk_cmd_buffer *cmdbuf,
     if (!state->ptr)
        return;
  
@@ -32,7 +32,7 @@ index f32f331e9dc..07c08a40601 100644
     if (draw->index.index_size && ia->primitive_restart_enable) {
        struct panvk_precomp_ctx precomp_ctx = panvk_per_arch(precomp_cs)(cmdbuf);
  
-@@ -3717,6 +3721,7 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
+@@ -3719,6 +3723,7 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
        pstats, VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT, true));
     STORE_GS64(stats[3], panvk_pstats_counter_addr(
        pstats, VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT, true));
@@ -40,7 +40,7 @@ index f32f331e9dc..07c08a40601 100644
  #undef STORE_GS32
  #undef STORE_GS64
  
-@@ -4502,18 +4507,10 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4504,18 +4509,10 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
        panlib_1d(DIV_ROUND_UP(max_patches, 64));
     const uint64_t prims_generated =
        gs ? 0 : cmdbuf->state.gfx.prims_generated_query.ptr;
@@ -59,7 +59,7 @@ index f32f331e9dc..07c08a40601 100644
     const uint64_t c_invs =
        gs ? 0
           : panvk_pstats_counter_addr(
-@@ -4599,20 +4596,6 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4601,20 +4598,6 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
                 prerast_arena + PANVK_GPU_PRERAST_RECORD_OFFSET,
                 prerast_arena + PANVK_GPU_PRERAST_INDEX_OFFSET,
                 TD(gs_prim_base), PANVK_CSF_BARRIER_WAIT);
@@ -80,7 +80,7 @@ index f32f331e9dc..07c08a40601 100644
           }
           if (xfb) {
              gpu_prerast_xfb(cmdbuf, &out, prerast_arena, PANLIB_BARRIER_NONE);
-@@ -4803,8 +4786,12 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
+@@ -4805,8 +4788,12 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
     /* If there's no vertex shader, we can skip the draw. With tessellation,
      * the TES rasterizes and the VS may be empty.
      */
@@ -133,7 +133,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 1e77308e2a4..eec5c4a138d 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -202,6 +202,7 @@ panvk_per_arch(get_physical_device_extensions)(
+@@ -205,6 +205,7 @@ panvk_per_arch(get_physical_device_extensions)(
  #endif
        .EXT_private_data = true,
        .EXT_primitive_topology_list_restart = true,
@@ -141,7 +141,7 @@ index 1e77308e2a4..eec5c4a138d 100644
        .EXT_provoking_vertex = true,
        .EXT_queue_family_foreign = true,
        .EXT_rasterization_order_attachment_access = PAN_ARCH >= 10,
-@@ -613,6 +614,11 @@ panvk_per_arch(get_physical_device_features)(
+@@ -629,6 +630,11 @@ panvk_per_arch(get_physical_device_features)(
        .primitiveTopologyListRestart = true,
        .primitiveTopologyPatchListRestart = false,
  
@@ -157,7 +157,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index b25a12b0bbe..68fc6a34da8 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -1962,6 +1962,17 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
+@@ -1946,6 +1946,17 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
                             .atomic_op = nir_atomic_op_iadd);
           nir_pop_if(b, NULL);
        }

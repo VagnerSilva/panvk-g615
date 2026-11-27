@@ -16,8 +16,10 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
        .KHR_depth_stencil_resolve = true,
        .KHR_device_group = true,
        .KHR_draw_indirect_count = PAN_ARCH >= 10,
-@@ -89,12 +89,12 @@ panvk_per_arch(get_device_extensions)(const struct panvk_physical_device *device)
+@@ -90,14 +90,14 @@ panvk_per_arch(get_device_extensions)(const struct panvk_physical_device *device)
        .KHR_maintenance9 = true,
+       .KHR_maintenance10 = true,
+       .KHR_maintenance11 = true,
        .KHR_map_memory2 = true,
        .KHR_multiview = true,
 -      .KHR_pipeline_binary = true,

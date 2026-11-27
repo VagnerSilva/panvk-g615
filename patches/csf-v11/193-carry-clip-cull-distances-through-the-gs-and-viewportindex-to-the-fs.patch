@@ -141,7 +141,7 @@ index 263cf13..d9a23ef 100644
  
  #define FAU_WORD_COUNT 64
  
-@@ -563,7 +563,7 @@ panvk_lower_clip_cull_vs(nir_shader *nir)
+@@ -535,7 +535,7 @@ panvk_lower_clip_cull_vs(nir_shader *nir)
                                            VARYING_SLOT_CULL_DIST1, "cull1"),
                      nir_vec(&b, &cull_v[4], 4), 0xf);
     }
@@ -150,7 +150,7 @@ index 263cf13..d9a23ef 100644
     return nir_progress(true, nir_shader_get_entrypoint(nir),
                         nir_metadata_none);
  }
-@@ -574,14 +574,14 @@ panvk_lower_clip_cull_fs(nir_shader *nir, uint64_t prev_outputs,
+@@ -546,14 +546,14 @@ panvk_lower_clip_cull_fs(nir_shader *nir, uint64_t prev_outputs,
  {
     static const gl_varying_slot locs[4] = {
        VARYING_SLOT_CLIP_DIST0, VARYING_SLOT_CLIP_DIST1,
@@ -167,7 +167,7 @@ index 263cf13..d9a23ef 100644
         !extra_scissor)
        return false;
  
-@@ -621,7 +621,7 @@ panvk_lower_clip_cull_fs(nir_shader *nir, uint64_t prev_outputs,
+@@ -593,7 +593,7 @@ panvk_lower_clip_cull_fs(nir_shader *nir, uint64_t prev_outputs,
        }
        if (old_cull[i].var) {
           nir_store_array_var_imm(&b, old_cull[i].var, old_cull[i].idx,
@@ -176,7 +176,7 @@ index 263cf13..d9a23ef 100644
        }
     }
  
-@@ -1293,7 +1293,7 @@ panvk_gpu_prerast_vs_vp_passthrough_nir(
+@@ -1277,7 +1277,7 @@ panvk_gpu_prerast_vs_vp_passthrough_nir(
     b.shader->info.outputs_written =
        (outputs & ~VARYING_BIT_VIEWPORT) | BITFIELD64_BIT(scissor_loc) |
        (add_prim_id ? VARYING_BIT_PRIMITIVE_ID : 0);
@@ -185,7 +185,7 @@ index 263cf13..d9a23ef 100644
     return b.shader;
  }
  
-@@ -3322,7 +3322,7 @@ panvk_lower_cull_dist_flags_intr(nir_builder *b, nir_intrinsic_instr *intr,
+@@ -3312,7 +3312,7 @@ panvk_lower_cull_dist_flags_intr(nir_builder *b, nir_intrinsic_instr *intr,
        return false;
  
     gl_varying_slot loc = nir_intrinsic_io_semantics(intr).location;
@@ -194,7 +194,7 @@ index 263cf13..d9a23ef 100644
        return false;
  
     b->cursor = nir_before_instr(&intr->instr);
-@@ -3652,7 +3652,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3641,7 +3641,7 @@ panvk_compile_shader(struct panvk_device *dev,
        struct panvk_gpu_prerast_gs_info *gs = &shader->gpu_prerast.gs;
        struct panvk_gpu_prerast_out_types out_types = {0};
        nir_shader *nir = info->nir;
@@ -203,7 +203,7 @@ index 263cf13..d9a23ef 100644
        shader->gpu_prerast.io.abi_version = PANVK_GPU_PRERAST_ABI_VERSION;
        shader->gpu_prerast.has_side_effects = nir->info.writes_memory;
  
-@@ -3670,7 +3670,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3659,7 +3659,7 @@ panvk_compile_shader(struct panvk_device *dev,
        if (gs->xfb)
           gs->record_stride += 16;
        panvk_gpu_prerast_gather_xfb(&shader->gpu_prerast.xfb, nir->xfb_info,
@@ -212,7 +212,7 @@ index 263cf13..d9a23ef 100644
        gs->max_vertices = MAX2(nir->info.gs.vertices_out, 1);
        gs->index_stride = ALIGN_POT(2 * gs->max_vertices, 4);
        gs->invocations = MAX2(nir->info.gs.invocations, 1);
-@@ -3685,8 +3685,8 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3674,8 +3674,8 @@ panvk_compile_shader(struct panvk_device *dev,
            (gs->outputs_written & VARYING_BIT_POS))
           gs->scissor_clip_loc = panvk_prerast_scissor_slot(
              gs->outputs_written & ~VARYING_BIT_VIEWPORT);
@@ -223,7 +223,7 @@ index 263cf13..d9a23ef 100644
        struct panvk_shader_desc_info pt_desc_info = {0};
        panvk_lower_nir(dev, pt_nir, info->set_layout_count, info->set_layouts,
                        info->robustness, state, &pt_desc_info, false);
-@@ -3728,7 +3728,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3717,7 +3717,7 @@ panvk_compile_shader(struct panvk_device *dev,
     case MESA_SHADER_TESS_CTRL: {
        struct panvk_gpu_prerast_tess_info *t = &shader->gpu_prerast.tess;
        nir_shader *nir = info->nir;
@@ -232,7 +232,7 @@ index 263cf13..d9a23ef 100644
        shader->gpu_prerast.has_side_effects = nir->info.writes_memory;
  
        NIR_PASS(_, nir, nir_lower_var_copies);
-@@ -3788,7 +3788,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3777,7 +3777,7 @@ panvk_compile_shader(struct panvk_device *dev,
  
        uint64_t prev_dist_outputs =
           VARYING_BIT_CLIP_DIST0 | VARYING_BIT_CLIP_DIST1 |
@@ -241,7 +241,8 @@ index 263cf13..d9a23ef 100644
        if (vs_varying_layout) {
           prev_dist_outputs = 0;
           for (unsigned i = 0; i < vs_varying_layout->count; i++) {
-@@ -5014,3 +5014,260 @@ VkResult panvk_per_arch(create_shader)(
+@@ -5015,4 +5015,261 @@ VkResult panvk_per_arch(create_shader)(
+    *shader_out = container_of(vk_shader, struct panvk_shader, vk);
  
     return VK_SUCCESS;
  }

@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index ee935eb98df..5d5ce885531 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -1083,6 +1083,13 @@ panvk_per_arch(CmdExecuteCommands)(VkCommandBuffer commandBuffer,
+@@ -1122,6 +1122,13 @@ panvk_per_arch(CmdExecuteCommands)(VkCommandBuffer commandBuffer,
     for (uint32_t i = 0; i < commandBufferCount; i++) {
        VK_FROM_HANDLE(panvk_cmd_buffer, secondary, pCommandBuffers[i]);
  
@@ -25,14 +25,14 @@ index ee935eb98df..5d5ce885531 100644
 +         primary->state.tiler_work_estimate +=
 +            secondary->state.tiler_work_estimate;
 +
-       /* make sure the CS context is setup properly
-        * to inherit the primary command buffer state
-        */
+       if (secondary->state.uses_poly_heap) {
+          VkResult result = panvk_per_arch(cmd_init_poly_heap)(primary);
+          if (result != VK_SUCCESS) {
 diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 index d33bee77f7e..434a282452d 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -1222,6 +1222,15 @@ prepare_layer_count_inherited_ctx(struct panvk_cmd_buffer *cmdbuf)
+@@ -1224,6 +1224,15 @@ prepare_layer_count_inherited_ctx(struct panvk_cmd_buffer *cmdbuf)
  #endif
  }
  
@@ -48,7 +48,7 @@ index d33bee77f7e..434a282452d 100644
  static VkResult
  get_tiler_desc(struct panvk_cmd_buffer *cmdbuf)
  {
-@@ -1251,6 +1260,8 @@ get_tiler_desc(struct panvk_cmd_buffer *cmdbuf)
+@@ -1253,6 +1262,8 @@ get_tiler_desc(struct panvk_cmd_buffer *cmdbuf)
           return VK_ERROR_OUT_OF_DEVICE_MEMORY;
     }
  
@@ -57,7 +57,7 @@ index d33bee77f7e..434a282452d 100644
     const struct pan_fb_layout *fb = &cmdbuf->state.gfx.render.fb.layout;
  
     /* At this point, we should know sample count and the tile size should have
-@@ -4012,6 +4023,12 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
+@@ -4014,6 +4025,12 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
        return;
     }
  
@@ -74,7 +74,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index e8c09606ae7..71d01d901db 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -2303,6 +2303,12 @@ panvk_queue_submit_init_storage(
+@@ -2307,6 +2307,12 @@ panvk_queue_submit_init_storage(
        struct panvk_cmd_buffer *cmdbuf = container_of(
           vk_submit->command_buffers[i], struct panvk_cmd_buffer, vk);
  

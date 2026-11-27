@@ -29,7 +29,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index a0510b628f6..dec39872678 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -320,6 +320,179 @@ panlib_tess_draw(global struct panlib_tess_draw *t, global uint32_t *c_invs,
+@@ -321,6 +321,179 @@ panlib_tess_draw(global struct panlib_tess_draw *t, global uint32_t *c_invs,
        atomic_fetch_add((global atomic_uint *)prims_generated, count / vpp);
  }
  
@@ -315,7 +315,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 7b99e028de3..7f765a2c507 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3647,6 +3647,10 @@ static bool gpu_prerast_vp_prepare(struct panvk_cmd_buffer *cmdbuf,
+@@ -3649,6 +3649,10 @@ static bool gpu_prerast_vp_prepare(struct panvk_cmd_buffer *cmdbuf,
                                     uint64_t arena,
                                     const struct panvk_draw_info *source,
                                     struct panlib_vp_runs_launch_args *args);
@@ -326,7 +326,7 @@ index 7b99e028de3..7f765a2c507 100644
  
  static void
  gpu_prerast_wait_compute(struct panvk_cmd_buffer *cmdbuf)
-@@ -4277,10 +4281,21 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -4279,10 +4283,21 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
  {
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
     const struct panvk_shader *shader = cmdbuf->state.gfx.vs.shader;
@@ -349,7 +349,7 @@ index 7b99e028de3..7f765a2c507 100644
     uint64_t arena = panvk_priv_mem_dev_addr(dev->gpu_prerast_arena);
     uint64_t records = arena + PANVK_GPU_PRERAST_RECORD_OFFSET;
     uint64_t indices = arena + PANVK_GPU_PRERAST_INDEX_OFFSET;
-@@ -5295,18 +5310,278 @@ gpu_prerast_wanted(const struct panvk_cmd_buffer *cmdbuf,
+@@ -5297,18 +5312,278 @@ gpu_prerast_wanted(const struct panvk_cmd_buffer *cmdbuf,
             cmdbuf->state.gfx.vs.shader->gpu_prerast.has_side_effects);
  }
  
@@ -633,7 +633,7 @@ index 7b99e028de3..7f765a2c507 100644
      */
     if (draw->indirect.buffer_dev_addr) {
        if (draw->indirect.draw_count <= 1)
-@@ -5321,12 +5596,7 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5323,12 +5598,7 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
        return true;
     }
  
@@ -647,7 +647,7 @@ index 7b99e028de3..7f765a2c507 100644
  
     /* Tessellation chunks on the GPU, see gpu_prerast_tess(). */
     if (draw->prim == MESA_PRIM_PATCHES)
-@@ -5346,34 +5616,9 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5348,34 +5618,9 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
        return true;
     }
  
@@ -685,7 +685,7 @@ index 7b99e028de3..7f765a2c507 100644
         */
        if (!gpu_prerast_needed(cmdbuf, draw))
           return false;
-@@ -5381,19 +5626,23 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
+@@ -5383,19 +5628,23 @@ gpu_prerast_split(struct panvk_cmd_buffer *cmdbuf,
        return true;
     }
  

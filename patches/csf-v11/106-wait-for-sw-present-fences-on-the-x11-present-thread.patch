@@ -29,7 +29,7 @@ diff --git a/src/vulkan/wsi/wsi_common.c b/src/vulkan/wsi/wsi_common.c
 index 2bca1a2..ba84e36 100644
 --- a/src/vulkan/wsi/wsi_common.c
 +++ b/src/vulkan/wsi/wsi_common.c
-@@ -2889,7 +2889,7 @@ wsi_common_queue_present(const struct wsi_device *wsi,
+@@ -2921,7 +2921,7 @@ wsi_common_queue_present(const struct wsi_device *wsi,
  #endif
        }
  
@@ -57,20 +57,26 @@ diff --git a/src/vulkan/wsi/wsi_common_x11.c b/src/vulkan/wsi/wsi_common_x11.c
 index c9d35d3..0edfffb 100644
 --- a/src/vulkan/wsi/wsi_common_x11.c
 +++ b/src/vulkan/wsi/wsi_common_x11.c
-@@ -2559,8 +2559,11 @@ x11_manage_present_queue(void *state)
+@@ -2535,11 +2535,15 @@ x11_manage_present_queue(void *state)
        VkPresentModeKHR present_mode = chain->images[image_index].present_mode;
  
-       /* Not necessary to block when we have explicit sync */
+       /* Not necessary to block when we have explicit sync. Otherwise, block
+        * for MAILBOX present mode on Xorg (the latest image in the queue might
+        * not be fully rendered at present time).
+        */
 +      /* sw images are read by the CPU (X server or XPutImage): wait for the
 +       * blit here instead of in vkQueuePresentKHR. */
-       bool need_fence_wait =
--            x11_needs_wait_for_fences(chain->base.wsi, wsi_conn, present_mode) &&
-+            (chain->base.wsi->sw ||
-+             x11_needs_wait_for_fences(chain->base.wsi, wsi_conn, present_mode)) &&
-             !chain->base.image_info.explicit_sync;
+-      bool need_fence_wait = !chain->base.image_info.explicit_sync &&
+-                             !wsi_conn->is_xwayland &&
+-                             present_mode == VK_PRESENT_MODE_MAILBOX_KHR;
++      bool need_fence_wait =
++         !chain->base.image_info.explicit_sync &&
++         (chain->base.wsi->sw ||
++          (!wsi_conn->is_xwayland &&
++           present_mode == VK_PRESENT_MODE_MAILBOX_KHR));
  
        bool need_timing_fence_wait = x11_swapchain_present_timing_is_out_of_order_completion(
-@@ -3406,6 +3409,9 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
+@@ -3555,6 +3559,9 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
           wsi_queue_push(&chain->acquire_queue, i);
     }
  

@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index 5d5ce885531..d91d759ea62 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -322,7 +322,7 @@ panvk_per_arch(EndCommandBuffer)(VkCommandBuffer commandBuffer)
+@@ -323,7 +323,7 @@ panvk_per_arch(EndCommandBuffer)(VkCommandBuffer commandBuffer)
  static void
  add_execution_dependency(uint32_t wait_masks[static PANVK_SUBQUEUE_COUNT],
                           VkPipelineStageFlags2 src_stages,
@@ -23,7 +23,7 @@ index 5d5ce885531..d91d759ea62 100644
  {
     /* convert stages to subqueues */
     uint32_t src_subqueues = 0;
-@@ -338,12 +338,14 @@ add_execution_dependency(uint32_t wait_masks[static PANVK_SUBQUEUE_COUNT],
+@@ -339,12 +339,14 @@ add_execution_dependency(uint32_t wait_masks[static PANVK_SUBQUEUE_COUNT],
     /* gpu_prerast runs the lowered VS on the COMPUTE subqueue, which reads
      * indirect params, vertex inputs and VS resources.  Make it a consumer of
      * those stages so GPU-written inputs are visible before the dispatch. */
@@ -39,7 +39,7 @@ index 5d5ce885531..d91d759ea62 100644
                        VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT)))
        dst_subqueues |= BITFIELD_BIT(PANVK_SUBQUEUE_COMPUTE);
  
-@@ -465,7 +467,9 @@ collect_cs_deps(struct panvk_cmd_buffer *cmdbuf, const VkDependencyInfo *info,
+@@ -466,7 +468,9 @@ collect_cs_deps(struct panvk_cmd_buffer *cmdbuf, const VkDependencyInfo *info,
  {
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
     uint32_t wait_masks[PANVK_SUBQUEUE_COUNT] = {0};

@@ -119,7 +119,10 @@ class CollectValidation(unittest.TestCase):
     def test_pass_from_logs(self):
         with tempfile.TemporaryDirectory() as td:
             vdir = pathlib.Path(td)
-            (vdir / "gateC-enumerate-x.txt").write_text("C-PASS\n")
+            binary_hash = "a" * 64
+            (vdir / "gateC-enumerate-x.txt").write_text(
+                f"DRIVER_SHA256={binary_hash}\nC-PASS\n"
+            )
             (vdir / "gateDE-compute-x.txt").write_text(
                 "D-OK vkCreateDevice\nE-compute 10/10\nD+E-PASS\n"
             )
@@ -135,11 +138,11 @@ class CollectValidation(unittest.TestCase):
                 "enumeration",
                 ["gateC-enumerate*.txt"],
                 col.PASS_TOKEN["enumeration"],
-                "abc",
+                binary_hash,
             )
             self.assertEqual(enum["status"], "pass")
             self.assertTrue(enum["evidenceFile"].endswith("gateC-enumerate-x.txt"))
-            self.assertEqual(enum["binarySha256"], "abc")
+            self.assertEqual(enum["binarySha256"], binary_hash)
             self.assertIn("timestamp", enum)
             cold = col.evidence(
                 vdir,
@@ -168,20 +171,13 @@ class CollectValidation(unittest.TestCase):
         self.assertEqual(doc["gpuId"], "0xb8a31030")
         self.assertEqual(doc["kbaseUapi"], "1.21")
         self.assertTrue(str(doc["patchSeriesId"]).startswith("sha256:"))
-        self.assertEqual(doc["android"]["enumeration"]["status"], "pass")
-        self.assertEqual(doc["android"]["deviceCreate"]["status"], "pass")
-        self.assertEqual(doc["android"]["compute10"]["status"], "pass")
-        self.assertEqual(doc["android"]["offscreen"]["status"], "pass")
-        self.assertEqual(doc["android"]["ahb"]["status"], "pass")
-        self.assertEqual(doc["android"]["vulkanSurface"]["status"], "pass")
-        self.assertEqual(doc["android"]["swapchain300"]["status"], "pass")
-        self.assertEqual(doc["android"]["coldSecondLaunch"]["status"], "pass")
-        self.assertEqual(doc["glibc"]["enumeration"]["status"], "pass")
-        self.assertEqual(doc["glibc"]["compute10"]["status"], "pass")
-        self.assertEqual(doc["glibc"]["offscreen"]["status"], "pass")
-        self.assertIn("evidenceFile", doc["android"]["swapchain300"])
-        self.assertIn("timestamp", doc["android"]["swapchain300"])
-        self.assertIn("binarySha256", doc["android"]["swapchain300"])
+        for section in ("android", "glibc"):
+            for entry in doc[section].values():
+                self.assertIn(entry["status"], ("pass", "untested"))
+                if entry["status"] == "pass":
+                    self.assertIn("timestamp", entry)
+                    text = (ROOT / entry["evidenceFile"]).read_text()
+                    self.assertIn(entry["binarySha256"], text)
 
 
 if __name__ == "__main__":

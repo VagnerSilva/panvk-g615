@@ -42,7 +42,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index d9a23ef..74a6531 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -4814,7 +4814,7 @@ panvk_per_arch(create_depth_bounds_fs)(struct panvk_device *dev)
+@@ -4816,7 +4816,7 @@ panvk_per_arch(create_depth_bounds_fs)(struct panvk_device *dev)
        "panvk-depth-bounds-fs");
     b.shader->info.internal = true;
  
@@ -51,7 +51,7 @@ index d9a23ef..74a6531 100644
     struct vk_shader_compile_info info = {
        .stage = MESA_SHADER_FRAGMENT,
        .nir = b.shader,
-@@ -5271,3 +5271,18 @@ panvk_fixup_gs_passthrough(UNUSED const struct panvk_gpu_prerast_gs_info *gs,
+@@ -5273,3 +5273,18 @@ panvk_fixup_gs_passthrough(UNUSED const struct panvk_gpu_prerast_gs_info *gs,
     return pt;
  }
  #endif

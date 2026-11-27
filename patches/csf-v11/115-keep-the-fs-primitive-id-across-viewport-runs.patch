@@ -190,7 +190,7 @@ diff --git a/src/panfrost/libpan/vp_runs.cl b/src/panfrost/libpan/vp_runs.cl
 diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4705,6 +4705,8 @@
+@@ -4707,6 +4707,8 @@
     const struct panvk_shader *gs = cmdbuf->state.gfx.gs.shader;
     const struct panvk_shader *vps =
        panvk_prerast_viewport_shader(&cmdbuf->state.gfx);
@@ -199,7 +199,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
  
     if (!vps)
        return false;
-@@ -4816,6 +4818,13 @@
+@@ -4818,6 +4820,13 @@
        .index_capacity = out_count,
        .run_capacity = run_capacity,
        .per_instance = per_instance,
@@ -224,7 +224,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
  #include "poly/nir/poly_nir.h"
  #include "libpoly.h"
  #endif
-@@ -1225,7 +1226,15 @@
+@@ -1209,7 +1210,15 @@
        nir_iadd_imm(&b, params,
                     offsetof(struct panvk_gpu_prerast_params, vertex_count)),
        .align_mul = 4);
@@ -241,7 +241,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
                                nir_imul(&b, nir_load_instance_id(&b), verts));
     nir_def *record =
        nir_iadd(&b, base, nir_imul(&b, nir_u2u64(&b, linear), stride));
-@@ -1272,9 +1281,18 @@
+@@ -1256,9 +1265,18 @@
                         .io_semantics = {.location = location, .num_slots = 1});
     }
  

@@ -35,7 +35,7 @@ diff --git a/src/panfrost/compiler/pan_compiler.c b/src/panfrost/compiler/pan_co
 index 8c99ff4..ceb972c 100644
 --- a/src/panfrost/compiler/pan_compiler.c
 +++ b/src/panfrost/compiler/pan_compiler.c
-@@ -361,9 +361,10 @@ pan_shader_update_info(struct pan_shader_info *info, nir_shader *s,
+@@ -362,9 +362,10 @@ pan_shader_update_info(struct pan_shader_info *info, nir_shader *s,
  
     if (arch >= 9) {
        /* Valhall hardware doesn't have a "flush FP16, preserve FP32" mode, and
@@ -53,7 +53,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 802118c..2bbe741 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -1093,8 +1093,14 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1123,8 +1123,14 @@ panvk_per_arch(get_physical_device_properties)(
        /* VK_KHR_driver_properties */
        .driverID = VK_DRIVER_ID_MESA_PANVK,
        .conformanceVersion = get_conformance_version(),
@@ -69,7 +69,7 @@ index 802118c..2bbe741 100644
                         : VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL,
        .roundingModeIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL,
        .shaderSignedZeroInfNanPreserveFloat16 = true,
-@@ -1103,9 +1109,9 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -1133,9 +1139,9 @@ panvk_per_arch(get_physical_device_properties)(
        .shaderDenormPreserveFloat16 = true,
        .shaderDenormPreserveFloat32 = true,
        .shaderDenormPreserveFloat64 = true,

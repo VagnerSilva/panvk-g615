@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_frame_shaders.c b/src/panfrost/vul
 index dbf1f79a75f..594237c399a 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_frame_shaders.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_frame_shaders.c
-@@ -359,6 +359,8 @@ fill_textures(struct panvk_cmd_buffer *cmdbuf,
+@@ -365,6 +365,8 @@ fill_textures(struct panvk_cmd_buffer *cmdbuf,
        }
  
        struct pan_image_view pview = *iview;

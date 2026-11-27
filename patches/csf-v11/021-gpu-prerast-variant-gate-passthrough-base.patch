@@ -23,7 +23,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 0e6ffa2f4f6..58a5484b2a8 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -718,7 +718,8 @@ panvk_gpu_prerast_collect_out_type(nir_builder *b, nir_intrinsic_instr *intr,
+@@ -702,7 +702,8 @@ panvk_gpu_prerast_collect_out_type(nir_builder *b, nir_intrinsic_instr *intr,
  
  static nir_shader *
  panvk_gpu_prerast_passthrough_nir(const nir_shader *source, uint64_t outputs,
@@ -33,7 +33,7 @@ index 0e6ffa2f4f6..58a5484b2a8 100644
  {
     nir_builder b = nir_builder_init_simple_shader(
        MESA_SHADER_VERTEX, source->options, "panvk_gpu_prerast_passthrough");
-@@ -741,12 +742,26 @@ panvk_gpu_prerast_passthrough_nir(const nir_shader *source, uint64_t outputs,
+@@ -725,12 +726,26 @@ panvk_gpu_prerast_passthrough_nir(const nir_shader *source, uint64_t outputs,
      nir_def *record = nir_iadd(&b, base, nir_imul(&b, nir_u2u64(&b, linear), stride));
  
      u_foreach_bit64(location, outputs) {
@@ -61,7 +61,7 @@ index 0e6ffa2f4f6..58a5484b2a8 100644
                          .write_mask = 0xf,
                          .src_type = type,
                          .io_semantics = { .location = location, .num_slots = 1 });
-@@ -1748,7 +1763,10 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -1738,7 +1753,10 @@ panvk_compile_shader(struct panvk_device *dev,
     switch (info->stage) {
     case MESA_SHADER_VERTEX: {
  #if PAN_ARCH >= 10
@@ -73,7 +73,7 @@ index 0e6ffa2f4f6..58a5484b2a8 100644
        struct panvk_gpu_prerast_out_types out_types = {0};
  #else
        const enum panvk_vs_variant last_variant = PANVK_VS_VARIANT_HW;
-@@ -1765,7 +1783,8 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -1755,7 +1773,8 @@ panvk_compile_shader(struct panvk_device *dev,
                                ? panvk_gpu_prerast_passthrough_nir(
                                     info->nir,
                                     shader->gpu_prerast.io.outputs_written,

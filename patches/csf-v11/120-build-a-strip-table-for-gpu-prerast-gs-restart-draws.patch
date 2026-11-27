@@ -31,7 +31,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index 9c7bb5a..72907b5 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -551,6 +551,87 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
+@@ -552,6 +552,87 @@ panlib_chunk_step(global struct panlib_chunk_draw *c)
     }
  }
  
@@ -123,7 +123,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index a921271..77d3465 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3921,6 +3921,7 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
+@@ -3923,6 +3923,7 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
     STORE_GS64(stats[3], panvk_pstats_counter_addr(
        pstats, VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT, true));
     STORE_GS64(prims_generated, cmdbuf->state.gfx.prims_generated_query.ptr);
@@ -131,7 +131,7 @@ index a921271..77d3465 100644
  #undef STORE_GS32
  #undef STORE_GS64
  
-@@ -3938,6 +3939,19 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
+@@ -3940,6 +3941,19 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
     }
     cs_flush_stores(compute);
  
@@ -180,7 +180,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 36bf2f5..a752847 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -2000,31 +2000,32 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
+@@ -1984,31 +1984,32 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
        nir_local_variable_create(impl, glsl_uint_type(), "gs_seg");
     nir_variable *end_var =
        nir_local_variable_create(impl, glsl_uint_type(), "gs_end");
@@ -233,7 +233,7 @@ index 36bf2f5..a752847 100644
        }
     }
     nir_pop_if(b, NULL);
-@@ -2155,40 +2156,8 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
+@@ -2139,40 +2140,8 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
        }
        nir_push_else(b, NULL);
        {

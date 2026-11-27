@@ -17,7 +17,7 @@ Purpose: Mali-G615 IDVS matrix CASE 2+ read back RGBA 0 0 0 0 after a
 diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4051,8 +4051,12 @@ invalidate_initial_attachment_crcs(struct panvk_cmd_buffer *cmdbuf,
+@@ -4066,8 +4066,12 @@ invalidate_initial_attachment_crcs(struct panvk_cmd_buffer *cmdbuf,
           vk_find_struct_const(att->pNext,
                                RENDERING_ATTACHMENT_INITIAL_LAYOUT_INFO_MESA);
  

@@ -51,9 +51,8 @@ index 0a17bf3a..db9aada7 100644
     VkResult result = panvk_priv_bo_create_kind(
 -      dev, get_utrace_clone_mem_size(), 0, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT,
 +      dev, get_utrace_clone_mem_size(dev), 0, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT,
-       &dev->utrace.copy_buf_heap_bo, PANVK_MEM_UTRACE);
+       "utrace copy buffer", &dev->utrace.copy_buf_heap_bo, PANVK_MEM_UTRACE);
     if (result != VK_SUCCESS) {
        u_trace_context_fini(&dev->utrace.utctx);
 -- 
 2.55.0
-

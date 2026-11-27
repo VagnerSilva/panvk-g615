@@ -7742,7 +7742,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index 894493a9..d96a4678 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -920,7 +920,9 @@ bc_xcode_mode(VkFormat format)
+@@ -919,7 +919,9 @@ bc_xcode_mode(VkFormat format)
     case VK_FORMAT_BC5_UNORM_BLOCK:
        return 6;
     case VK_FORMAT_BC6H_UFLOAT_BLOCK:
@@ -7753,7 +7753,7 @@ index 894493a9..d96a4678 100644
     default:
        assert(format == VK_FORMAT_BC5_SNORM_BLOCK);
        return 7;
-@@ -979,7 +981,7 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
+@@ -978,7 +980,7 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
        uint32_t astc;
     } key = {
        .type = PANVK_META_OBJECT_KEY_BC_XCODE_SHADER,
@@ -7762,7 +7762,7 @@ index 894493a9..d96a4678 100644
        .opts = astc ? 0 : panvk_bc_lm_opts(),
        .astc = astc,
     };
-@@ -997,7 +999,7 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
+@@ -996,7 +998,7 @@ get_bc_xcode_pipeline(struct panvk_device *dev, bool astc, uint32_t mode,
        {.constantID = 3, .offset = offsetof(__typeof__(key), opts), .size = 4},
     };
     const VkSpecializationInfo spec = {

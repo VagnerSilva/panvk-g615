@@ -56,7 +56,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 86ead3d..4e5265a 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -2058,6 +2058,78 @@ destroy_group(struct panvk_gpu_queue *queue)
+@@ -2063,6 +2063,78 @@ destroy_group(struct panvk_gpu_queue *queue)
     assert(!ret);
  }
  
@@ -135,7 +135,7 @@ index 86ead3d..4e5265a 100644
  static VkResult
  init_tiler(struct panvk_gpu_queue *queue)
  {
-@@ -2167,6 +2239,7 @@ init_tiler(struct panvk_gpu_queue *queue)
+@@ -2172,6 +2244,7 @@ init_tiler(struct panvk_gpu_queue *queue)
                  first_heap_chunk + tiler_heap->chunk_size,
                  panvk_priv_mem_dev_addr(tiler_heap->desc) + 4096,
                  panvk_priv_mem_dev_addr(tiler_heap->oom_fbd));
@@ -143,7 +143,7 @@ index 86ead3d..4e5265a 100644
     }
  #endif
  
-@@ -2189,6 +2262,7 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
+@@ -2194,6 +2267,7 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
        /* The queue groups are terminated by now, so the retired context (if
         * any) is no longer firmware-visible and can be destroyed with the
         * current one. */
@@ -151,7 +151,7 @@ index 86ead3d..4e5265a 100644
        if (queue->kbase_retired_heap.ctx) {
           kbase_kmod_csf_tiler_heap_destroy(dev->kmod.dev,
                                             queue->kbase_retired_heap.ctx);
-@@ -2260,13 +2334,16 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
+@@ -2265,13 +2339,16 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
     if (!kbase_try_destroy_retired_heap(queue))
        return VK_INCOMPLETE;
  

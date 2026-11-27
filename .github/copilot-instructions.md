@@ -63,6 +63,10 @@ host-side checks and target-device Vulkan/Kbase gates. See
 - Treat `sources.lock` and the selected profile as build inputs; do not build
   releases from an unrecorded moving Mesa revision. Compute or refresh patch
   provenance when the source, profile, or patch series changes.
+- Per-architecture profiles are for development builds; the universal v6-v14
+  release is prepared by `scripts/prepare-rc5-tree.sh` with all patch families
+  applied in strict mode. Follow [`docs/RELEASE.md`](../docs/RELEASE.md) for
+  release builds rather than treating a profile build as a release artifact.
 - Keep Mesa changes in the appropriate patch family. Patch files need the
   metadata header described in [`patches/README.md`](../patches/README.md).
   `scripts/apply-patches.sh` intentionally rejects patch drift, offsets, and

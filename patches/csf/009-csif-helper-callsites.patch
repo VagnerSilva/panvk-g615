@@ -18,7 +18,7 @@ Validation test: Gates D+E (vkCreateDevice + compute 10/10).
 
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -104,7 +104,7 @@
+@@ -105,7 +105,7 @@
                                        uint32_t *dump_region_size)
  {
     const struct drm_panthor_csif_info *csif_info =
@@ -40,7 +40,7 @@ Validation test: Gates D+E (vkCreateDevice + compute 10/10).
     struct cs_builder_conf conf = {
 --- a/src/panfrost/vulkan/csf/panvk_vX_utrace.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_utrace.c
-@@ -273,7 +273,7 @@
+@@ -274,7 +274,7 @@
                                            struct panvk_utrace_clone_cs_ctx *ctx)
  {
     const struct drm_panthor_csif_info *csif_info =
@@ -51,7 +51,7 @@ Validation test: Gates D+E (vkCreateDevice + compute 10/10).
        .nr_kernel_registers = MAX2(csif_info->unpreserved_cs_reg_count, 4),
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -833,7 +833,7 @@
+@@ -872,7 +872,7 @@
     };
  
     const struct drm_panthor_csif_info *csif_info =
@@ -62,7 +62,7 @@ Validation test: Gates D+E (vkCreateDevice + compute 10/10).
        struct cs_builder *b = &cmdbuf->state.cs[i].builder;
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -1602,7 +1602,7 @@
+@@ -1606,7 +1606,7 @@
  
     struct cs_builder b;
     const struct drm_panthor_csif_info *csif_info =
@@ -73,7 +73,7 @@ Validation test: Gates D+E (vkCreateDevice + compute 10/10).
        .cpu = panvk_priv_mem_host_addr(subq->req_resource.buf),
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -1792,7 +1792,7 @@
+@@ -1796,7 +1796,7 @@
        .queue_index = subqueue,
        .stream_size = cs_root_chunk_size(&b),
        .stream_addr = cs_root_chunk_gpu_addr(&b),
@@ -82,7 +82,7 @@ Validation test: Gates D+E (vkCreateDevice + compute 10/10).
        .syncs = DRM_PANTHOR_OBJ_ARRAY(1, &syncop),
     };
     struct drm_panthor_group_submit gsubmit = {
-@@ -2463,7 +2463,7 @@
+@@ -2476,7 +2476,7 @@
        return;
  
     struct panvk_device *dev = submit->dev;
@@ -91,7 +91,7 @@ Validation test: Gates D+E (vkCreateDevice + compute 10/10).
  
     u_foreach_bit(i, submit->req_resource_subqueue_mask) {
        struct panvk_subqueue *subq = &submit->queue->subqueues[i];
-@@ -2554,7 +2554,7 @@
+@@ -2567,7 +2567,7 @@
        }
  
        if (util_bitcount(submit->utrace.queue_mask) > 0)

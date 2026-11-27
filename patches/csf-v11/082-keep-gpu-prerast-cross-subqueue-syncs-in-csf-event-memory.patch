@@ -59,7 +59,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 909b2584fec..7b40ea4fd06 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3643,6 +3643,18 @@ gpu_prerast_wait_compute(struct panvk_cmd_buffer *cmdbuf)
+@@ -3645,6 +3645,18 @@ gpu_prerast_wait_compute(struct panvk_cmd_buffer *cmdbuf)
                             MALI_CS_CONDITION_GREATER, sync_point, sync_addr);
  }
  
@@ -78,7 +78,7 @@ index 909b2584fec..7b40ea4fd06 100644
  static void
  gpu_prerast_release_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
  {
-@@ -3653,8 +3665,7 @@ gpu_prerast_release_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
+@@ -3655,8 +3667,7 @@ gpu_prerast_release_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
     struct cs_index one = cs_scratch_reg32(b, 2);
  
     cs_wait_slots(b, dev->csf.sb.all_iters_mask);
@@ -88,7 +88,7 @@ index 909b2584fec..7b40ea4fd06 100644
     cs_move32_to(b, one, 1);
     cs_sync32_add(b, true, panvk_cs_signal_scope(cmdbuf), one, addr, cs_now());
  }
-@@ -3884,16 +3895,16 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
+@@ -3886,16 +3897,16 @@ gpu_prerast_gs_run(struct panvk_cmd_buffer *cmdbuf,
  static void
  gpu_prerast_acquire_arena(struct panvk_cmd_buffer *cmdbuf, uint64_t arena)
  {
@@ -108,7 +108,7 @@ index 909b2584fec..7b40ea4fd06 100644
  }
  
  static bool
-@@ -4373,32 +4384,45 @@ gpu_prerast_tess_max_patches(const struct panvk_cmd_buffer *cmdbuf)
+@@ -4375,32 +4386,45 @@ gpu_prerast_tess_max_patches(const struct panvk_cmd_buffer *cmdbuf)
        ps);
  }
  
@@ -162,7 +162,7 @@ index 909b2584fec..7b40ea4fd06 100644
     cs_move32_to(b, value, 1);
     cs_sync32_add(b, true, panvk_cs_signal_scope(cmdbuf), value, addr, cs_now());
  }
-@@ -4417,10 +4441,10 @@ gpu_prerast_load_flag(struct cs_builder *b, uint64_t addr)
+@@ -4419,10 +4443,10 @@ gpu_prerast_load_flag(struct cs_builder *b, uint64_t addr)
  }
  
  /* GPU tessellation, as one CS loop on each of the compute and vertex/tiler
@@ -177,7 +177,7 @@ index 909b2584fec..7b40ea4fd06 100644
   * goes through gpu_prerast again (GS, non-fill polygon mode), that range is
   * sized to the gpu_prerast arena and the TES and GS kernels run in the same
   * iteration. The vertex/tiler iteration then draws that range. Nothing is
-@@ -4567,7 +4591,6 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4569,7 +4593,6 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
     t->indexed = indexed;
     t->range = range;
     t->verts_per_prim = vpp;
@@ -185,7 +185,7 @@ index 909b2584fec..7b40ea4fd06 100644
  
     uint64_t src = draw->indirect.buffer_dev_addr;
     if (!indirect) {
-@@ -4672,7 +4695,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4674,7 +4697,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
      */
     bool ok = true;
     cs_while(b, MALI_CS_CONDITION_ALWAYS, cs_undef()) {
@@ -195,7 +195,7 @@ index 909b2584fec..7b40ea4fd06 100644
  
        panlib_tess_step(&ctx, panlib_1d(1), PANLIB_BARRIER_NONE, td.gpu,
                         tcs_stat);
-@@ -4734,7 +4758,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4736,7 +4760,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
           gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);
        }
  
@@ -205,7 +205,7 @@ index 909b2584fec..7b40ea4fd06 100644
        cs_loop_conditional_break(b, __loop, MALI_CS_CONDITION_EQUAL,
                                  gpu_prerast_load_flag(b, TD(more)));
     }
-@@ -4748,7 +4773,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4750,7 +4775,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
  
     struct panvk_draw_info raster = out;
     cs_while(vt, MALI_CS_CONDITION_ALWAYS, cs_undef()) {
@@ -215,7 +215,7 @@ index 909b2584fec..7b40ea4fd06 100644
  
        cmdbuf->state.gfx.vs.shader = tes;
        gfx_state_set_dirty(cmdbuf, VS);
-@@ -4768,7 +4794,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4770,7 +4796,8 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
        struct cs_index more = gpu_prerast_load_flag(vt, TD(more));
        struct cs_index more_keep = cs_scratch_reg32(vt, 4);
        cs_add_imm32(vt, more_keep, more, 0);
@@ -229,7 +229,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 255818d2dd6..27190b7e6fa 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -1876,9 +1876,11 @@ init_queue(struct panvk_gpu_queue *queue)
+@@ -1880,9 +1880,11 @@ init_queue(struct panvk_gpu_queue *queue)
     struct panvk_device *dev = to_panvk_device(queue->vk.base.device);
     VkResult result;
  
@@ -243,7 +243,7 @@ index 255818d2dd6..27190b7e6fa 100644
        .alignment = 64,
     };
  
-@@ -1905,8 +1907,21 @@ init_queue(struct panvk_gpu_queue *queue)
+@@ -1909,8 +1911,21 @@ init_queue(struct panvk_gpu_queue *queue)
        return panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
                            "Failed to allocate subqueue sync objects");
  
@@ -277,7 +277,7 @@ index 0355679151e..f029ee81c73 100644
 +   struct panvk_priv_bo *gpu_prerast_syncs;
  
     struct {
-       struct pandecode_context *decode_ctx;
+       bool initialized;
 diff --git a/src/panfrost/vulkan/panvk_gpu_prerast.h b/src/panfrost/vulkan/panvk_gpu_prerast.h
 index 89c8064a59b..da3b68a0332 100644
 --- a/src/panfrost/vulkan/panvk_gpu_prerast.h
@@ -325,7 +325,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_device.c b/src/panfrost/vulkan/panvk_v
 index 28745813d87..adf39c2d4ce 100644
 --- a/src/panfrost/vulkan/panvk_vX_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_device.c
-@@ -602,7 +602,6 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -697,7 +697,6 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
        panvk_priv_mem_write(device->gpu_prerast_arena, 0,
                             struct panvk_gpu_prerast_arena, arena) {
           memset(arena, 0, sizeof(*arena));
@@ -333,7 +333,7 @@ index 28745813d87..adf39c2d4ce 100644
        }
     }
     if (device->vk.enabled_features.tessellationShader) {
-@@ -619,9 +618,25 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
+@@ -714,9 +713,25 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
        panvk_priv_mem_write(device->gpu_prerast_tess_arena, 0,
                             struct panvk_gpu_prerast_arena, arena) {
           memset(arena, 0, sizeof(*arena));
@@ -346,7 +346,7 @@ index 28745813d87..adf39c2d4ce 100644
 +         device, sizeof(struct panvk_gpu_prerast_syncs),
 +         device->kmod.dev->props.supported_bo_flags &
 +            PAN_KMOD_BO_FLAG_CSF_EVENT,
-+         VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, &device->gpu_prerast_syncs);
++         VK_SYSTEM_ALLOCATION_SCOPE_DEVICE, "GPU prerast syncs", &device->gpu_prerast_syncs);
 +      if (result != VK_SUCCESS)
 +         goto err_free_priv_bos;
 +
@@ -360,7 +360,7 @@ index 28745813d87..adf39c2d4ce 100644
  #endif
  
  #if PAN_ARCH >= 10
-@@ -750,6 +765,7 @@ err_free_mem_cache:
+@@ -845,6 +860,7 @@ err_free_mem_cache:
  err_free_precomp:
     panvk_precomp_cleanup(device);
  err_free_priv_bos:
@@ -368,11 +368,11 @@ index 28745813d87..adf39c2d4ce 100644
     panvk_pool_free_mem(&device->gpu_prerast_tess_arena);
     panvk_pool_free_mem(&device->gpu_prerast_arena);
     if (device->printf.bo)
-@@ -812,6 +828,7 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
-     panvk_priv_bo_unref(device->indirect_varying_buffer);
-     panvk_priv_bo_unref(device->tiler_heap);
-     panvk_priv_bo_unref(device->sample_positions);
-+    panvk_priv_bo_unref(device->gpu_prerast_syncs);
-     panvk_pool_free_mem(&device->gpu_prerast_tess_arena);
-     panvk_pool_free_mem(&device->gpu_prerast_arena);
-     panvk_device_cleanup_mempools(device);
+@@ -907,6 +923,7 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
+ #endif
+    panvk_priv_bo_unref(device->tiler_heap);
+    panvk_priv_bo_unref(device->sample_positions);
++   panvk_priv_bo_unref(device->gpu_prerast_syncs);
+    panvk_pool_free_mem(&device->gpu_prerast_tess_arena);
+    panvk_pool_free_mem(&device->gpu_prerast_arena);
+    panvk_device_cleanup_mempools(device);

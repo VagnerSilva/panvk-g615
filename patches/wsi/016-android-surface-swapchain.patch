@@ -32,7 +32,7 @@ diff --git a/src/panfrost/vulkan/panvk_instance.h b/src/panfrost/vulkan/panvk_in
 diff --git a/src/panfrost/vulkan/panvk_instance.c b/src/panfrost/vulkan/panvk_instance.c
 --- a/src/panfrost/vulkan/panvk_instance.c
 +++ b/src/panfrost/vulkan/panvk_instance.c
-@@ -128,6 +128,9 @@
+@@ -129,6 +129,9 @@
  #ifdef VK_USE_PLATFORM_XLIB_KHR
     .KHR_xlib_surface = true,
  #endif
@@ -523,7 +523,7 @@ diff --git a/src/vulkan/wsi/wsi_common.c b/src/vulkan/wsi/wsi_common.c
  #include "util/u_debug.h"
  #include "util/macros.h"
  #include "util/os_file.h"
-@@ -383,6 +386,13 @@
+@@ -390,6 +393,13 @@
        return;
     }
  #endif

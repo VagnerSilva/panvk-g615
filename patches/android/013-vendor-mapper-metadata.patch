@@ -19,7 +19,7 @@ Source/Reference: https://github.com/wonderkast02/panvk-g720-kbase-csf
  zero removed lines.
 Tested GPU: Poco X6 Pro / G615 (Gate G needs it).
 Tested Kbase UAPI: n/a (gralloc path).
-Mesa base range: 26.3.0-devel (pinned 5a07217f).
+Mesa base range: 27.0.0-devel (pinned 13baeb70c066).
 Dependencies: none.
 Validation test: Gate G (AHB import shows real modifier, no crash).
 

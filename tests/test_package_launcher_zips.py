@@ -9,7 +9,7 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/package-launcher-zips.sh"
-SO = b"\x00Mesa 26.3.0-devel (git-abcdef1234)\x00test driver"
+SO = b"\x00Mesa 27.0.0-devel (git-13baeb70c0)\x00test driver"
 
 
 class PackageLauncherZipsTest(unittest.TestCase):
@@ -26,7 +26,7 @@ class PackageLauncherZipsTest(unittest.TestCase):
                 text=True,
             )
             archives = list(out.iterdir())
-            self.assertEqual([p.name for p in archives], ["Mesa-PanVK-Android-v0.0.0-dev-abcdef12.adpkg.zip"])
+            self.assertEqual([p.name for p in archives], ["Mesa-PanVK-Android-v0.0.0-dev-13baeb70.adpkg.zip"])
             with zipfile.ZipFile(archives[0]) as package:
                 self.assertEqual(set(package.namelist()), {
                     "libvulkan_panfrost.so", "meta.json", "SHA256SUMS.txt", "VALIDATION.json"
@@ -56,7 +56,7 @@ class PackageLauncherZipsTest(unittest.TestCase):
             subprocess.run([str(SCRIPT), "--so", str(so), "--outdir", str(out)],
                            check=True, capture_output=True, text=True)
             names = {p.name for p in out.iterdir()}
-            stem = "Mesa-PanVK-Android-v0.0.0-dev-abcdef12"
+            stem = "Mesa-PanVK-Android-v0.0.0-dev-13baeb70"
             self.assertEqual(names, {f"{stem}-{name}.zip" for name in (
                 "adrenotools", "winlator", "bannerlator", "cmod", "ludashi", "gamehub"
             )} | {f"{stem}.adpkg.zip"})
@@ -78,6 +78,22 @@ class PackageLauncherZipsTest(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("require a -dev version", result.stderr)
+
+    def test_development_adpkg_uses_legacy_driver_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            so = root / "driver.so"
+            info = "PanVK-kbase dev (Mesa 27.0.0-devel (git-13baeb70c0))"
+            so.write_bytes(b"\x00" + info.encode() + b"\x00")
+            out = root / "output"
+            subprocess.run(
+                [str(SCRIPT), "--so", str(so), "--outdir", str(out),
+                 "--only", "adpkg", "--dev-name", "PanVK-Mesa27-G615-dev"],
+                check=True, capture_output=True, text=True,
+            )
+            with zipfile.ZipFile(next(out.iterdir())) as package:
+                self.assertEqual(json.loads(package.read("meta.json"))["driverVersion"],
+                                 info)
 
     def test_explicit_development_name_and_invalid_names(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -114,6 +130,24 @@ class PackageLauncherZipsTest(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("--dev-name requires --only adpkg", result.stderr)
+
+    def test_missing_or_stale_driver_identity_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            so = root / "driver.so"
+            for data, message in (
+                (b"no driverInfo", "missing driver identity"),
+                (b"\x00Mesa 26.3.0-devel (git-13baeb70c0)\x00", "pinned Mesa revision"),
+                (b"\x00Mesa 27.0.0-devel (git-abcdef1234)\x00", "pinned Mesa revision"),
+            ):
+                so.write_bytes(data)
+                result = subprocess.run(
+                    [str(SCRIPT), "--so", str(so), "--outdir", str(root / "out")],
+                    text=True, capture_output=True,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stderr)
+                self.assertEqual(list((root / "out").glob("*.zip")), [])
 
 
 if __name__ == "__main__":

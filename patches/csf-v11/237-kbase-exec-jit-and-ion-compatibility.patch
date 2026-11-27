@@ -1,0 +1,172 @@
+From: PanVK G615 Migration <panvk-migration@localhost>
+Subject: [PATCH] kbase: preserve EXEC-before-JIT page sizing and the shared ION fallback
+
+Purpose: kbase: preserve EXEC-before-JIT page sizing and the shared ION fallback
+Source/Reference: Mesa 13baeb70c066a9f82d2bcfb29f06e4865212affa and the retired JM patch inventory.
+Tested GPU: not run for this extracted series (target: Mali-G615).
+Tested Kbase UAPI: not run for this extracted series (target: CSF 1.21).
+Mesa base range: 27.0.0-devel (13baeb70c066a9f82d2bcfb29f06e4865212affa).
+Dependencies: preceding G615 profile patches in scripts/apply-patches.sh.
+Validation test: G615 host regressions, strict replay, Android and glibc builds.
+
+diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_kmod.c
+index 3bd80a6a1e148e07d956f8f79e59e5808345222b..1e6b69aaf1756830d0f85825225d8a4009de12f6 100644
+--- a/src/panfrost/lib/kmod/kbase_kmod.c
++++ b/src/panfrost/lib/kmod/kbase_kmod.c
+@@ -56,6 +56,31 @@
+ #include "drm-uapi/panthor_drm.h"
+ 
+ #include "kbase_kmod.h"
++
++/* ION new-ABI uapi (<linux/ion.h> is not in the NDK). */
++struct kbase_ion_alloc {
++   uint64_t len;
++   uint32_t heap_id_mask;
++   uint32_t flags;
++   uint32_t fd;
++   uint32_t unused;
++};
++struct kbase_ion_heap_data {
++   char name[32];
++   uint32_t type;
++   uint32_t heap_id;
++   uint32_t reserved[3];
++};
++struct kbase_ion_heap_query {
++   uint32_t cnt;
++   uint32_t reserved0;
++   uint64_t heaps;
++   uint32_t reserved1;
++   uint32_t reserved2;
++};
++#define KBASE_ION_IOC_ALLOC      _IOWR('I', 0, struct kbase_ion_alloc)
++#define KBASE_ION_IOC_HEAP_QUERY _IOWR('I', 8, struct kbase_ion_heap_query)
++
+ #include "kbase_sync_provider.h"
+ #include "pan_kmod_backend.h"
+ #include "pan_props.h"
+@@ -93,6 +118,11 @@
+ 
+    /* Android dma-heap used for BOs which need to be shared with WSI. */
+    int dma_heap_fd;
++
++   /* Kernels without dma-heap (4.14/5.4 ION) use /dev/ion through the same
++    * fd field; ion_heap_mask is the system heap id mask. */
++   bool heap_is_ion;
++   uint32_t ion_heap_mask;
+ 
+    /* Set when the CSF notification stream reports a queue-group error.
+     * Vulkan queue status queries use this latch instead of invalidating and
+@@ -1356,6 +1386,27 @@
+       goto err_unmap_tracking;
+    }
+ 
++   /* Initialise the EXEC_VA zone so that GPU-executable allocations
++    * (shader BOs) get their own zone.  Must run before JIT_INIT: JM kbase
++    * and CSF kbase before uAPI 1.9 carve EXEC_VA from the end of SAME_VA
++    * and refuse with -EPERM once JIT's CUSTOM_VA zone exists
++    * (kbase_region_tracker_init_exec checks kctx->jit_va).  CSF >= 1.9
++    * sets the zone up at context creation and this is a no-op.  4G
++    * (0x100000 pages) is the kernel maximum and matches panfork; without
++    * the zone, GPU_EX allocations fall back to CUSTOM_VA, so failure is
++    * not fatal. */
++   struct kbase_ioctl_mem_exec_init exec_init = {
++      .va_pages = (4ull << 30) / kbase_kmod_page_size(),
++   };
++   if (ioctl(fd, KBASE_IOCTL_MEM_EXEC_INIT, &exec_init)) {
++      if (errno == EPERM || errno == EINVAL)
++         mesa_logd("kbase: KBASE_IOCTL_MEM_EXEC_INIT: %s (zone exists or "
++                   "unsupported; GPU_EX BOs use CUSTOM_VA)", strerror(errno));
++      else
++         mesa_logw("kbase: KBASE_IOCTL_MEM_EXEC_INIT failed: %s "
++                   "(executable BO allocation may not work)", strerror(errno));
++   }
++
+    /* Initialise the JIT allocator.  This must happen before any allocation
+     * is made: besides setting up JIT, on 64-bit clients this is what carves
+     * the CUSTOM_VA zone out of the top of the SAME_VA zone
+@@ -1365,24 +1416,13 @@
+     * panfork's.  Failure is non-fatal for enumeration but breaks tiler
+     * heaps, so warn. */
+    struct kbase_ioctl_mem_jit_init jit_init = {
+-      .va_pages = 1ull << 25,
++      .va_pages = (128ull << 30) / kbase_kmod_page_size(),
+       .max_allocations = 255,
+-      .phys_pages = 1ull << 25,
++      .phys_pages = (128ull << 30) / kbase_kmod_page_size(),
+    };
+    if (ioctl(fd, KBASE_IOCTL_MEM_JIT_INIT, &jit_init)) {
+       mesa_logw("kbase: KBASE_IOCTL_MEM_JIT_INIT failed: %s "
+                 "(tiler heap creation will not work)", strerror(errno));
+-   }
+-
+-   /* Initialise the EXEC_VA zone so that GPU-executable allocations
+-    * (shader BOs) are possible.  4G of executable VA (0x100000 pages)
+-    * matches what panfork uses.  On CSF uAPI >= 1.9 the zone is set up
+-    * automatically and this is a no-op.  Failure is not fatal for
+-    * enumeration, but executable allocations will fail later, so warn. */
+-   struct kbase_ioctl_mem_exec_init exec_init = { .va_pages = 0x100000 };
+-   if (ioctl(fd, KBASE_IOCTL_MEM_EXEC_INIT, &exec_init)) {
+-      mesa_logw("kbase: KBASE_IOCTL_MEM_EXEC_INIT failed: %s "
+-                "(executable BO allocation will not work)", strerror(errno));
+    }
+ 
+    struct kbase_kmod_dev *kbase_dev =
+@@ -1472,6 +1512,37 @@
+    if (kbase_dev->dma_heap_fd < 0)
+       mesa_logd("kbase: dma-heap unavailable at %s: %s", dma_heap,
+                 strerror(errno));
++
++   /* ION fallback (new ABI, kernels 4.14-5.4): placed maps need a dma-buf. */
++   if (kbase_dev->dma_heap_fd < 0) {
++      int ion = open("/dev/ion", O_RDONLY | O_CLOEXEC);
++      if (ion >= 0) {
++         struct kbase_ion_heap_data heaps[16] = {0};
++         struct kbase_ion_heap_query q = {
++            .cnt = ARRAY_SIZE(heaps),
++            .heaps = (uintptr_t)heaps,
++         };
++         if (!ioctl(ion, KBASE_ION_IOC_HEAP_QUERY, &q)) {
++            for (uint32_t i = 0; i < q.cnt && i < ARRAY_SIZE(heaps); i++) {
++               if (heaps[i].type == 0 /* ION_HEAP_TYPE_SYSTEM */) {
++                  kbase_dev->ion_heap_mask = 1u << heaps[i].heap_id;
++                  break;
++               }
++            }
++         }
++         if (kbase_dev->ion_heap_mask) {
++            kbase_dev->dma_heap_fd = ion;
++            kbase_dev->heap_is_ion = true;
++            mesa_logi("kbase: using ION system heap, mask 0x%x",
++                      kbase_dev->ion_heap_mask);
++         } else {
++            mesa_logi("kbase: no usable ION system heap");
++            close(ion);
++         }
++      } else {
++         mesa_logi("kbase: /dev/ion unavailable: %s", strerror(errno));
++      }
++   }
+ 
+    if (!kbase_dev->base.props.gpu_id) {
+       mesa_loge("kbase: failed to determine GPU ID from properties");
+@@ -1817,7 +1888,18 @@
+       .fd_flags = O_RDWR | O_CLOEXEC,
+    };
+ 
+-   if (ioctl(kbase_dev->dma_heap_fd, DMA_HEAP_IOCTL_ALLOC, &alloc)) {
++   if (kbase_dev->heap_is_ion) {
++      struct kbase_ion_alloc ia = {
++         .len = alloc.len,
++         .heap_id_mask = kbase_dev->ion_heap_mask,
++         .flags = 1, /* ION_FLAG_CACHED */
++      };
++      if (ioctl(kbase_dev->dma_heap_fd, KBASE_ION_IOC_ALLOC, &ia)) {
++         mesa_loge("kbase: ION_IOC_ALLOC failed: %s", strerror(errno));
++         return NULL;
++      }
++      alloc.fd = ia.fd;
++   } else if (ioctl(kbase_dev->dma_heap_fd, DMA_HEAP_IOCTL_ALLOC, &alloc)) {
+       mesa_loge("kbase: DMA_HEAP_IOCTL_ALLOC failed: %s", strerror(errno));
+       return NULL;
+    }

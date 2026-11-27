@@ -23,7 +23,7 @@ index 594237c399a..7f10154d4d5 100644
  PRAGMA_DIAGNOSTIC_PUSH
  PRAGMA_DIAGNOSTIC_ERROR(-Wpadded)
  struct panvk_frame_shader_key {
-@@ -785,6 +787,10 @@ always_load(const struct pan_fb_load *load,
+@@ -791,6 +793,10 @@ always_load(const struct pan_fb_load *load,
            (pan_fb_shader_key_target_written(&key->key.s) && load->s.always);
  }
  
@@ -34,7 +34,7 @@ index 594237c399a..7f10154d4d5 100644
  static VkResult
  cmd_preload_zs_attachments(struct panvk_cmd_buffer *cmdbuf,
                             const struct pan_fb_layout *fb,
-@@ -820,6 +826,11 @@ cmd_preload_zs_attachments(struct panvk_cmd_buffer *cmdbuf,
+@@ -826,6 +832,11 @@ cmd_preload_zs_attachments(struct panvk_cmd_buffer *cmdbuf,
      */
  #if PAN_ARCH >= 13
     fs->modes[dcd_idx] = MALI_PRE_POST_FRAME_SHADER_MODE_PREPASS_ALWAYS;

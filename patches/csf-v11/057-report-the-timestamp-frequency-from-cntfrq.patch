@@ -14,7 +14,7 @@ diff --git a/src/panfrost/lib/kmod/kbase_kmod.c b/src/panfrost/lib/kmod/kbase_km
 index 0d0cf3fffdf..7bbc48e6046 100644
 --- a/src/panfrost/lib/kmod/kbase_kmod.c
 +++ b/src/panfrost/lib/kmod/kbase_kmod.c
-@@ -364,13 +364,15 @@ kbase_dev_query_props(struct kbase_kmod_dev *kbase_dev,
+@@ -365,13 +365,15 @@ kbase_dev_query_props(struct kbase_kmod_dev *kbase_dev,
     /* Timestamp: expose if gpu_id is non-zero (safe assumption). */
     props->gpu_can_query_timestamp = (props->gpu_id != 0);
     props->timestamp_device_coherent = (coherency_mode != 0);
@@ -40,7 +40,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 71d01d901db..e66bc930224 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -1525,8 +1525,7 @@ init_utrace(struct panvk_gpu_queue *queue)
+@@ -1529,8 +1529,7 @@ init_utrace(struct panvk_gpu_queue *queue)
  
  #ifdef HAVE_PAN_KMOD_KBASE
     /* kbase queues use the synchronous submission model and never process
@@ -50,7 +50,7 @@ index 71d01d901db..e66bc930224 100644
     if (gpu_queue_uses_kbase(dev))
        return VK_SUCCESS;
  #endif
-@@ -2287,6 +2286,10 @@ panvk_queue_submit_init(struct panvk_queue_submit *submit,
+@@ -2291,6 +2290,10 @@ panvk_queue_submit_init(struct panvk_queue_submit *submit,
     submit->process_utrace =
        u_trace_should_process(&submit->dev->utrace.utctx) &&
        submit->phys_dev->kmod.dev->props.timestamp_frequency;

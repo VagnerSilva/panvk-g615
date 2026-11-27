@@ -16,6 +16,8 @@ def main():
     parser.add_argument("--root", default=None, help="Repository root path")
     parser.add_argument("--bare", action="store_true", help="Print only 64 hex chars without sha256: prefix")
     args = parser.parse_args()
+    if args.profile != "g615-v11-csf":
+        parser.error(f"unsupported profile: {args.profile}; only g615-v11-csf is supported")
 
     root = pathlib.Path(args.root).resolve() if args.root else pathlib.Path(__file__).resolve().parent.parent
 

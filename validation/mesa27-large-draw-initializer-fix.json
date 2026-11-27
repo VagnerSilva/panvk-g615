@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "profile": "g615-v11-csf",
+  "mesaCommit": "13baeb70c066a9f82d2bcfb29f06e4865212affa",
+  "patchSeriesId": "sha256:7d02a194a37f822c4331d4fd12e2c2eba4c12cc5495358336dd763b719a6e314",
+  "binarySha256": "c4532ef9a9e32f19932ed911b3e4c8ae7412d6050605f9f97de09a59c909c552",
+  "status": "targeted-hardware-tests-passed-not-full-conformance",
+  "device": {
+    "model": "moto g86 5G",
+    "gpu": "Mali-G615 MC2",
+    "android": "16",
+    "kbaseUapi": "CSF 1.21"
+  },
+  "debugSync": false,
+  "shaderLogging": false,
+  "explicitBooleanWorkaround": false,
+  "matrix": [
+    {
+      "patches": 64,
+      "direct": {
+        "pass": 8,
+        "runs": 8
+      },
+      "indirect": {
+        "pass": 8,
+        "runs": 8
+      }
+    },
+    {
+      "patches": 507,
+      "direct": {
+        "pass": 8,
+        "runs": 8
+      },
+      "indirect": {
+        "pass": 8,
+        "runs": 8
+      }
+    },
+    {
+      "patches": 508,
+      "direct": {
+        "pass": 8,
+        "runs": 8
+      },
+      "indirect": {
+        "pass": 8,
+        "runs": 8
+      }
+    },
+    {
+      "patches": 70000,
+      "direct": {
+        "pass": 8,
+        "runs": 8
+      },
+      "indirect": {
+        "pass": 8,
+        "runs": 8
+      }
+    }
+  ],
+  "additionalTests": {
+    "largeDraw": "PASS; default fan skip",
+    "largeDrawFanOptIn": "PASS; 41 cases",
+    "tessellation": "PASS",
+    "conditionalTessellation": "PASS",
+    "xfb": "PASS"
+  },
+  "strictPatchReplay": {
+    "patches": 221,
+    "offsets": 0,
+    "fuzz": 0
+  },
+  "notValidated": [
+    "full Vulkan CTS",
+    "Android presentation",
+    "AHB",
+    "other GPU models"
+  ],
+  "deviceTemporaryFilesRemoved": true,
+  "evidenceArchive": "Mesa27-initializer-fix-evidence.zip"
+}

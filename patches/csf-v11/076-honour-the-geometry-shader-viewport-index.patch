@@ -15,7 +15,7 @@ diff --git a/src/panfrost/compiler/bifrost/bifrost_nir.c b/src/panfrost/compiler
 index ad8d9eff27e..5c961e980a7 100644
 --- a/src/panfrost/compiler/bifrost/bifrost_nir.c
 +++ b/src/panfrost/compiler/bifrost/bifrost_nir.c
-@@ -867,7 +867,8 @@ bifrost_postprocess_nir(nir_shader *nir,
+@@ -876,7 +876,8 @@ bifrost_postprocess_nir(nir_shader *nir,
        NIR_PASS(_, nir, pan_nir_lower_fs_outputs, skip_atest,
                 inputs->fragcolor_nr_cbufs);
     } else if (nir->info.stage == MESA_SHADER_VERTEX) {
@@ -29,8 +29,8 @@ diff --git a/src/panfrost/compiler/pan_compiler.h b/src/panfrost/compiler/pan_co
 index 288b8390806..ce64488dbd5 100644
 --- a/src/panfrost/compiler/pan_compiler.h
 +++ b/src/panfrost/compiler/pan_compiler.h
-@@ -36,6 +36,10 @@ struct pan_compile_inputs {
-    uint32_t gpu_variant;
+@@ -37,6 +37,10 @@ struct pan_compile_inputs {
+    const struct pan_model *model;
     bool is_blend, is_blit;
     bool no_idvs;
 +   /* Passthrough already wrote screen-space position for the selected
@@ -44,7 +44,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 67d5c620624..201919746a5 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -877,6 +877,57 @@ prepare_blend(struct panvk_cmd_buffer *cmdbuf)
+@@ -879,6 +879,57 @@ prepare_blend(struct panvk_cmd_buffer *cmdbuf)
     return VK_SUCCESS;
  }
  
@@ -102,7 +102,7 @@ index 67d5c620624..201919746a5 100644
  #if PAN_ARCH >= 12
  static void
  prepare_vp(struct panvk_cmd_buffer *cmdbuf)
-@@ -886,29 +937,59 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
+@@ -888,29 +939,59 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
     const VkViewport *viewport =
        &cmdbuf->vk.dynamic_graphics_state.vp.viewports[0];
     const VkRect2D *scissor = &cmdbuf->vk.dynamic_graphics_state.vp.scissors[0];
@@ -183,7 +183,7 @@ index 67d5c620624..201919746a5 100644
        }
  
        struct mali_scissor_packed *scissor_box_ptr = &scissor_box;
-@@ -916,38 +997,46 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
+@@ -918,38 +999,46 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
                     *((uint64_t *)scissor_box_ptr));
     }
  
@@ -259,7 +259,7 @@ index 67d5c620624..201919746a5 100644
           cfg.min_depth = z_min;
           cfg.max_depth = z_max;
        }
-@@ -968,38 +1057,66 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
+@@ -970,38 +1059,66 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
     const VkViewport *viewport =
        &cmdbuf->vk.dynamic_graphics_state.vp.viewports[0];
     const VkRect2D *scissor = &cmdbuf->vk.dynamic_graphics_state.vp.scissors[0];
@@ -356,7 +356,7 @@ index 67d5c620624..201919746a5 100644
        }
  
        struct mali_scissor_packed *scissor_box_ptr = &scissor_box;
-@@ -1007,14 +1124,15 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
+@@ -1009,14 +1126,15 @@ prepare_vp(struct panvk_cmd_buffer *cmdbuf)
                     *((uint64_t *)scissor_box_ptr));
     }
  
@@ -520,15 +520,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/panvk
 index c51fb9a9cef..20ae18a7dbc 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_draw.c
-@@ -5,6 +5,7 @@
-  */
- 
- #include "panvk_buffer.h"
-+#include "panvk_cmd_alloc.h"
- #include "panvk_cmd_buffer.h"
- #include "panvk_device_memory.h"
- #include "panvk_entrypoints.h"
-@@ -827,10 +828,85 @@ prepare_iam_sysvals(struct panvk_cmd_buffer *cmdbuf, BITSET_WORD *dirty_sysvals)
+@@ -851,10 +851,85 @@ prepare_iam_sysvals(struct panvk_cmd_buffer *cmdbuf, BITSET_WORD *dirty_sysvals)
        set_gfx_sysval(cmdbuf, dirty_sysvals, iam[i], iam[i]);
  }
  
@@ -618,7 +610,7 @@ index c51fb9a9cef..20ae18a7dbc 100644
  
  void
  panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
-@@ -874,32 +950,6 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -898,32 +973,6 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
           &cmdbuf->vk.dynamic_graphics_state.vp;
        const VkViewport *viewport = &vp->viewports[0];
  
@@ -651,7 +643,7 @@ index c51fb9a9cef..20ae18a7dbc 100644
        /* Upload the viewport scale. Defined as (px/2, py/2, pz) at the start of
         * section 24.5 ("Controlling the Viewport") of the Vulkan spec. At the
         * end of the section, the spec defines:
-@@ -909,13 +959,13 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -933,13 +982,13 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
         * pz = maxDepth - minDepth         if negativeOneToOne is false
         * pz = (maxDepth - minDepth) / 2   if negativeOneToOne is true
         */
@@ -668,7 +660,7 @@ index c51fb9a9cef..20ae18a7dbc 100644
  
        /* Upload the viewport offset. Defined as (ox, oy, oz) at the start of
         * section 24.5 ("Controlling the Viewport") of the Vulkan spec. At the
-@@ -930,12 +980,14 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -954,12 +1003,14 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
                       (0.5f * viewport->width) + viewport->x);
        set_gfx_sysval(cmdbuf, dirty_sysvals, viewport.offset.y,
                       (0.5f * viewport->height) + viewport->y);
@@ -686,7 +678,7 @@ index c51fb9a9cef..20ae18a7dbc 100644
     if (dyn_gfx_state_dirty(cmdbuf, INPUT_ATTACHMENT_MAP))
        prepare_iam_sysvals(cmdbuf, dirty_sysvals);
  
-@@ -979,6 +1031,23 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
+@@ -1003,6 +1054,23 @@ panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
     if (!BITSET_IS_EMPTY(dirty_shader_sysvals))
        gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);
  
@@ -714,7 +706,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 68fc6a34da8..074168afc5c 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -568,16 +568,20 @@ panvk_lower_clip_cull_vs(nir_shader *nir)
+@@ -540,16 +540,20 @@ panvk_lower_clip_cull_vs(nir_shader *nir)
  }
  
  static bool
@@ -737,7 +729,7 @@ index 68fc6a34da8..074168afc5c 100644
        return false;
  
     struct panvk_dist_elem old_clip[8], old_cull[8];
-@@ -601,6 +605,13 @@ panvk_lower_clip_cull_fs(nir_shader *nir, uint64_t prev_outputs)
+@@ -573,6 +577,13 @@ panvk_lower_clip_cull_fs(nir_shader *nir, uint64_t prev_outputs)
        kill = nir_ior(&b, kill, nir_bany(&b, c));
     }
  
@@ -751,7 +743,7 @@ index 68fc6a34da8..074168afc5c 100644
     for (unsigned i = 0; i < 8; i++) {
        if (old_clip[i].var) {
           nir_def *v = vals[i / 4] ? nir_channel(&b, vals[i / 4], i % 4)
-@@ -1034,6 +1045,95 @@ panvk_gpu_prerast_collect_out_type(nir_builder *b, nir_intrinsic_instr *intr,
+@@ -1018,6 +1029,95 @@ panvk_gpu_prerast_collect_out_type(nir_builder *b, nir_intrinsic_instr *intr,
     return false;
  }
  
@@ -847,7 +839,7 @@ index 68fc6a34da8..074168afc5c 100644
  static nir_shader *
  panvk_gpu_prerast_passthrough_nir(const nir_shader *source, uint64_t outputs,
                                    const struct panvk_gpu_prerast_out_types *t,
-@@ -2001,7 +2101,8 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
+@@ -1985,7 +2085,8 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
  static nir_shader *
  panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
                                       const struct panvk_gpu_prerast_gs_info *gs,
@@ -857,7 +849,7 @@ index 68fc6a34da8..074168afc5c 100644
  {
     nir_builder b = nir_builder_init_simple_shader(
        MESA_SHADER_VERTEX, options, "panvk_gpu_prerast_gs_passthrough");
-@@ -2011,12 +2112,25 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
+@@ -1995,12 +2096,25 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
        nir_u2u64(&b, nir_imul_imm(&b, nir_load_vertex_id(&b),
                                   gs->record_stride)));
  
@@ -885,7 +877,7 @@ index 68fc6a34da8..074168afc5c 100644
        unsigned ncomp = 4;
        nir_alu_type type = t->type[location] ? t->type[location]
                                              : nir_type_float32;
-@@ -2037,13 +2151,26 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
+@@ -2021,13 +2135,26 @@ panvk_gpu_prerast_gs_passthrough_nir(const nir_shader_compiler_options *options,
        nir_def *value = nir_load_global(&b, ncomp, 32,
                                         nir_iadd_imm(&b, record, slot * 16),
                                         .align_mul = 4);
@@ -912,7 +904,7 @@ index 68fc6a34da8..074168afc5c 100644
     b.shader->num_outputs = idx;
     return b.shader;
  }
-@@ -2984,6 +3111,7 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -2974,6 +3101,7 @@ panvk_compile_shader(struct panvk_device *dev,
                       const struct vk_graphics_pipeline_state *state,
                       const struct pan_varying_layout *vs_varying_layout,
                       const uint32_t *noperspective_varyings,
@@ -920,7 +912,7 @@ index 68fc6a34da8..074168afc5c 100644
                       const VkAllocationCallbacks *pAllocator,
                       struct vk_shader **shader_out)
  {
-@@ -3287,8 +3415,12 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3276,8 +3404,12 @@ panvk_compile_shader(struct panvk_device *dev,
  
        struct panvk_shader_variant *pt =
           &shader->variants[PANVK_GS_VARIANT_PASSTHROUGH];
@@ -934,15 +926,15 @@ index 68fc6a34da8..074168afc5c 100644
        struct panvk_shader_desc_info pt_desc_info = {0};
        panvk_lower_nir(dev, pt_nir, info->set_layout_count, info->set_layouts,
                        info->robustness, state, &pt_desc_info, false);
-@@ -3298,6 +3430,7 @@ panvk_compile_shader(struct panvk_device *dev,
-       pan_build_varying_layout_compact(&pt_layout, pt_nir, inputs.gpu_id);
+@@ -3287,6 +3419,7 @@ panvk_compile_shader(struct panvk_device *dev,
+       pan_build_varying_layout_compact(&pt_layout, pt_nir, inputs.arch);
        struct pan_compile_inputs pt_inputs = inputs;
        pt_inputs.varying_layout = &pt_layout;
 +      pt_inputs.skip_viewport_transform = gs->scissor_clip_loc != 0;
        pt->own_bin = true;
        result = panvk_compile_nir(dev, pt_nir, info->flags, &pt_inputs, state,
                                   noperspective_varyings, &pt_desc_info, pt);
-@@ -3399,7 +3532,8 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3388,7 +3521,8 @@ panvk_compile_shader(struct panvk_device *dev,
                 prev_dist_outputs |= BITFIELD64_BIT(slot->location);
           }
        }
@@ -952,7 +944,7 @@ index 68fc6a34da8..074168afc5c 100644
  
        /* We need to lower input attachments before we lower descriptors */
        NIR_PASS(_, nir, panvk_per_arch(nir_lower_input_attachment_loads),
-@@ -3585,13 +3719,14 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
+@@ -3576,13 +3710,14 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
         * find a varying layout we can use instead of making up our own.
         */
        const struct pan_varying_layout *vs_varying_layout = NULL;
@@ -968,7 +960,7 @@ index 68fc6a34da8..074168afc5c 100644
            */
           panvk_shader_foreach_variant(prev_shader, variant) {
              if (variant->info.stage == MESA_SHADER_VERTEX) {
-@@ -3600,11 +3735,15 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
+@@ -3591,11 +3726,15 @@ compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
                 break;
              }
           }
@@ -986,7 +978,7 @@ index 68fc6a34da8..074168afc5c 100644
  
        if (result != VK_SUCCESS)
           goto err_cleanup;
-@@ -4538,7 +4677,7 @@ VkResult panvk_per_arch(create_shader)(
+@@ -4540,7 +4679,7 @@ VkResult panvk_per_arch(create_shader)(
     panvk_preprocess_nir(dev->vk.physical, nir, &rs);
  
     struct vk_shader *vk_shader;

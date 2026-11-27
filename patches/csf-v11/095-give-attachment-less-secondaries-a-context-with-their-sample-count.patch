@@ -24,7 +24,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 7f765a2c507..da41abcabf9 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3049,12 +3049,19 @@ prepare_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3051,12 +3051,19 @@ prepare_draw(struct panvk_cmd_buffer *cmdbuf,
         */
        if (!cmdbuf->state.gfx.render.bound_attachments) {
           assert(rasterization_samples > 0);
@@ -49,7 +49,7 @@ index 7f765a2c507..da41abcabf9 100644
              result = split_render_ctx(cmdbuf);
              if (result != VK_SUCCESS)
                 return result;
-@@ -5753,7 +5760,30 @@ panvk_per_arch(cmd_prepare_exec_cmd_for_draws)(
+@@ -5755,7 +5762,30 @@ panvk_per_arch(cmd_prepare_exec_cmd_for_draws)(
     if (!(secondary->flags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT))
        return VK_SUCCESS;
  
@@ -81,7 +81,7 @@ index 7f765a2c507..da41abcabf9 100644
        enum u_tristate first_provoking_vertex =
           secondary->state.gfx.render.first_provoking_vertex;
        set_provoking_vertex_mode(primary, first_provoking_vertex);
-@@ -6011,6 +6041,8 @@ panvk_per_arch(cmd_inherit_render_state)(
+@@ -6013,6 +6043,8 @@ panvk_per_arch(cmd_inherit_render_state)(
        return;
  
     assert(pBeginInfo->pInheritanceInfo);
@@ -94,7 +94,7 @@ diff --git a/src/panfrost/vulkan/panvk_cmd_draw.h b/src/panfrost/vulkan/panvk_cm
 index 8fc677e1e59..d88b68478a9 100644
 --- a/src/panfrost/vulkan/panvk_cmd_draw.h
 +++ b/src/panfrost/vulkan/panvk_cmd_draw.h
-@@ -109,6 +109,13 @@ struct panvk_rendering_state {
+@@ -110,6 +110,13 @@ struct panvk_rendering_state {
      * inherited context, and the primary command buffer needs to know. */
     bool invalidate_inherited_ctx;
  

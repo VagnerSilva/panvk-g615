@@ -5,7 +5,24 @@ Preferred: NativeCode AI -> ARM64 Alpaquita/glibc PRoot -> NDK cross compiler
 storage (e.g. `/opt/panvk-build/` or app-private bind mount), never SAF/FUSE.
 
 Prerequisites (PRoot): `ccache ninja git meson python clang` + Android NDK
-(host has NDKs under `/opt/android-sdk/ndk/`; latest 30.0.14904198).
+(the original host setup used NDKs under `/opt/android-sdk/ndk/`, including
+version 30.0.14904198).
+
+On Linux x86_64, `./scripts/fetch-ndk.sh` downloads the official NDK r30
+(`30.0.16248370`) to `work/ndk/30.0.16248370`. It requires `curl`, `sha1sum`,
+and `unzip`, and checks Google's published SHA-1 before extraction. It refuses
+to replace an existing invalid destination. The official archive does not
+provide an ARM64 host toolchain; use a compatible NDK on an ARM64 build host.
+Review the [Android SDK license](https://developer.android.com/studio/terms)
+before using the NDK. Downloading it does not install all build prerequisites.
+
+Both `build-android.sh` and `build-android-deps.sh` default to this local NDK.
+Set `ANDROID_NDK_ROOT` to select another installation, or use `--ndk` to
+override both the environment and the default:
+
+```sh
+./scripts/build-android.sh --profile g615-v11-csf --ndk "$PWD/work/ndk/30.0.16248370"
+```
 
 ```sh
 ./scripts/fetch-mesa.sh
@@ -23,3 +40,102 @@ Dev loop on rooted Poco: sync source -> build changed target -> package
 locally -> static validate -> loader-test APK -> bounded Vulkan tests ->
 save logs -> Samba S3 (Android gates pass) / NativeCode (glibc gates pass) ->
 release candidate only after full gate set.
+
+## GitHub Actions toolchain
+
+Development CI builds both ABIs on isolated Ubuntu 24.04 runners, with two
+parallel compiler jobs per ABI. It selects NDK `30.0.16248370` and Android API
+35 explicitly; this does not qualify API 29. Meson 1.9.1, Rust 1.85.1 and
+bindgen 0.71.1 are selected explicitly. LLVM/Clang 18 and a matching
+SPIRV-LLVM translator come from the runner's Ubuntu packages. Native
+SPIRV-Tools v2024.4 (`4d2f0b40bfe290dea6c6904dafdf7fd8328ba346`) and its
+matching headers (`3f17b2af6784bfa2c5aa5dbb8e0e74a607dd8b3b`) are built in a
+separate host prefix because Mesa's host code generators require SPIRV-Tools
+with `spvtools::LinkerOptions::SetAllowPtrTypeMismatch` when using LLVM 17 or
+newer (upstream SPIRV-Tools PR 5534). Version 2024.1 lacks that API despite
+satisfying Mesa's version floor. CI compiles a probe against the installed
+headers before building Mesa's host tools. Mesa Rust dependencies use the
+pinned source's wrap files.
+
+Android target libraries are built using the NDK prefix, not host pkg-config
+paths. The glibc job uses the existing Debian cross file with AArch64
+development libraries from Ubuntu ports and retains X11/Wayland WSI. The
+X11 dependency set includes `libxrandr-dev:arm64` for Mesa's Xlib display
+lease support; `libxcb-randr0-dev:arm64` does not provide `xrandr.pc`.
+Its glibc/library baseline is the runner's target sysroot, not a promise of
+compatibility with every chroot on a G615 device.
+
+The uploaded `CI-BUILD.json` and checksums identify the output; inspect and
+test that exact ICD on the intended device. See [Release](RELEASE.md#github-actions)
+for the separate manual publication and hardware evidence requirements.
+
+## glibc series identity
+
+The default glibc build retains `dist/glibc-<profile>/`, as required by
+existing packaging scripts. Kbase sync 002-005 is included by default following
+the user-approved promotion on 2026-11-24:
+
+```sh
+./scripts/build-glibc.sh --profile g615-v11-csf --serial "$SERIAL"
+```
+
+Omit `--serial` on an AArch64 build host. On other hosts confirm the device,
+chroot and Kbase access before using ADB. Each run reconstructs Mesa in a new
+`build/glibc-replay-<profile>-<pid>` workspace, records the actual ordered
+patch and overlay hashes in `series-manifest.json`, and uses the SHA-256 of
+that file as its source identity. The legacy `--with-kbase-sync` flag selects
+the same inputs but retains its variant label and destination:
+`dist/glibc-<profile>-kbase-sync-002-004-<manifest-sha256>/`, separate from
+the default destination. Both destinations contain the ICD, ICD JSON and
+series manifest and are published only after static validation. An existing
+destination is never overwritten; move or archive it explicitly before
+rebuilding the same variant. Failed workspaces are retained for diagnosis,
+not reused. `--clean` remains accepted but each run is already fresh.
+
+The manifest records source inputs, not toolchain, binary identity or runtime
+evidence. Record the compiler/toolchain, Build ID and ICD SHA-256 separately,
+and execute the documented glibc device gates before qualifying a build.
+Source promotion does not establish glibc runtime or performance validation.
+
+## glibc cross-build on WSL or Linux
+
+On an x86-64 Debian/Ubuntu-style host, including WSL, the glibc ICD can be
+built locally without ADB, a device, NativeCode or a chroot wrapper:
+
+```sh
+./scripts/build-glibc.sh --profile g615-v11-csf \
+  --cross-file "$PWD/meson/linux-aarch64-debian-cross.ini"
+```
+
+The supplied cross file is an example for Debian/Ubuntu multiarch paths. It
+requires AArch64 GCC/G++, binutils, the Rust `aarch64-unknown-linux-gnu`
+target, bindgen, Meson, Ninja, native host-tool build dependencies and the
+AArch64 development dependencies required by Mesa, including libdrm and any
+selected WSI dependencies. Adapt a copy of the cross file for other distros,
+sysroots or toolchains. Its `pkg_config_libdir` must point to target `.pc`
+files and only architecture-independent shared metadata; avoid host library
+paths. The target build clears inherited pkg-config path overrides. Native
+code generators are built from the same patched Mesa tree in the fresh build
+workspace, without the optional shared host-tools cache. The staged ICD JSON
+refers to the adjacent library instead of the host's default install path.
+
+The default enables both X11 and Wayland, as in the existing build. For an
+explicit compute/offscreen-only build when WSI dependencies are unavailable:
+
+```sh
+./scripts/build-glibc.sh --profile g615-v11-csf \
+  --cross-file "$PWD/meson/linux-aarch64-debian-cross.ini" --headless
+```
+
+Headless does not provide X11 or Wayland WSI. `--with-kbase-sync` remains
+opt-in and `--jobs 1` or `--jobs 2` also bounds the host-tool build. The
+explicit cross mode ignores an inherited `ANDROID_SERIAL`; it cannot be
+combined with `--serial`, `--device-root` or `--chroot-wrapper`. Without
+`--cross-file`, the existing
+native AArch64 and ADB device-build selection is unchanged.
+
+The resulting AArch64 glibc binary must be compatible with the target's glibc
+and libraries. Static validation is not a device test: transfer the ICD and
+its manifest to an isolated location in the target glibc environment, verify
+their identity and dependencies, and run the relevant hardware gates before
+claiming runtime support.

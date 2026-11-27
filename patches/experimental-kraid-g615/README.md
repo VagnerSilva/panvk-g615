@@ -4,9 +4,11 @@ This opt-in overlay is not part of the default patch series or a release. It
 contains a narrowly scoped FAU hypothesis and an IDVS prototype. The tests
 cover the documented G615 workloads, not every instruction, shader or GPU.
 
-Prepare the pinned Mesa base with the standard G615 patch families and
+This historical overlay requires an already prepared tree containing
 `jm-v7-wip` through 0178, without the later commit that reverts Android's
-Kraid default. The expected prepared tree is
+Kraid default. The WIP patch files are no longer included in this checkout,
+so that base cannot be recreated from the current G615 series. The expected
+prepared tree is
 `d5db8cd96dc795016f771145459e5cc5907ec761`. Then run:
 
 ```sh

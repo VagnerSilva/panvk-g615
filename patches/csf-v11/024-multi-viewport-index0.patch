@@ -23,7 +23,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 85143c16371..b74f9f77ecc 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -320,7 +320,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -329,7 +329,7 @@ panvk_per_arch(get_physical_device_features)(
        .wideLines = true,
        .largePoints = true,
        .alphaToOne = false,
@@ -32,7 +32,7 @@ index 85143c16371..b74f9f77ecc 100644
        .samplerAnisotropy = true,
        .textureCompressionETC2 = has_texture_compression_etc2(device),
        .textureCompressionASTC_LDR = has_texture_compression_astc_ldr(device),
-@@ -962,7 +962,7 @@ panvk_per_arch(get_physical_device_properties)(
+@@ -997,7 +997,7 @@ panvk_per_arch(get_physical_device_properties)(
        .maxDrawIndirectCount = PAN_ARCH >= 10 ? UINT32_MAX : 1,
        .maxSamplerLodBias = (float)INT16_MAX / 256.0f,
        .maxSamplerAnisotropy = 16,

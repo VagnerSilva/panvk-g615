@@ -1,0 +1,79 @@
+From: panvk-kbase-android worker <panvk-worker@localhost>
+Subject: [PATCH csf-v11 234] panvk: restrict Kbase backend to G615
+
+Purpose: Restrict Kbase physical-device support to the G615 product and avoid
+DRM enumeration when building the Kbase-only ICD.
+Source/Reference: https://gitlab.freedesktop.org/mesa/mesa/-/commit/13baeb70c066a9f82d2bcfb29f06e4865212affa
+Tested GPU: not run (target: Mali-G615 MC2 / CSF v11)
+Tested Kbase UAPI: not run (target: G615 CSF v11)
+Mesa base range: 13baeb70c066a9f82d2bcfb29f06e4865212affa (27.0.0-devel), through csf-v11/233
+Dependencies: csf-v11/233; before jm-v9/032
+Validation test: tests/test_g615_device_filter.py; strict g615-v11-csf replay
+
+diff --git a/src/panfrost/vulkan/panvk_instance.c b/src/panfrost/vulkan/panvk_instance.c
+index f56617982eba59d5cdb649412dd4c7bc7ffbf88e..9d312a100d4e29a3034a6ed917ea654f91138135 100644
+--- a/src/panfrost/vulkan/panvk_instance.c
++++ b/src/panfrost/vulkan/panvk_instance.c
+@@ -149,6 +149,7 @@ static const struct vk_instance_extension_table panvk_instance_extensions = {
+ #endif
+ };
+ 
++#if defined(HAVE_PAN_KMOD_PANFROST) || defined(HAVE_PAN_KMOD_PANTHOR)
+ static VkResult
+ panvk_physical_device_try_create(struct vk_instance *vk_instance,
+                                  struct _drmDevice *drm_device,
+@@ -172,6 +173,7 @@ panvk_physical_device_try_create(struct vk_instance *vk_instance,
+    *out = &device->vk;
+    return VK_SUCCESS;
+ }
++#endif
+ 
+ static VkResult
+ panvk_enumerate_physical_devices(struct vk_instance *vk_instance)
+@@ -179,6 +181,7 @@ panvk_enumerate_physical_devices(struct vk_instance *vk_instance)
+    struct panvk_instance *instance =
+       container_of(vk_instance, struct panvk_instance, vk);
+ 
++#if defined(HAVE_PAN_KMOD_PANFROST) || defined(HAVE_PAN_KMOD_PANTHOR)
+    /* Enumerate DRM render nodes (panfrost / panthor). */
+    drmDevicePtr drm_devices[256];
+    int max_drm = drmGetDevices2(0, drm_devices, ARRAY_SIZE(drm_devices));
+@@ -199,6 +202,7 @@ panvk_enumerate_physical_devices(struct vk_instance *vk_instance)
+       }
+       drmFreeDevices(drm_devices, max_drm);
+    }
++#endif
+ 
+ #if defined(HAVE_PAN_KMOD_KBASE)
+    /* Enumerate kbase (Mali) non-DRM nodes. */
+diff --git a/src/panfrost/vulkan/panvk_physical_device.c b/src/panfrost/vulkan/panvk_physical_device.c
+index 88e009fec90259b4225fc99f235fe93b6a7a1d8d..e4b927e7d0021740857ebe8281eddb54cd0c47ed 100644
+--- a/src/panfrost/vulkan/panvk_physical_device.c
++++ b/src/panfrost/vulkan/panvk_physical_device.c
+@@ -1364,6 +1364,12 @@ fail:
+ }
+ 
+ #if defined(HAVE_PAN_KMOD_KBASE)
++static bool
++panvk_is_supported_kbase_model(const struct pan_model *model)
++{
++   return model && model->gpu_prod_id == PAN_PROD_ID(11, 8, 3);
++}
++
+ VkResult
+ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+                                  struct panvk_instance *instance,
+@@ -1403,6 +1409,13 @@ panvk_physical_device_init_kbase(struct panvk_physical_device *device,
+       goto fail_kbase;
+    }
+ 
++   if (!panvk_is_supported_kbase_model(device->model)) {
++      result = panvk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
++                            "Unsupported Kbase GPU product ID %#x",
++                            device->model->gpu_prod_id);
++      goto fail_kbase;
++   }
++
+    switch (arch) {
+    case 6:
+    case 7:

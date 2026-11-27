@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index 4b9744f2f28cd7a1408dc2c137789dccaf86db9f..ee935eb98df64451ab4c1f0a4fbc0d2ac75199a9 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -799,6 +799,8 @@ panvk_per_arch(CmdPipelineBarrier2)(VkCommandBuffer commandBuffer,
+@@ -800,6 +800,8 @@ panvk_per_arch(CmdPipelineBarrier2)(VkCommandBuffer commandBuffer,
     panvk_per_arch(emit_barrier)(cmdbuf, deps);
  
     STACK_ARRAY_FINISH(crc_addrs);
@@ -22,7 +22,7 @@ index 4b9744f2f28cd7a1408dc2c137789dccaf86db9f..ee935eb98df64451ab4c1f0a4fbc0d2a
 +   panvk_per_arch(cmd_bc_decode_zero_initialized)(cmdbuf, pDependencyInfo);
  }
  
- static struct cs_buffer
+ VkResult
 diff --git a/src/panfrost/vulkan/panvk_meta.h b/src/panfrost/vulkan/panvk_meta.h
 index eda6e2732820757eece2f5d3b5439db8ee02cf98..deb58ed2e64b116cda80f7deafa041c5bb1da9f9 100644
 --- a/src/panfrost/vulkan/panvk_meta.h
@@ -41,7 +41,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_cmd_meta.c b/src/panfrost/vulkan/panvk
 index b858aeccac0fa9dd8171ee98283a144c3d589816..37c1356e3af69cb538fd815860ebc48bacb9a386 100644
 --- a/src/panfrost/vulkan/panvk_vX_cmd_meta.c
 +++ b/src/panfrost/vulkan/panvk_vX_cmd_meta.c
-@@ -670,6 +670,52 @@ bc_decode_begin(struct panvk_cmd_buffer *cmdbuf,
+@@ -669,6 +669,52 @@ bc_decode_begin(struct panvk_cmd_buffer *cmdbuf,
     meta_compute_start(cmdbuf, save);
  }
  

@@ -16,7 +16,7 @@ CMAKE=${CMAKE:-$(command -v cmake || ls /opt/android-sdk/cmake/*/bin/cmake 2>/de
 
 SRC=$WORK/box64-src
 if [ ! -d "$SRC/.git" ]; then
-    git clone https://github.com/ptitSeb/box64.git "$SRC"
+    git clone --depth 1 https://github.com/ptitSeb/box64.git "$SRC"
 fi
 git -C "$SRC" checkout -q "$BOX64_COMMIT"
 test "$(git -C "$SRC" rev-parse HEAD)" = "$BOX64_COMMIT" || { echo "box64 commit mismatch" >&2; exit 1; }

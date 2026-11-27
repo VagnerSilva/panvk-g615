@@ -25,6 +25,43 @@ def _load(name: str, filename: str):
 audit = _load("audit_runtime_extensions", "audit-runtime-extensions.py")
 
 
+class TestMesa27Audit(unittest.TestCase):
+    def test_only_done_panvk_rows_are_counted(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            upstream = root / "upstream.json"
+            runtime = root / "runtime.json"
+            upstream.write_text(json.dumps({
+                "mesaCommit": "1" * 40,
+                "mesaVersion": "27.0.0-devel",
+                "rows": [
+                    {"name": "VK_EXT_done", "status": "DONE", "drivers": "(panvk/v10+)"},
+                    {"name": "VK_EXT_pending", "status": "in progress", "drivers": "(panvk)"},
+                    {"name": "VK_EXT_other", "status": "DONE", "drivers": "(notpanvk)"},
+                ],
+            }))
+            runtime.write_text(json.dumps({
+                "instanceExtensions": ["VK_EXT_done"], "deviceExtensions": []
+            }))
+            result = audit.audit_extensions(None, upstream, runtime)
+            self.assertEqual(result["summary"]["upstreamPanvkDone"], 1)
+            self.assertNotIn("operational", result["extensions"]["VK_EXT_done"]["reason"])
+            report = audit.generate_markdown(result)
+            self.assertNotIn("on-device beta.2 baseline", report)
+            self.assertNotIn("Exposed and operational", report)
+            self.assertNotIn("Upstream source contains verified predicates", report)
+
+    def test_rejects_mismatched_mesa_revisions(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = pathlib.Path(td)
+            upstream = root / "upstream.json"
+            runtime = root / "runtime.json"
+            upstream.write_text(json.dumps({"mesaCommit": "1" * 40, "rows": []}))
+            runtime.write_text(json.dumps({"mesaCommit": "2" * 40}))
+            with self.assertRaisesRegex(ValueError, "Mesa.*revision"):
+                audit.audit_extensions(None, upstream, runtime)
+
+
 class TestExtensionAuditBeta2(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

@@ -1,0 +1,19 @@
+{
+  "profile": "g615-v11-csf",
+  "abi": "android-bionic-aarch64",
+  "mesaCommit": "13baeb70c066a9f82d2bcfb29f06e4865212affa",
+  "patchSeriesId": "sha256:2657b6a07bb15978a66cb43cc50fff6c19e738e39f91782379637013eaad0e3a",
+  "variant": "kbase-sync-002-004",
+  "patchCount": 225,
+  "binarySha256": "25029f38fdf75ddc3fd23c60974e810d737f37479e8202b6961f886b96d40f41",
+  "buildId": "6d3c08d444fd459f6c25ed047ddd93ef9170e3c4",
+  "ndk": "30.0.16248370",
+  "androidTargetApi": 29,
+  "adpkgMinApi": 35,
+  "adpkgSha256": "a877583f2f79be644c84366767e22a02d8e4089095a1ce31a452a06343a15142",
+  "hardware": {
+    "status": "user-reported-pass",
+    "device": null,
+    "scenarios": null
+  }
+}

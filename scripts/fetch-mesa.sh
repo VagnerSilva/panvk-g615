@@ -9,7 +9,7 @@ REPO="$(python3 -c "import json;print(json.load(open('$ROOT/sources.lock'))['mes
 COMMIT="$(python3 -c "import json;print(json.load(open('$ROOT/sources.lock'))['mesaCommit'])")"
 mkdir -p "$WORK"
 if [ ! -d "$MESA_DIR/.git" ]; then
-  git clone "$REPO" "$MESA_DIR"
+  git clone --depth 1 "$REPO" "$MESA_DIR"
 fi
 git -C "$MESA_DIR" fetch origin "$COMMIT" --depth 1
 git -C "$MESA_DIR" checkout --detach "$COMMIT"

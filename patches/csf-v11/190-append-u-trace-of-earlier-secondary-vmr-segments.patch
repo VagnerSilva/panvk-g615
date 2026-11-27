@@ -25,7 +25,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index 61fe19f..659cfd6 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -1311,7 +1311,17 @@ panvk_per_arch(CmdExecuteCommands)(VkCommandBuffer commandBuffer,
+@@ -1358,7 +1358,17 @@ panvk_per_arch(CmdExecuteCommands)(VkCommandBuffer commandBuffer,
              cs_move32_to(prim_b, size, cs_root_chunk_size(sec_b));
              cs_call(prim_b, addr, size);
              prim_b->req_resource_mask |= sec_b->req_resource_mask;

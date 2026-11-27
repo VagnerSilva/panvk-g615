@@ -14,7 +14,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index 434a282452d..a67dd136567 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3712,7 +3712,7 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3714,7 +3714,7 @@ gpu_prerast_draw(struct panvk_cmd_buffer *cmdbuf,
                   const struct panvk_draw_info *source)
  {
     struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);

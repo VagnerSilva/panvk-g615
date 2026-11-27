@@ -66,7 +66,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 86dbf2f..262b218 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -461,6 +461,17 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
+@@ -463,6 +463,17 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
     return VK_SUCCESS;
  }
  
@@ -84,7 +84,7 @@ index 86dbf2f..262b218 100644
  static VkResult
  kbase_subqueue_emit_job(struct panvk_gpu_queue *queue, uint32_t subqueue,
                          uint64_t stream_addr, uint32_t stream_size,
-@@ -576,6 +587,21 @@ kbase_subqueue_emit_job(struct panvk_gpu_queue *queue, uint32_t subqueue,
+@@ -578,6 +589,21 @@ kbase_subqueue_emit_job(struct panvk_gpu_queue *queue, uint32_t subqueue,
     if (subqueue != PANVK_SUBQUEUE_COMPUTE) {
        cs_move64_to(&b, addr64, queue->tiler_heap.context.dev_addr);
        cs_heap_set(&b, addr64);
@@ -106,7 +106,7 @@ index 86dbf2f..262b218 100644
     }
  
     /* Diagnostic breadcrumbs are useful when investigating a hang, but each
-@@ -1665,6 +1691,9 @@ init_subqueue(struct panvk_gpu_queue *queue, enum panvk_subqueue_id subqueue)
+@@ -1670,6 +1696,9 @@ init_subqueue(struct panvk_gpu_queue *queue, enum panvk_subqueue_id subqueue)
            * to the tiler descriptors. */
           cs_ctx->render.geom_buf =
              (cs_ctx->render.tiler_heap + 4096) | ((64 * 1024) >> 12);
@@ -116,7 +116,7 @@ index 86dbf2f..262b218 100644
  
           /* Initialize the ringbuf */
           cs_ctx->render.desc_ringbuf = (struct panvk_cs_desc_ringbuf){
-@@ -2184,10 +2213,10 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
+@@ -2189,10 +2218,10 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
  
  #ifdef HAVE_PAN_KMOD_KBASE
  /* Destroy the heap context retired by the previous renewal, provided every
@@ -131,7 +131,7 @@ index 86dbf2f..262b218 100644
   * it any earlier lets kbase free (and the custom-VA allocator reuse) its
   * chunks while a CS HEAP_SET register can still point at them: the firmware
   * then walks whatever now lives at the old chunk VAs as a chunk list and
-@@ -2202,9 +2231,9 @@ kbase_try_destroy_retired_heap(struct panvk_gpu_queue *queue)
+@@ -2207,9 +2236,9 @@ kbase_try_destroy_retired_heap(struct panvk_gpu_queue *queue)
     if (!queue->kbase_retired_heap.ctx)
        return true;
  
@@ -143,7 +143,7 @@ index 86dbf2f..262b218 100644
            queue->kbase_retired_heap.frag_jobs)
        return false;
  
-@@ -2225,10 +2254,11 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
+@@ -2230,10 +2259,11 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
     uint64_t new_ctx, first_chunk;
  
     /* Hold at most one retired context: if the previous one is still
@@ -158,7 +158,7 @@ index 86dbf2f..262b218 100644
  
     if (kbase_kmod_csf_tiler_heap_create(
            dev->kmod.dev, tiler_heap->chunk_size,
-@@ -2241,13 +2271,16 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
+@@ -2246,13 +2276,16 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
     uint64_t old_ctx = tiler_heap->context.dev_addr;
     tiler_heap->context.dev_addr = new_ctx;
  
@@ -177,7 +177,7 @@ index 86dbf2f..262b218 100644
  
     queue->kbase_retired_heap.ctx = old_ctx;
     queue->kbase_retired_heap.vt_jobs =
-@@ -2722,29 +2755,6 @@ kbase_wait_sync_targets(
+@@ -2736,29 +2769,6 @@ kbase_wait_sync_targets(
     return VK_SUCCESS;
  }
  
@@ -207,7 +207,7 @@ index 86dbf2f..262b218 100644
  /* Incoming CPU syncs are resolved before emission.  The new work itself is
   * only published here; completion is represented by the seqno snapshot and
   * consumed later by fence/semaphore waits. */
-@@ -2860,21 +2870,37 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
+@@ -2874,21 +2884,37 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
         (queue->kbase_tiler_submit_count >=
             kbase_tiler_heap_renew_interval() ||
          (renew_work && queue->kbase_tiler_work_count >= renew_work))) {

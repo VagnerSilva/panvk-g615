@@ -36,15 +36,19 @@ diff --git a/src/vulkan/wsi/wsi_common_x11.c b/src/vulkan/wsi/wsi_common_x11.c
 index 0edfffb..eb1801f 100644
 --- a/src/vulkan/wsi/wsi_common_x11.c
 +++ b/src/vulkan/wsi/wsi_common_x11.c
-@@ -44,6 +44,7 @@
+@@ -44,10 +44,11 @@
  #include <fcntl.h>
+ #include <arpa/inet.h>
+ #include <netinet/in.h>
+ #include <sys/socket.h>
+ #include <sys/un.h>
  #include "drm-uapi/drm_fourcc.h"
  #include "util/libdrm.h"
 +#include "util/anon_file.h"
  #include "util/cnd_monotonic.h"
  #include "util/hash_table.h"
  #include "util/mesa-blake3.h"
-@@ -66,6 +67,8 @@
+@@ -70,6 +71,8 @@
  #include "wsi_common_queue.h"
  #include "loader/loader_dri_helper_screen.h"
  
@@ -53,7 +57,7 @@ index 0edfffb..eb1801f 100644
  #ifdef HAVE_SYS_SHM_H
  #include <sys/ipc.h>
  #include <sys/shm.h>
-@@ -1239,6 +1242,9 @@ struct x11_image {
+@@ -1274,6 +1277,9 @@ struct x11_image {
     xcb_shm_seg_t                             shmseg;
     int                                       shmid;
     uint8_t *                                 shmaddr;
@@ -63,7 +67,7 @@ index 0edfffb..eb1801f 100644
     uint64_t                                  present_id;
     VkPresentModeKHR                          present_mode;
     xcb_rectangle_t                           rects[MAX_DAMAGE_RECTS];
-@@ -1274,6 +1280,11 @@ struct x11_swapchain {
+@@ -1309,7 +1315,12 @@ struct x11_swapchain {
     bool                                         has_mit_shm;
     bool                                         has_async_may_tear;
     bool                                         msc_estimate_is_stable;
@@ -74,8 +78,9 @@ index 0edfffb..eb1801f 100644
 +   uint64_t                                     sw_next_present_ns;
  
     xcb_connection_t *                           conn;
-    xcb_window_t                                 window;
-@@ -1879,8 +1890,12 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
+    /* Connection Present events are selected and read on: our own connection
+     * when we could open one, so the event thread never reads from the
+@@ -1922,8 +1933,12 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
     struct x11_image *image = &chain->images[image_index];
  
     /* Begin querying this before submitting the frame for improved async performance.
@@ -90,7 +95,7 @@ index 0edfffb..eb1801f 100644
  
     xcb_void_cookie_t cookie;
     void *myptr = image->base.cpu_map;
-@@ -1889,7 +1904,39 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
+@@ -1932,7 +1947,39 @@ x11_present_to_x11_sw(struct x11_swapchain *chain, uint32_t image_index)
     size_t size = (hdr_len + stride_b * chain->extent.height) >> 2;
     uint64_t max_req_len = xcb_get_maximum_request_length(chain->conn);
  
@@ -131,7 +136,7 @@ index 0edfffb..eb1801f 100644
        for (int i = 0; i < image->rectangle_count; i++) {
           xcb_rectangle_t rect = chain->images[image_index].rects[i];
           const uint8_t *data = (const uint8_t*)myptr + (rect.y * stride_b) + (rect.x * 4);
-@@ -2580,6 +2627,22 @@ x11_manage_present_queue(void *state)
+@@ -2560,6 +2607,22 @@ x11_manage_present_queue(void *state)
           }
        }
  
@@ -154,7 +159,7 @@ index 0edfffb..eb1801f 100644
        mtx_lock(&chain->thread_state_lock);
  
        /* In IMMEDIATE and MAILBOX modes, there is a risk that we have exhausted the presentation queue,
-@@ -2654,6 +2717,67 @@ alloc_shm(struct wsi_image *imagew, unsigned size)
+@@ -2634,6 +2697,67 @@ alloc_shm(struct wsi_image *imagew, unsigned size)
  #endif
  }
  
@@ -222,7 +227,7 @@ index 0edfffb..eb1801f 100644
  static VkResult
  x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
                 const VkSwapchainCreateInfoKHR *pCreateInfo,
-@@ -2668,8 +2792,12 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
+@@ -2648,8 +2772,12 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
        return result;
  
     image->update_region = None;
@@ -236,7 +241,7 @@ index 0edfffb..eb1801f 100644
  
  #ifdef HAVE_X11_DRM
     xcb_void_cookie_t cookie;
-@@ -2844,6 +2972,12 @@ x11_image_finish(struct x11_swapchain *chain,
+@@ -2824,6 +2952,12 @@ x11_image_finish(struct x11_swapchain *chain,
  #endif
     }
  
@@ -249,7 +254,7 @@ index 0edfffb..eb1801f 100644
     wsi_destroy_image(&chain->base, &image->base);
  #ifdef HAVE_SYS_SHM_H
     if (image->shmaddr)
-@@ -3316,6 +3450,16 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
+@@ -3445,6 +3579,16 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
     chain->has_async_may_tear = present_caps & XCB_PRESENT_CAPABILITY_ASYNC_MAY_TEAR;
     chain->has_reliable_msc = !wsi_conn->is_xwayland;
  

@@ -12,7 +12,7 @@ Source/Reference: G615 bring-up forensics (MediaTek gralloc handle: data[0] is
  gralloc_extra, data[1] is dma-buf).
 Tested GPU: Poco X6 Pro / G615 (Gate G).
 Tested Kbase UAPI: CSF 1.21.
-Mesa base range: 26.3.0-devel (pinned 5a07217f).
+Mesa base range: 27.0.0-devel (pinned 13baeb70).
 Dependencies: none (Android WSI code path).
 Validation test: Gate G allocate/query/import/bind/GPU-write/CPU-verify.
 
@@ -137,7 +137,7 @@ diff --git a/src/panfrost/vulkan/panvk_android.h b/src/panfrost/vulkan/panvk_and
 diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
 --- a/src/vulkan/runtime/vk_android.c
 +++ b/src/vulkan/runtime/vk_android.c
-@@ -52,6 +52,7 @@
+@@ -53,6 +53,7 @@
  #endif
  
  #include <unistd.h>
@@ -145,7 +145,7 @@ diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
  
  static struct u_gralloc *_gralloc;
  
-@@ -1223,18 +1224,41 @@
+@@ -1258,18 +1259,41 @@
     }
  
     const native_handle_t *handle = AHardwareBuffer_getNativeHandle(buffer);
@@ -197,16 +197,11 @@ diff --git a/src/vulkan/runtime/vk_android.c b/src/vulkan/runtime/vk_android.c
 diff --git a/src/vulkan/runtime/vk_android.h b/src/vulkan/runtime/vk_android.h
 --- a/src/vulkan/runtime/vk_android.h
 +++ b/src/vulkan/runtime/vk_android.h
-@@ -133,6 +133,10 @@
- bool vk_android_rp_attachment_has_external_format(
-    const VkAttachmentDescription2 *desc);
+@@ -176,3 +176,7 @@
+    VkFormat *local_color_format);
  
 +VkResult vk_common_GetAndroidHardwareBufferPropertiesANDROID(
 +   VkDevice device_h, const struct AHardwareBuffer *buffer,
 +   VkAndroidHardwareBufferPropertiesANDROID *pProperties);
 +
  #else /* defined(VK_USE_PLATFORM_ANDROID_KHR) && ANDROID_API_LEVEL >= 26 */
- 
- static inline uint64_t
- 
- #ifdef __cplusplus

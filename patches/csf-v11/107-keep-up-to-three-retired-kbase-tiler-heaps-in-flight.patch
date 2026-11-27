@@ -65,7 +65,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c b/src/panfrost/vulkan/
 index 3711c0f..80089bb 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
-@@ -461,9 +461,11 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
+@@ -463,9 +463,11 @@ kbase_subqueue_reserve_ring(struct panvk_gpu_queue *queue,
     return VK_SUCCESS;
  }
  
@@ -79,7 +79,7 @@ index 3711c0f..80089bb 100644
  
  static uint64_t
  kbase_heap_desc_addr(const struct panvk_gpu_queue *queue)
-@@ -2263,11 +2265,10 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
+@@ -2268,11 +2270,10 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
         * any) is no longer firmware-visible and can be destroyed with the
         * current one. */
        kbase_spare_heap_finish(queue);
@@ -94,7 +94,7 @@ index 3711c0f..80089bb 100644
        kbase_kmod_csf_tiler_heap_destroy(dev->kmod.dev,
                                          tiler_heap->context.dev_addr);
     } else
-@@ -2286,8 +2287,8 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
+@@ -2291,8 +2292,8 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
  }
  
  #ifdef HAVE_PAN_KMOD_KBASE
@@ -105,7 +105,7 @@ index 3711c0f..80089bb 100644
   * Each ring entry re-issues HEAP_SET (and its TILER_HEAP descriptor slot)
   * before its CALL and entries retire in order, so the firmware provably no
   * longer holds a reference to the retired context.  Destroying
-@@ -2296,25 +2297,44 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
+@@ -2301,25 +2302,44 @@ cleanup_tiler(struct panvk_gpu_queue *queue)
   * then walks whatever now lives at the old chunk VAs as a chunk list and
   * faults on a garbage pointer (observed as an exception 0xc0 CSG fatal at a
   * wild sideband address during heavy allocation churn).  Returns false when
@@ -161,7 +161,7 @@ index 3711c0f..80089bb 100644
  }
  
  static VkResult
-@@ -2327,10 +2347,10 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
+@@ -2332,10 +2352,10 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
     const uint32_t max_chunks = MAX2(phys_dev->csf.tiler.max_chunks, 200);
     uint64_t new_ctx, first_chunk;
  
@@ -176,7 +176,7 @@ index 3711c0f..80089bb 100644
     if (!kbase_try_destroy_retired_heap(queue))
        return VK_INCOMPLETE;
  
-@@ -2348,7 +2368,7 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
+@@ -2353,7 +2373,7 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
     uint64_t old_ctx = tiler_heap->context.dev_addr;
     tiler_heap->context.dev_addr = new_ctx;
  
@@ -185,7 +185,7 @@ index 3711c0f..80089bb 100644
     const uint32_t slot_offset = slot * KBASE_HEAP_DESC_SLOT_STRIDE;
     panvk_priv_mem_write_desc(tiler_heap->desc, slot_offset, TILER_HEAP, cfg) {
        cfg.size = tiler_heap->chunk_size;
-@@ -2359,10 +2379,11 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
+@@ -2364,10 +2384,11 @@ kbase_renew_tiler_heap(struct panvk_gpu_queue *queue)
     kbase_clean_priv_mem(tiler_heap->desc, slot_offset, pan_size(TILER_HEAP));
     queue->kbase_heap_slot = slot;
  
@@ -200,7 +200,7 @@ index 3711c0f..80089bb 100644
        queue->subqueues[PANVK_SUBQUEUE_FRAGMENT].kbase.emitted_jobs;
     return VK_SUCCESS;
  }
-@@ -2996,11 +3017,16 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
+@@ -3010,11 +3031,16 @@ panvk_queue_submit_ioctl_kbase(struct panvk_queue_submit *submit,
        if (result == VK_INCOMPLETE &&
            ((interval && queue->kbase_tiler_submit_count >= 4ull * interval) ||
             (renew_work && queue->kbase_tiler_work_count / 4 >= renew_work))) {

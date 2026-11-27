@@ -1,0 +1,46 @@
+From: PanVK Kbase Android contributors
+Subject: [PATCH] panfrost/clc: defer global initializers until specialization
+
+Purpose: Preserve shared constant-array initialization in every libpan kernel
+variant. Lowering shader-global initializers on the multi-entrypoint library
+consumes them into its first entrypoint, leaving other kernels uninitialized.
+Source/Reference: Local per-pass SPIR-V/NIR audit of the pinned Mesa 27 tree;
+nir_lower_variable_initializers consumes constant_initializer after emitting
+stores in an entrypoint.
+Tested GPU: Mali-G615 MC2 (moto g86 5G, Android 16).
+Tested Kbase UAPI: CSF 1.21.
+Mesa base range: 13baeb70c066a9f82d2bcfb29f06e4865212affa (27.0.0-devel).
+Dependencies: None.
+Validation test: Recompile libpan triangle tess_gen and fused count_draw from
+unchanged SPIR-V; verify all 80 shared source bytes are initialized in each
+specialized entrypoint. Large_Draw direct/indirect passed 8/8 at 64, 507, 508
+and 70000 patches without debug sync. Full Large_Draw, fan opt-in (41 cases),
+tessellation, conditional tessellation and XFB standalone tests passed.
+
+Keep lowering function-local initializers after constant localization, but
+retain shared global initializers until linking leaves a single entrypoint.
+This fixes the initializer lifetime rather than adding tessellator field
+stores or changing TLS sizes.
+
+--- a/src/panfrost/clc/pan_compile.c
++++ b/src/panfrost/clc/pan_compile.c
+@@ -133,9 +133,9 @@
+    nir_lower_constant_to_temp(nir);
+-
++
+-   /* We can go ahead and lower the rest of the constant initializers.  We do
++   /* We can go ahead and lower the function-local constant initializers.  We do
+     * this here so that nir_remove_dead_variables and split_per_member_structs
+     * below see the corresponding stores.
+     */
+-   NIR_PASS(_, nir, nir_lower_variable_initializers, ~0);
++   NIR_PASS(_, nir, nir_lower_variable_initializers, nir_var_function_temp);
+-
++
+    /* LLVM loves take advantage of the fact that vec3s in OpenCL are 16B
+@@ -378,4 +378,5 @@
+          nir_link_shader_functions(s, nir);
+          NIR_PASS(_, s, nir_inline_functions);
+          nir_remove_non_entrypoints(s);
++         NIR_PASS(_, s, nir_lower_variable_initializers, ~0);
+          NIR_PASS(_, s, nir_opt_deref);

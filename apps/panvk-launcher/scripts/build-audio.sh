@@ -64,7 +64,7 @@ $CC $CFLAGS -DPIC -shared -Wall -Wextra -Werror -o "$P/lib/alsa-lib/libasound_mo
 
 # --- PulseAudio (git tag, commit pinned) + termux module-aaudio-sink
 PS=$SRC/pulseaudio
-[ -d "$PS/.git" ] || git clone https://gitlab.freedesktop.org/pulseaudio/pulseaudio.git "$PS"
+[ -d "$PS/.git" ] || git clone --depth 1 https://gitlab.freedesktop.org/pulseaudio/pulseaudio.git "$PS"
 git -C "$PS" checkout -q -f "$PULSE_COMMIT"; git -C "$PS" clean -qfdx
 test "$(git -C "$PS" rev-parse HEAD)" = "$PULSE_COMMIT" || { echo "pulseaudio commit mismatch" >&2; exit 1; }
 git -C "$PS" apply "$RT/pulseaudio-android.patch"

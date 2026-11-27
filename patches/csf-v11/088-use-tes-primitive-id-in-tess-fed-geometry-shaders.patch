@@ -27,7 +27,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index 86c7ab7847e..8a827377566 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -2032,41 +2032,75 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
+@@ -2016,41 +2016,75 @@ panvk_gpu_prerast_lower_gs(nir_shader *nir,
  
     s.prim_id = lp;
     if (reads_prim_id) {

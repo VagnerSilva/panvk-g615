@@ -45,6 +45,15 @@ def identity_of(path):
     with open(path, "rb") as f:
         return identity(f.read())
 
+def identity_for_pin(data, lock):
+    ident = identity(data)
+    if ident is None:
+        raise ValueError("missing driver identity; refusing fabricated Mesa metadata")
+    if (ident["mesaVersion"] != lock["mesaVersion"] or
+            not lock["mesaCommit"].startswith(ident["gitSha"])):
+        raise ValueError("driver identity does not match the pinned Mesa revision")
+    return ident
+
 
 def main(argv):
     field = None

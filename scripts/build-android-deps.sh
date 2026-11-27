@@ -7,7 +7,7 @@
 # Usage: ./scripts/build-android-deps.sh [--api 29] [--ndk $ANDROID_NDK_ROOT] [--out work/android-deps]
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-API="${ANDROID_API:-29}"; NDK="${ANDROID_NDK_ROOT:-${ANDROID_HOME:-/opt/android-sdk}/ndk}"
+API="${ANDROID_API:-29}"; NDK="${ANDROID_NDK_ROOT:-$ROOT/work/ndk/30.0.16248370}"
 OUT="$ROOT/work/android-deps"; LIBDRM_TAG="libdrm-2.4.125"
 while [ $# -gt 0 ]; do case "$1" in
   --api) API="$2"; shift 2;; --ndk) NDK="$2"; shift 2;; --out) OUT="$2"; shift 2;; *) echo "unknown $1" >&2; exit 2;; esac; done

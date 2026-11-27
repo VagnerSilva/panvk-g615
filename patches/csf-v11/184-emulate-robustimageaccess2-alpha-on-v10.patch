@@ -42,7 +42,7 @@ diff --git a/src/panfrost/compiler/bifrost/bifrost_nir.c b/src/panfrost/compiler
 index 07c0df83ff1..c840d8887bd 100644
 --- a/src/panfrost/compiler/bifrost/bifrost_nir.c
 +++ b/src/panfrost/compiler/bifrost/bifrost_nir.c
-@@ -911,6 +911,81 @@ bi_lower_robust_texel_buf(nir_builder *b, nir_instr *instr, void *data)
+@@ -921,6 +921,81 @@ bi_lower_robust_texel_buf(nir_builder *b, nir_instr *instr, void *data)
     return true;
  }
  
@@ -124,11 +124,11 @@ index 07c0df83ff1..c840d8887bd 100644
  static bool pan_nir_lower_buf_image_access(nir_shader *nir, unsigned arch);
  static bool bi_should_idvs(nir_shader *nir, const struct pan_compile_inputs *inputs);
  static bool bifrost_nir_lower_vs_atomics(nir_shader *nir);
-@@ -935,6 +1010,11 @@ bifrost_postprocess_nir(nir_shader *nir,
+@@ -944,6 +1019,11 @@ bifrost_postprocess_nir(nir_shader *nir,
                 nir_metadata_none, &robust_modes);
     }
  
-+   if (gpu_arch == 10 && (inputs->robust_modes & nir_var_image))
++   if (inputs->arch == 10 && (inputs->robust_modes & nir_var_image))
 +      NIR_PASS(_, nir, nir_shader_intrinsics_pass,
 +               bi_lower_robust_image_alpha_v10, nir_metadata_control_flow,
 +               NULL);
@@ -140,7 +140,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_shader.c b/src/panfrost/vulkan/panvk_v
 index e001c39e298..263cf13c249 100644
 --- a/src/panfrost/vulkan/panvk_vX_shader.c
 +++ b/src/panfrost/vulkan/panvk_vX_shader.c
-@@ -3381,6 +3381,10 @@ panvk_compile_shader(struct panvk_device *dev,
+@@ -3371,6 +3371,10 @@ panvk_compile_shader(struct panvk_device *dev,
        robust_modes |= nir_var_mem_ubo;
     if (info->robustness->storage_buffers != VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED_EXT)
        robust_modes |= nir_var_mem_ssbo;
@@ -150,7 +150,6 @@ index e001c39e298..263cf13c249 100644
 +      robust_modes |= nir_var_image;
  
     struct pan_compile_inputs inputs = {
-       .gpu_id = phys_dev->kmod.dev->props.gpu_id,
+       .arch = PAN_ARCH,
 --
 2.47.0
-

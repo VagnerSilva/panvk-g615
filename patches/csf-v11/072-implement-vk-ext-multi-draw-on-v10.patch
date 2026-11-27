@@ -15,7 +15,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index a0017f857c0..f32f331e9dc 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -3151,6 +3151,13 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3153,6 +3153,13 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
  
     panvk_cond_render(cmdbuf, b)
     {
@@ -29,7 +29,7 @@ index a0017f857c0..f32f331e9dc 100644
        if (idvs_count > 1 || dynamic_idvs_count) {
           struct cs_index counter_reg = cs_scratch_reg32(b, 4);
           struct cs_index tiler_ctx_addr = cs_sr_reg64(b, IDVS, TILER_CTX);
-@@ -3172,13 +3179,13 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3174,13 +3181,13 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
           cs_while(b, MALI_CS_CONDITION_GREATER, counter_reg) {
  #if PAN_ARCH >= 12
              cs_trace_run_idvs2(b, tracing_ctx, tracing_scratch_regs,
@@ -45,7 +45,7 @@ index a0017f857c0..f32f331e9dc 100644
  #endif
  
              cs_add_imm32(b, counter_reg, counter_reg, -1);
-@@ -3198,13 +3205,13 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
+@@ -3200,13 +3207,13 @@ launch_draw(struct panvk_cmd_buffer *cmdbuf,
        } else {
  #if PAN_ARCH >= 12
           cs_trace_run_idvs2(b, tracing_ctx, tracing_scratch_regs,
@@ -61,7 +61,7 @@ index a0017f857c0..f32f331e9dc 100644
  #endif
        }
     }
-@@ -4532,7 +4539,7 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
+@@ -4534,7 +4541,7 @@ gpu_prerast_tess(struct panvk_cmd_buffer *cmdbuf,
        gpu_prerast_acquire_arena(cmdbuf, prerast_arena);
     panlib_tess_setup(&ctx, panlib_1d(1), PANLIB_BARRIER_NONE, td.gpu, src,
                       draw->indirect.count_buffer_dev_addr,
@@ -70,7 +70,7 @@ index a0017f857c0..f32f331e9dc 100644
     cs_wait_slots(b, dev->csf.sb.all_iters_mask);
  
     /* No C-level exit from a cs_while body, it would leave the block open.
-@@ -4944,6 +4951,86 @@ panvk_per_arch(CmdDrawIndexed)(VkCommandBuffer commandBuffer,
+@@ -4946,6 +4953,86 @@ panvk_per_arch(CmdDrawIndexed)(VkCommandBuffer commandBuffer,
     panvk_cmd_draw(cmdbuf, draw);
  }
  
@@ -161,7 +161,7 @@ diff --git a/src/panfrost/vulkan/panvk_vX_physical_device.c b/src/panfrost/vulka
 index 011f0112d6d..1e77308e2a4 100644
 --- a/src/panfrost/vulkan/panvk_vX_physical_device.c
 +++ b/src/panfrost/vulkan/panvk_vX_physical_device.c
-@@ -191,6 +191,7 @@ panvk_per_arch(get_physical_device_extensions)(
+@@ -194,6 +194,7 @@ panvk_per_arch(get_physical_device_extensions)(
        .EXT_non_seamless_cube_map = true,
        .EXT_mutable_descriptor_type = PAN_ARCH >= 9,
        .EXT_multisampled_render_to_single_sampled = true,
@@ -169,15 +169,15 @@ index 011f0112d6d..1e77308e2a4 100644
        .EXT_physical_device_drm = true,
        .EXT_pipeline_creation_cache_control = true,
        .EXT_pipeline_creation_feedback = true,
-@@ -789,6 +790,7 @@ panvk_per_arch(get_physical_device_features)(
+@@ -808,6 +809,7 @@ panvk_per_arch(get_physical_device_features)(
        .rasterizationOrderColorAttachmentAccess = PAN_ARCH >= 10,
        .rasterizationOrderDepthAttachmentAccess = PAN_ARCH >= 10,
        .rasterizationOrderStencilAttachmentAccess = PAN_ARCH >= 10,
 +      .multiDraw = PAN_ARCH >= 10,
-    };
- }
  
-@@ -1299,6 +1301,9 @@ panvk_per_arch(get_physical_device_properties)(
+       /* VK_ANDROID_external_format_resolve */
+       .externalFormatResolve = has_gralloc && PAN_ARCH >= 10,
+@@ -1334,6 +1336,9 @@ panvk_per_arch(get_physical_device_properties)(
        .provokingVertexModePerPipeline = false,
        .transformFeedbackPreservesTriangleFanProvokingVertex = false,
  

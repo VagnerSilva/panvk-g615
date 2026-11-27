@@ -4,6 +4,13 @@
 
 ### Changed
 
+- Added `apply-patches.sh --with-kbase-sync` for explicit G615 Mesa 27
+  preparation with experimental 002+003 after the main series. Default
+  builds remain unchanged. Clean replay applies 224 patches without offsets
+  or fuzz; selection/order tests protect the opt-in boundary. The shutdown
+  hang remains unresolved; the reported 20 FPS at 0.5X is user-observed,
+  not a new regression-free performance certification.
+
 - **Upstream-style driver identity** (`patches/jm-v7-wip` 0120): `driverInfo` is now
   `Mesa 26.3.0-devel (git-<sha>)`, as an upstream Mesa PanVK development build reports it (`driverName`
   `panvk`; `deviceName` unchanged, it already matches upstream). The `PANVK_FPS_LOG` header reads
@@ -31,6 +38,11 @@
 
 ### Fixed
 
+- **Android native-buffer import:** the main Android patch series now includes
+  the Mesa 27 port of `jm-v7-wip/0178`. It searches the native handle for a
+  usable dma-buf instead of assuming the first fd. On moto g86 5G, an imported
+  Eden test driver passed the prior `VK_ERROR_INVALID_EXTERNAL_HANDLE`
+  swapchain failure. Full game and cross-device validation remain separate.
 - **Instance-rate vertex attributes on the gpu_prerast path** (`patches/jm-v7-wip` 0176): a vertex shader
   with stores runs as a compute dispatch with one workgroup per vertex and instance. When a compute task
   covered several instances, every invocation of the task read the attribute of the task's first instance.

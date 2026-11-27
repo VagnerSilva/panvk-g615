@@ -14,7 +14,7 @@ diff --git a/src/panfrost/libpan/draw_helper.cl b/src/panfrost/libpan/draw_helpe
 index a61aa32965d..501081cf1de 100644
 --- a/src/panfrost/libpan/draw_helper.cl
 +++ b/src/panfrost/libpan/draw_helper.cl
-@@ -69,6 +69,84 @@ panlib_update_prims_generated_query_indirect(
+@@ -70,6 +70,84 @@ panlib_update_prims_generated_query_indirect(
        cmd = (constant uint32_t *) ((uintptr_t) cmd + cmd_stride);
     }
  }
@@ -96,14 +96,14 @@ index a61aa32965d..501081cf1de 100644
 +{
 +   pstats_add(counter, (uint64_t)cmd[0] * cmd[1] * cmd[2] * local_size);
 +}
- #endif
  
- #if (PAN_ARCH == 6 || PAN_ARCH == 7)
+ #elif PAN_ARCH < 9
+ 
 diff --git a/src/panfrost/libpan/query_pool.cl b/src/panfrost/libpan/query_pool.cl
 index 8075f1cbf1d..5c9439d0bda 100644
 --- a/src/panfrost/libpan/query_pool.cl
 +++ b/src/panfrost/libpan/query_pool.cl
-@@ -90,6 +90,35 @@ panlib_copy_ts_query_result(uint64_t pool_addr, global uint32_t *available_addr,
+@@ -90,7 +90,36 @@ panlib_copy_ts_query_result(uint64_t pool_addr, global uint32_t *available_addr,
     if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)
        vk_write_query(dst, 1, flags, available);
  }
@@ -136,14 +136,15 @@ index 8075f1cbf1d..5c9439d0bda 100644
 +   if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)
 +      vk_write_query(dst, stat_count, flags, available);
 +}
- #endif
  
- #if (PAN_ARCH >= 6 && PAN_ARCH < 10)
+ #else
+ 
+ static inline void
 diff --git a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 index 4a116e9ca88..1c615134de0 100644
 --- a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
 +++ b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
-@@ -1037,6 +1037,18 @@ void panvk_per_arch(kbase_mark_progress)(
+@@ -1038,8 +1038,20 @@ void panvk_per_arch(kbase_mark_progress)(
     struct panvk_cmd_buffer *cmdbuf, enum panvk_subqueue_id subqueue,
     enum panvk_kbase_progress_marker marker);
  
@@ -159,6 +160,8 @@ index 4a116e9ca88..1c615134de0 100644
 +void panvk_per_arch(cmd_pstats_flush_pending)(struct panvk_cmd_buffer *cmdbuf);
 +void panvk_per_arch(cmd_pstats_restore_oq)(struct panvk_cmd_buffer *cmdbuf);
 +
+ VkResult panvk_per_arch(cmd_init_poly_heap)(struct panvk_cmd_buffer *cmdbuf);
+ 
  #if PAN_ARCH >= 14
  static inline void
  cs_emit_layer_fragment_state(struct cs_builder *b, struct cs_index fbd_ptr)
@@ -166,7 +169,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c b/src/panfrost/vulkan
 index d91d759ea62..ebfc59edda3 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
-@@ -1182,6 +1182,18 @@ panvk_per_arch(CmdExecuteCommands)(VkCommandBuffer commandBuffer,
+@@ -1229,6 +1229,18 @@ panvk_per_arch(CmdExecuteCommands)(VkCommandBuffer commandBuffer,
         * correctly detect that an oq has ended in EndRendering. */
        primary->state.gfx.render.oq = secondary->state.gfx.render.oq;
  
@@ -189,7 +192,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_dispatch.c b/src/panfrost/vulk
 index ff0178c00fb..b4382122833 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_dispatch.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_dispatch.c
-@@ -417,6 +417,8 @@ cmd_dispatch(struct panvk_cmd_buffer *cmdbuf, struct panvk_dispatch_info *info)
+@@ -423,6 +423,8 @@ cmd_dispatch(struct panvk_cmd_buffer *cmdbuf, struct panvk_dispatch_info *info)
        cs_flush_stores(b);
     }
  
@@ -202,7 +205,7 @@ diff --git a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c b/src/panfrost/vulkan/c
 index bf45f148686..06ce34fe394 100644
 --- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
 +++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
-@@ -4164,6 +4164,12 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
+@@ -4166,6 +4166,12 @@ panvk_cmd_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info draw)
     if (!panvk_priv_mem_check_alloc(vs->spd))
        return;
  
@@ -215,7 +218,7 @@ index bf45f148686..06ce34fe394 100644
     if (gpu_prerast_needed(cmdbuf, &draw) && gpu_prerast_split(cmdbuf, &draw))
        return;
  
-@@ -5547,6 +5553,11 @@ panvk_per_arch(CmdEndRendering)(VkCommandBuffer commandBuffer)
+@@ -5571,6 +5577,11 @@ panvk_per_arch(CmdEndRendering)(VkCommandBuffer commandBuffer)
           return;
     }
  
@@ -752,7 +755,7 @@ diff --git a/src/panfrost/vulkan/panvk_cmd_draw.h b/src/panfrost/vulkan/panvk_cm
 index 90d58924c71..83964f086e1 100644
 --- a/src/panfrost/vulkan/panvk_cmd_draw.h
 +++ b/src/panfrost/vulkan/panvk_cmd_draw.h
-@@ -127,6 +127,11 @@ struct panvk_rendering_state {
+@@ -128,6 +128,11 @@ struct panvk_rendering_state {
        uint64_t last;
     } oq;
  
@@ -764,7 +767,7 @@ index 90d58924c71..83964f086e1 100644
     struct {
        uint64_t fbds[3];
     } ir;
-@@ -158,6 +163,7 @@ struct panvk_cmd_graphics_state {
+@@ -159,6 +164,7 @@ struct panvk_cmd_graphics_state {
     struct panvk_occlusion_query_state occlusion_query;
  #if PAN_ARCH >= 10
     struct panvk_prims_generated_query_state prims_generated_query;

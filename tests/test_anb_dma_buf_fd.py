@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Execute the ANB dma-buf fd finder exported by patch 0178."""
+"""Test the ANB dma-buf fd finder in the G615 profile series."""
 
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PATCH = ROOT / "patches/jm-v7-wip/0178-vulkan-android-find-dma-buf-among-anb-handle-fds.patch"
+PATCH = ROOT / "patches/android/018-vulkan-android-find-dma-buf-among-anb-handle-fds.patch"
 NAME = "vk_android_find_anb_dma_buf_fd"
 
 
@@ -113,6 +114,64 @@ int main(void)
         self.assertIn("-   int dma_buf_fd = anb->handle->data[0];", text)
         self.assertIn("+      vk_android_find_anb_dma_buf_fd(device, anb->handle, &fd_props);", text)
 
+    def test_patch_series_selects_correct_port(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            git = tmp / "git"
+            git.write_text(
+                '#!/bin/sh\n'
+                'printf "%s\\n" "$*" >> "$TEST_GIT_LOG"\n'
+                'case " $* " in *" rev-parse "*) echo 5a07217f;; esac\n'
+            )
+            git.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{tmp}{os.pathsep}{env['PATH']}"
+            env["TEST_GIT_LOG"] = str(tmp / "git.log")
+
+            def replay(script, *args):
+                mesa = tmp / "mesa"
+                mesa.mkdir(exist_ok=True)
+                (tmp / "git.log").write_text("")
+                subprocess.run(
+                    ["sh", str(ROOT / "scripts" / script), "--mesa", str(mesa), *args],
+                    env=env, check=True, stdout=subprocess.DEVNULL,
+                )
+                return (tmp / "git.log").read_text().splitlines()
+
+            main = replay("apply-patches.sh", "--profile", "g615-v11-csf")
+            self.assertEqual(sum(f"apply {PATCH}" in line for line in main), 1)
+            self.assertFalse(any("/patches/jm-v7-wip/" in line for line in main))
+            self.assertFalse(any("/patches/jm-v9/" in line or "/patches/jm-v7/" in line
+                                 for line in main))
+            experimental = ROOT / "patches/experimental-kbase-sync"
+            opted_in = replay("apply-patches.sh", "--profile", "g615-v11-csf",
+                              "--with-kbase-sync")
+            sync_patches = [
+                experimental / "002-android-release-queue-mesa27.patch",
+                experimental / "003-kbase-coalesce-mem-sync.patch",
+                experimental / "004-kbase-sync-file-waiter-lifetime.patch",
+                experimental / "005-kbase-avoid-wait-any-spin.patch",
+            ]
+            self.assertEqual(main, opted_in)
+            applied = [line for line in main if line.startswith("-C ") and
+                       f" apply {experimental}/" in line]
+            self.assertEqual(len(applied), 4)
+            for line, patch in zip(applied, sync_patches):
+                self.assertIn(f"apply {patch}", line)
+            self.assertGreater(
+                opted_in.index(applied[0]),
+                max(i for i, line in enumerate(opted_in)
+                    if " apply " in line and "/patches/csf-v11/" in line),
+            )
+
+            rejected = subprocess.run(
+                ["sh", str(ROOT / "scripts/apply-patches.sh"),
+                 "--profile", "g610-v10-csf", "--with-kbase-sync",
+                 "--mesa", str(tmp / "mesa")],
+                env=env, capture_output=True, text=True,
+            )
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("requires --profile g615-v11-csf", rejected.stderr)
 
 if __name__ == "__main__":
     unittest.main()

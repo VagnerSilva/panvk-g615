@@ -22,7 +22,7 @@ index 2555e1416e2..3a85310cca9 100644
  #include "util/u_atomic.h"
  #include "git_sha1.h"
  
-@@ -1620,6 +1621,24 @@ panvk_GetPhysicalDeviceCooperativeMatrixPropertiesKHR(
+@@ -1674,6 +1675,24 @@ panvk_GetPhysicalDeviceCooperativeMatrixPropertiesKHR(
     return vk_outarray_status(&out);
  }
  
@@ -47,7 +47,7 @@ index 2555e1416e2..3a85310cca9 100644
  VKAPI_ATTR void VKAPI_CALL
  panvk_GetPhysicalDeviceMemoryProperties2(
     VkPhysicalDevice physicalDevice,
-@@ -1659,8 +1678,9 @@ panvk_GetPhysicalDeviceMemoryProperties2(
+@@ -1713,8 +1732,9 @@ panvk_GetPhysicalDeviceMemoryProperties2(
           p->heapUsage[0] = used;
  
           /* Set the budget at 90% of available to avoid thrashing */
@@ -63,10 +63,11 @@ diff --git a/src/panfrost/vulkan/panvk_physical_device.h b/src/panfrost/vulkan/p
 index f840aefcd3d..bf7e00e0c56 100644
 --- a/src/panfrost/vulkan/panvk_physical_device.h
 +++ b/src/panfrost/vulkan/panvk_physical_device.h
-@@ -72,6 +72,8 @@ struct panvk_physical_device {
+@@ -81,7 +81,9 @@ struct panvk_physical_device {
  
        uint64_t max_supported_va;
-       alignas(8) uint64_t heap_used;
+ 
+       struct panvk_heap_budget *budget;
 +      alignas(8) uint64_t available;
 +      alignas(8) uint64_t available_ns;
     } memory;
